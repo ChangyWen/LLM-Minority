@@ -5,6 +5,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from agents import chat
 import re
 import random
+import time
 
 
 def extract_from_tags(text, tag):
@@ -102,3 +103,4 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"Error in ranking resumes: {e}")
             continue
+        time.sleep(1)
