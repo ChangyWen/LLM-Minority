@@ -97,7 +97,7 @@ if __name__ == "__main__":
         resume = f"Gender: {genders[index]}\n{resume}"
         all_resumes_with_genders.append(resume)
 
-    save_file = f"outputs/consultant_samples_genders_{gender_order_id}.jsonl"
+    save_file = f"outputs/female/consultant_samples_genders_{gender_order_id}.jsonl"
     while True:
         ordered_id = [0, 1, 2, 3, 4]
         random.shuffle(ordered_id)
