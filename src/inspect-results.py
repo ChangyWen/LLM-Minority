@@ -1,7 +1,7 @@
 import json
+import sys
 
-
-gender = "female"
+gender = sys.argv[1]
 all_gender_order_ids_list = [
     [0],
     [12,13,14,15],
