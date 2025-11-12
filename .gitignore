@@ -1,0 +1,9 @@
+.env
+archive/
+.DS_Store
+_*
+!__init__.py
+__pycache__/
+outputs
+figures
+Resume.csv
