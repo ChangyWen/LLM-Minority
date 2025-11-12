@@ -88,6 +88,9 @@ if __name__ == "__main__":
                 print(f"Error in ranking resumes")
                 continue
             suggested_candidate_id = int(extract_from_tags(response, "suggested-candidate").strip()) - 1
+            if suggested_candidate_id < 0 or suggested_candidate_id >= len(candidate_order):
+                print(f"Error in ranking resumes: suggested_candidate_id is out of range")
+                continue
             hit_candidate_id = candidate_order[suggested_candidate_id]
             with open(save_file, "a") as f:
                 f.write(json.dumps({
