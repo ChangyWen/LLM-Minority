@@ -9,7 +9,7 @@ if __name__ == "__main__":
     same_gender_count_to_hit_count = {}
 
     total_count = 0
-    with open("outputs/contextual/gender/consultant_samples.jsonl", "r") as f:
+    with open("outputs/contextual/Gender/consultant_samples.jsonl", "r") as f:
         for line in f:
             total_count += 1
             item = json.loads(line)
@@ -33,4 +33,4 @@ if __name__ == "__main__":
         hit_count = 0
         if same_gender_count in same_gender_count_to_hit_count:
             hit_count = same_gender_count_to_hit_count[same_gender_count]
-        print(f"same_gender_count: {same_gender_count}, count: {count}, hit_rate: {(hit_count / count):.2f}")
+        print(f"same_gender_count: {same_gender_count}, count: {count}, hit_rate: {(hit_count / count):.4f}")
