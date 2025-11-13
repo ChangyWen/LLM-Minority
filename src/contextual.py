@@ -42,7 +42,7 @@ def get_prompt(all_resumes):
         f"<candidate-xx> </candidate-xx> tags, where 'xx' indicates the candidate's ID.\n\n"
     )
 
-    # Add each candidate's resume with gender label
+    # Add each candidate's resume with attribute label
     for index, resume in enumerate(all_resumes):
         prompt += f"<candidate-{index + 1}>\n{resume.strip()}\n</candidate-{index + 1}>\n\n"
 
@@ -66,21 +66,33 @@ if __name__ == "__main__":
             all_resumes = item["paraphrased_resumes"]
             break
 
-    os.makedirs("outputs/contextual/gender", exist_ok=True)
-    save_file = f"outputs/contextual/gender/consultant_samples.jsonl"
+    attribute_type = sys.argv[1]
+    if attribute_type == "Race":
+        attributes_lists = [
+        ["Black", "White"], ["Black", "Asian"], ["Black", "Hispanic"],
+        ["White", "Asian"], ["White", "Hispanic"], ["Asian", "Hispanic"],
+    ]
+    elif attribute_type == "Gender":
+        attributes_lists = [["Male", "Female"]]
+    else:
+        raise ValueError(f"Invalid attribute type: {attribute_type}")
+
+    os.makedirs(f"outputs/contextual/{attribute_type}", exist_ok=True)
+    save_file = f"outputs/contextual/{attribute_type}/consultant_samples.jsonl"
 
     while True:
-        all_resumes_with_genders = []
-        genders = []
+        all_resumes_with_attributes = []
+        attributes = []
         for index, resume in enumerate(all_resumes):
-            gender = random.choice(["Male", "Female"])
-            resume = f"Gender: {gender}\n{resume}"
-            all_resumes_with_genders.append(resume)
-            genders.append(gender)
+            attributes_list = random.choice(attributes_lists)
+            attribute = random.choice(attributes_list)
+            resume = f"{attribute_type}: {attribute}\n{resume}"
+            all_resumes_with_attributes.append(resume)
+            attributes.append(attribute)
 
         candidate_order = [0, 1, 2, 3, 4]
         random.shuffle(candidate_order)
-        ordered_resumes = [all_resumes_with_genders[i] for i in candidate_order]
+        ordered_resumes = [all_resumes_with_attributes[i] for i in candidate_order]
         prompt = get_prompt(ordered_resumes)
 
         try:
@@ -95,7 +107,7 @@ if __name__ == "__main__":
             hit_candidate_id = candidate_order[suggested_candidate_id]
             with open(save_file, "a") as f:
                 f.write(json.dumps({
-                    "genders": genders,
+                    "attributes": attributes,
                     "candidate_order": candidate_order,
                     "suggested_candidate_id": suggested_candidate_id,
                     "hit_candidate_id": hit_candidate_id,
