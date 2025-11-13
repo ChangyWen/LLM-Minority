@@ -33,19 +33,3 @@ if __name__ == "__main__":
         if same_gender_count in same_gender_count_to_hit_count:
             hit_count = same_gender_count_to_hit_count[same_gender_count]
         print(f"same_gender_count: {same_gender_count}, count: {count}, hit_rate: {(hit_count / count):.2f}")
-
-    #         if same_gender_count not in same_gender_count_to_candidate_to_count:
-    #             same_gender_count_to_candidate_to_count[same_gender_count] = {}
-    #         if hit_candidate_id not in same_gender_count_to_candidate_to_count[same_gender_count]:
-    #             same_gender_count_to_candidate_to_count[same_gender_count][hit_candidate_id] = 0
-    #         same_gender_count_to_candidate_to_count[same_gender_count][hit_candidate_id] += 1
-
-    # temp = 0
-    # for same_gender_count, candidate_to_count in same_gender_count_to_candidate_to_count.items():
-    #     print(f"same_gender_count: {same_gender_count}")
-    #     for candidate, count in candidate_to_count.items():
-    #         print(f"candidate: {candidate}, count: {count}")
-    #         temp += count
-
-    # print(f"total_count: {total_count}")
-    # print(f"temp: {temp}")
