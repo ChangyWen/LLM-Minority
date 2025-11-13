@@ -5,6 +5,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from agents import chat
 import re
 import random
+import time
 
 
 def extract_from_tags(text, tag):
@@ -58,8 +59,6 @@ def get_prompt(all_resumes):
 
 
 if __name__ == "__main__":
-    gender_order_id = int(sys.argv[1])
-
     all_resumes = []
     with open("dataset/consultant_samples_paraphrased.jsonl", "r") as f:
         for line in f:
@@ -67,62 +66,41 @@ if __name__ == "__main__":
             all_resumes = item["paraphrased_resumes"]
             break
 
-    all_resumes_with_genders = []
-    genders_list = [
-        # 1 female + 4 males
-        ["Female", "Male", "Male", "Male", "Male"],
-        # 1 female + (4 females)
-        ["Female", "Female", "Female", "Female", "Female"],
-        # 1 female + (3 females + 1 male)
-        ["Female", "Female", "Female", "Female", "Male"],
-        ["Female", "Female", "Female", "Male", "Female"],
-        ["Female", "Female", "Male", "Female", "Male"],
-        ["Female", "Male", "Female", "Female", "Female"],
-        # 1 female + (2 females + 2 males)
-        ["Female", "Female", "Female", "Male", "Male"],
-        ["Female", "Female", "Male", "Female", "Male"],
-        ["Female", "Female", "Male", "Male", "Female"],
-        ["Female", "Male", "Female", "Female", "Male"],
-        ["Female", "Male", "Female", "Male", "Female"],
-        ["Female", "Male", "Male", "Female", "Female"],
-        # 1 female + (1 female + 3 males)
-        ["Female", "Female", "Male", "Male", "Male"],
-        ["Female", "Male", "Female", "Male", "Male"],
-        ["Female", "Male", "Male", "Female", "Male"],
-        ["Female", "Male", "Male", "Male", "Female"],
-    ]
-    print(len(all_resumes))
-    genders = genders_list[gender_order_id]
-    for index, resume in enumerate(all_resumes):
-        resume = f"Gender: {genders[index]}\n{resume}"
-        all_resumes_with_genders.append(resume)
+    os.makedirs("outputs/contextual/gender", exist_ok=True)
+    save_file = f"outputs/contextual/gender/consultant_samples.jsonl"
 
-    save_file = f"outputs/female/consultant_samples_genders_{gender_order_id}.jsonl"
     while True:
-        ordered_id = [0, 1, 2, 3, 4]
-        random.shuffle(ordered_id)
+        all_resumes_with_genders = []
+        genders = []
+        for index, resume in enumerate(all_resumes):
+            gender = random.choice(["Male", "Female"])
+            resume = f"Gender: {gender}\n{resume}"
+            all_resumes_with_genders.append(resume)
+            genders.append(gender)
 
-        ordered_resumes = [all_resumes_with_genders[i] for i in ordered_id]
+        candidate_order = [0, 1, 2, 3, 4]
+        random.shuffle(candidate_order)
+        ordered_resumes = [all_resumes_with_genders[i] for i in candidate_order]
         prompt = get_prompt(ordered_resumes)
+
         try:
             response = complete(prompt, model_name="msra-gpt-4o", reasoning_effort_or_thinking_budget=None)
             if response is None:
                 print(f"Error in ranking resumes")
                 continue
             suggested_candidate_id = int(extract_from_tags(response, "suggested-candidate").strip()) - 1
-            if suggested_candidate_id == ordered_id.index(0):
-                hit = True
-            else:
-                hit = False
+            if suggested_candidate_id < 0 or suggested_candidate_id >= len(candidate_order):
+                print(f"Error in ranking resumes: suggested_candidate_id is out of range")
+                continue
+            hit_candidate_id = candidate_order[suggested_candidate_id]
             with open(save_file, "a") as f:
                 f.write(json.dumps({
                     "genders": genders,
-                    "gender_order_id": gender_order_id,
-                    "ordered_id": ordered_id,
+                    "candidate_order": candidate_order,
                     "suggested_candidate_id": suggested_candidate_id,
-                    "target_candidate_id": ordered_id.index(0),
-                    "hit": hit,
+                    "hit_candidate_id": hit_candidate_id,
                 }) + "\n")
         except Exception as e:
             print(f"Error in ranking resumes: {e}")
             continue
+        time.sleep(1)
