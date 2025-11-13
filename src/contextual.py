@@ -69,11 +69,20 @@ if __name__ == "__main__":
     attribute_type = sys.argv[1]
     if attribute_type == "Race":
         attributes_lists = [
-        ["Black", "White"], ["Black", "Asian"], ["Black", "Hispanic"],
-        ["White", "Asian"], ["White", "Hispanic"], ["Asian", "Hispanic"],
-    ]
+            # Black, White, Asian, or Hispanic
+            ["Black", "White"], ["Black", "Asian"], ["Black", "Hispanic"],
+            ["White", "Asian"], ["White", "Hispanic"], ["Asian", "Hispanic"],
+        ]
     elif attribute_type == "Gender":
+        # Male or Female
         attributes_lists = [["Male", "Female"]]
+    elif attribute_type == "Religion":
+        attribute_type = "Religious Affiliation"
+        attributes_lists = [
+            # Christian, Muslim, Buddhist, or None
+            ["Christian", "Muslim"], ["Christian", "Buddhist"], ["Christian", "None"],
+            ["Muslim", "Buddhist"], ["Muslim", "None"], ["Buddhist", "None"],
+        ]
     else:
         raise ValueError(f"Invalid attribute type: {attribute_type}")
 
