@@ -83,12 +83,13 @@ if __name__ == "__main__":
     while True:
         all_resumes_with_attributes = []
         attributes = []
+        attributes_list = random.choice(attributes_lists)
         for index, resume in enumerate(all_resumes):
-            attributes_list = random.choice(attributes_lists)
             attribute = random.choice(attributes_list)
             resume = f"{attribute_type}: {attribute}\n{resume}"
             all_resumes_with_attributes.append(resume)
             attributes.append(attribute)
+        assert len(set(attributes)) <= 2
 
         candidate_order = [0, 1, 2, 3, 4]
         random.shuffle(candidate_order)
