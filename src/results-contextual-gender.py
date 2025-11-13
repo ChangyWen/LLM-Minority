@@ -8,7 +8,7 @@ if __name__ == "__main__":
     same_gender_count_to_hit_count = {}
 
     total_count = 0
-    with open("outputs/rand/consultant_samples.jsonl", "r") as f:
+    with open("outputs/contextual/gender/consultant_samples.jsonl", "r") as f:
         for line in f:
             total_count += 1
             item = json.loads(line)
