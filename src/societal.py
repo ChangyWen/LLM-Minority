@@ -94,6 +94,7 @@ if __name__ == "__main__":
         all_resumes_with_attributes = []
         attributes_list = random.choice(attributes_lists)
         attributes = attributes_list
+        random.shuffle(attributes)
 
         for idx, candidate_id in enumerate(candidate_order):
             resume = all_resumes[candidate_id]
