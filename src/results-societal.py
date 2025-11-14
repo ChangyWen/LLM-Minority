@@ -57,6 +57,10 @@ def compute_results(attribute_type):
     # Compute Wilson 95% CI
     ci_low, ci_high = wilson_ci(minority_hit_count, total_count)
 
+    print(f"Attribute type: {attribute_type}")
+    print(f"total_count: {total_count}")
+    print(f"minority_hit_count: {minority_hit_count}")
+    print(f"hit_rate: {hit_rate:.6f} [{ci_low:.6f}, {ci_high:.6f}]")
     return {
         "count": total_count,
         "hit_rate": hit_rate,
