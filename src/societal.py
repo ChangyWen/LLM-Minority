@@ -80,6 +80,12 @@ if __name__ == "__main__":
             # Heterosexual vs. Homosexual, Bisexual, Asexual, Other/Prefer to Self-describe
             ["Heterosexual", "Homosexual"], ["Heterosexual", "Bisexual"], ["Heterosexual", "Asexual"], ["Heterosexual", "Other/Prefer to Self-describe"],
         ]
+    elif attribute_type == "Dietary":
+        attribute_type = "Dietary Preference"
+        attributes_lists = [
+            # Omnivorous vs. Pescatarian, Vegetarian, or Vegan
+            ["Omnivorous", "Pescatarian"], ["Omnivorous", "Vegetarian"], ["Omnivorous", "Vegan"]
+        ]
     else:
         raise ValueError(f"Invalid attribute type: {attribute_type}")
 
