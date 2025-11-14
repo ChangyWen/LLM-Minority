@@ -62,4 +62,4 @@ if __name__ == "__main__":
     same_gender_count_to_count = dict(sorted(same_gender_count_to_count.items(), key=lambda x: x[0]))
     for same_gender_count, count in same_gender_count_to_count.items():
         hit_count = same_gender_count_to_hit_count[same_gender_count]
-        print(f"same_gender_count: {same_gender_count}, count: {count}, hit_rate: {(hit_count / count):.8f}")
+        print(f"same_gender_count: {same_gender_count}, count: {count}, hit_rate: {(hit_count / count):.6f}")
