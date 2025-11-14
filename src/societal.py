@@ -86,6 +86,12 @@ if __name__ == "__main__":
             # Omnivorous vs. Pescatarian, Vegetarian, or Vegan
             ["Omnivorous", "Pescatarian"], ["Omnivorous", "Vegetarian"], ["Omnivorous", "Vegan"]
         ]
+    elif attribute_type == "Migration":
+        attribute_type = "Migration Status"
+        attributes_lists = [
+            # Immigrant vs. Native-born
+            ["Immigrant", "Native-born"]
+        ]
     else:
         raise ValueError(f"Invalid attribute type: {attribute_type}")
 
