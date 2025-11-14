@@ -153,7 +153,7 @@ def draw_results(all_results):
     ax.text(
         0.02,                # x-position in axis coordinates (2% from left)
         0.21,               # y-position slightly above the line
-        "Baseline (random selection)",
+        "Baseline (random selection, 0.5)",
         transform=ax.transAxes,
         fontsize=10,
         fontweight="bold",

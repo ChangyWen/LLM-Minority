@@ -155,7 +155,7 @@ def draw_results(all_results):
     # Optional annotation for baseline
     ax.text(
         0.02, 0.157,
-        "Baseline (random selection)",
+        "Baseline (random selection, 0.2)",
         transform=ax.get_yaxis_transform(),  # x in data coords, y in axis coords
         fontsize=9,
         fontweight="bold",
@@ -178,7 +178,7 @@ def draw_results(all_results):
     for spine in ["top", "right"]:
         ax.spines[spine].set_visible(False)
 
-    ax.legend(title="Attribute type", fontsize=9, title_fontsize=10)
+    ax.legend(title="Attribute type", fontsize=12, title_fontsize=13, markerscale=1.6)
 
     plt.tight_layout()
     save_file = "outputs/contextual.png"
