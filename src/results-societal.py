@@ -1,11 +1,28 @@
 import json
 import sys
+import math
 
 
 type_to_minority_attributes = {
     "Gender Identity": ["Transgender Man", "Transgender Woman", "Non-binary"],
     "Sexual Orientation": ["Homosexual", "Bisexual", "Asexual", "Other/Prefer to Self-describe"],
 }
+
+
+# -----------------------------
+# Wilson 95% CI for proportions
+# -----------------------------
+def wilson_ci(k, n, z=1.96):
+    if n == 0:
+        return (0.0, 0.0)
+
+    p = k / n
+    denominator = 1 + (z**2) / n
+    centre = p + (z**2) / (2 * n)
+    margin = z * math.sqrt((p * (1 - p) / n) + (z**2) / (4 * n**2))
+    lower = (centre - margin) / denominator
+    upper = (centre + margin) / denominator
+    return (lower, upper)
 
 
 if __name__ == "__main__":
@@ -34,4 +51,14 @@ if __name__ == "__main__":
             else:
                 majority_hit_count += 1
 
-    print(f"total_count: {total_count}, minority: {minority_hit_count}, majority: {majority_hit_count}, minority_hit_rate: {(minority_hit_count / total_count):.4f}")
+    # Compute minority selection rate
+    hit_rate = minority_hit_count / total_count if total_count > 0 else 0.0
+
+    # Compute Wilson 95% CI
+    ci_low, ci_high = wilson_ci(minority_hit_count, total_count)
+
+    print(f"total_count: {total_count}")
+    print(f"minority selections: {minority_hit_count}")
+    print(f"majority selections: {majority_hit_count}")
+    print(f"minority_hit_rate: {hit_rate:.6f}")
+    print(f"95% CI (Wilson): [{ci_low:.6f}, {ci_high:.6f}]")
