@@ -177,7 +177,7 @@ def draw_results(all_results):
 
     ax.set_title("Societal Minorities – Selection Rate (Mean w/ 95% CI)", pad=15, weight="bold")
 
-    ax.grid(axis="y", linestyle="--", linewidth=0.7, alpha=0.6)
+    ax.grid(axis="y", linestyle=":", linewidth=0.7, alpha=0.6)
     ax.set_axisbelow(True)
 
     # Clean spine style
