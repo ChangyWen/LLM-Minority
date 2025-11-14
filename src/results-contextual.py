@@ -9,17 +9,23 @@ if __name__ == "__main__":
     same_gender_count_to_hit_count = {}
 
     total_count = 0
-    with open("outputs/contextual/Gender/consultant_samples.jsonl", "r") as f:
+    attribute_type = sys.argv[1]
+
+    with open(f"outputs/contextual/{attribute_type}/consultant_samples.jsonl", "r") as f:
         for line in f:
             total_count += 1
             item = json.loads(line)
-            genders = item["genders"]
+            if "genders" in item:
+                attributes = item["genders"]
+            else:
+                attributes = item["attributes"]
+
             candidate_order = item["candidate_order"]
             suggested_candidate_id = item["suggested_candidate_id"]
             hit_candidate_id = item["hit_candidate_id"]
 
             for candidate_id in [0, 1, 2, 3, 4]:
-                same_gender_count = genders.count(genders[candidate_id]) - 1
+                same_gender_count = attributes.count(attributes[candidate_id]) - 1
                 if same_gender_count not in same_gender_count_to_count:
                     same_gender_count_to_count[same_gender_count] = 0
                 same_gender_count_to_count[same_gender_count] += 1
