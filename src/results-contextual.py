@@ -144,6 +144,26 @@ def draw_results(all_results):
             capsize=8,
         )
 
+    # Baseline at 0.20 (1 out of 5 candidates)
+    ax.axhline(
+        y=0.20,
+        color="red",
+        linestyle="-",
+        linewidth=1.2,
+        alpha=0.8,
+    )
+    # Optional annotation for baseline
+    ax.text(
+        0.02, 0.157,
+        "Baseline (random selection)",
+        transform=ax.get_yaxis_transform(),  # x in data coords, y in axis coords
+        fontsize=9,
+        fontweight="bold",
+        color="red",
+        ha="left",
+        va="bottom",
+    )
+
     ax.set_xticks([0, 1, 2, 3, 4])
     ax.set_xlim(-0.1, 4.1)
 
@@ -151,7 +171,7 @@ def draw_results(all_results):
     ax.set_ylabel("Selection rate of randomly anchored candidate", fontsize=11, fontweight="bold")
     ax.set_title("Contextual Minority – Selection Rate vs. Same-attribute Count\n(Mean w/ 95% CI)", pad=15, weight="bold")
 
-    ax.grid(axis="y", linestyle="--", linewidth=0.7, alpha=0.6)
+    ax.grid(axis="y", linestyle=":", linewidth=0.7, alpha=0.6)
     ax.set_axisbelow(True)
 
     # Remove top/right spines for a cleaner look
