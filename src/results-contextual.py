@@ -39,4 +39,4 @@ if __name__ == "__main__":
         hit_count = 0
         if same_gender_count in same_gender_count_to_hit_count:
             hit_count = same_gender_count_to_hit_count[same_gender_count]
-        print(f"same_gender_count: {same_gender_count}, count: {count}, hit_rate: {(hit_count / count):.4f}")
+        print(f"same_gender_count: {same_gender_count}, count: {count}, hit_rate: {(hit_count / count):.8f}")
