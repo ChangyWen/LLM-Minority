@@ -9,6 +9,8 @@ import numpy as np
 type_to_minority_attributes = {
     "Gender Identity": ["Transgender Man", "Transgender Woman", "Non-binary"],
     "Sexual Orientation": ["Homosexual", "Bisexual", "Asexual", "Other/Prefer to Self-describe"],
+    "Dietary Preference": ["Pescatarian", "Vegetarian", "Vegan"],
+    "Migration Status": ["Immigrant"],
 }
 
 
@@ -85,11 +87,11 @@ def draw_results(all_results):
         "axes.linewidth": 0.8,
     })
 
-    attribute_types = ["Gender Identity", "Sexual Orientation"]
+    attribute_types = ["Gender Identity", "Sexual Orientation", "Migration Status", "Dietary Preference"]
     xlabels = attribute_types
 
-    # x = np.arange(len(attribute_types))
-    x = np.array([-0.3, 0.3])
+    x = np.arange(len(attribute_types))
+    x = np.array([-0.3 + i * 0.3 for i in range(len(attribute_types))])
 
     # Use Set2 palette like your other plots
     palette = sns.color_palette("Set2", len(attribute_types))
@@ -114,7 +116,7 @@ def draw_results(all_results):
             mean,
             yerr=yerr,
             marker="o",
-            markersize=8,
+            markersize=4,
             capsize=15,
             capthick=5,
             linestyle="none",
@@ -168,8 +170,8 @@ def draw_results(all_results):
 
     # Formatting
     ax.set_xticks(x)
-    ax.set_xlim(-0.6, 0.6)
-    ax.set_xticklabels(xlabels, rotation=0, ha="center", fontweight="bold")
+    ax.set_xlim(x[0] - 0.15, x[-1] + 0.15)
+    ax.set_xticklabels(xlabels, rotation=15, ha="center", fontweight="bold")
 
     # Color xtick labels to match point colors
     for i, tick in enumerate(ax.get_xticklabels()):
@@ -197,7 +199,7 @@ def draw_results(all_results):
 if __name__ == "__main__":
 
     all_results = {}
-    for attribute_type in ["Gender Identity", "Sexual Orientation"]:
+    for attribute_type in ["Gender Identity", "Sexual Orientation", "Dietary Preference", "Migration Status"]:
         results = compute_results(attribute_type)
         all_results[attribute_type] = results
 

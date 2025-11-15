@@ -136,7 +136,7 @@ def draw_results(all_results):
             ys,
             yerr=yerr,
             marker=markers[i],
-            markersize=5,
+            markersize=4,
             linewidth=1.5,
             linestyle="-",
             label=attribute_type,
