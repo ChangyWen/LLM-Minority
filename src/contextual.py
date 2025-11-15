@@ -75,7 +75,7 @@ if __name__ == "__main__":
     elif attribute_type == "Gender":
         # Male or Female
         attributes_lists = [["Male", "Female"]]
-    elif attribute_type == "Religius Affiliation":
+    elif attribute_type == "Religious Affiliation":
         attributes_lists = [
             # Christian, Muslim, Hindu, Buddhist, or Unaffiliated
             ["Christian", "Muslim"], ["Christian", "Buddhist"], ["Christian", "Unaffiliated"], ["Christian", "Hindu"],
