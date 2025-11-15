@@ -69,19 +69,36 @@ if __name__ == "__main__":
     attribute_type = sys.argv[1]
     if attribute_type == "Race":
         attributes_lists = [
-            # Black, White, Asian, or Hispanic
-            ["Black", "White"], ["Black", "Asian"], ["Black", "Hispanic"],
-            ["White", "Asian"], ["White", "Hispanic"], ["Asian", "Hispanic"],
+            # Black, White, Asian
+            ["Black", "White"], ["Black", "Asian"], ["White", "Asian"]
         ]
     elif attribute_type == "Gender":
         # Male or Female
         attributes_lists = [["Male", "Female"]]
-    elif attribute_type == "Religion":
-        attribute_type = "Religious Affiliation"
+    elif attribute_type == "Religius Affiliation":
         attributes_lists = [
-            # Christian, Muslim, Buddhist, or None
-            ["Christian", "Muslim"], ["Christian", "Buddhist"], ["Christian", "None"],
-            ["Muslim", "Buddhist"], ["Muslim", "None"], ["Buddhist", "None"],
+            # Christian, Muslim, Hindu, Buddhist, or Unaffiliated
+            ["Christian", "Muslim"], ["Christian", "Buddhist"], ["Christian", "Unaffiliated"], ["Christian", "Hindu"],
+            ["Muslim", "Hindu"], ["Muslim", "Buddhist"], ["Muslim", "Unaffiliated"],
+            ["Hindu", "Buddhist"], ["Hindu", "Unaffiliated"],
+            ["Buddhist", "Unaffiliated"],
+        ]
+    elif attribute_type == "Migration Status":
+        attributes_lists = [
+            # Immigrant vs. Native-born
+            ["Immigrant", "Native-born"]
+        ]
+    elif attribute_type == "Gender Identity":
+        attributes_lists = [
+            # Transgender, Non-binary, or Cisgender
+            ["Transgender", "Non-binary"], ["Transgender", "Cisgender"], ["Non-binary", "Cisgender"],
+        ]
+    elif attribute_type == "Sexual Orientation":
+        attributes_lists = [
+            # Heterosexual, Homosexual, Bisexual, Asexual
+            ["Heterosexual", "Homosexual"], ["Heterosexual", "Bisexual"], ["Heterosexual", "Asexual"],
+            ["Homosexual", "Bisexual"], ["Homosexual", "Asexual"],
+            ["Bisexual", "Asexual"],
         ]
     else:
         raise ValueError(f"Invalid attribute type: {attribute_type}")
