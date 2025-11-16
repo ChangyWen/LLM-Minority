@@ -6,6 +6,22 @@ from agents import chat
 import re
 import random
 import time
+from itertools import combinations
+
+
+def compositions_with_zeros(n, k=2):
+    """
+    Generate all k-tuples of non-negative integers that sum to n.
+    """
+    # Choose positions for k-1 bars among n + k - 1 slots
+    for bars in combinations(range(n + k - 1), k - 1):
+        # Add sentinel endpoints for easier diff computation
+        bars = (-1,) + bars + (n + k - 1,)
+        # The number of stars between bars is each component
+        tuple_vals = []
+        for i in range(len(bars) - 1):
+            tuple_vals.append(bars[i+1] - bars[i] - 1)
+        yield tuple(tuple_vals)
 
 
 def extract_from_tags(text, tag):
@@ -83,11 +99,6 @@ if __name__ == "__main__":
             ["Hindu", "Buddhist"], ["Hindu", "Unaffiliated"],
             ["Buddhist", "Unaffiliated"],
         ]
-    elif attribute_type == "Migration Status":
-        attributes_lists = [
-            # Immigrant vs. Native-born
-            ["Immigrant", "Native-born"]
-        ]
     elif attribute_type == "Gender Identity":
         attributes_lists = [
             # Transgender, Non-binary, or Cisgender
@@ -100,6 +111,11 @@ if __name__ == "__main__":
             ["Homosexual", "Bisexual"], ["Homosexual", "Asexual"],
             ["Bisexual", "Asexual"],
         ]
+    elif attribute_type == "Migration Status":
+        attributes_lists = [
+            # Immigrant vs. Native-born
+            ["Immigrant", "Native-born"]
+        ]
     else:
         raise ValueError(f"Invalid attribute type: {attribute_type}")
 
@@ -107,20 +123,29 @@ if __name__ == "__main__":
     save_file = f"outputs/contextual/{attribute_type}/consultant_samples.jsonl"
 
     while True:
-        all_resumes_with_attributes = []
+        candidate_order = [i for i in range(len(all_resumes))]
+        random.shuffle(candidate_order)
+        ordered_resumes = [all_resumes[i] for i in candidate_order]
+
+        all_combos = list(compositions_with_zeros(len(all_resumes)))[:(len(all_resumes) // 2 + 1)]
+        combo = random.choice(all_combos)
+
+        attribute_values_list = random.choice(attributes_lists)
+        random.shuffle(attribute_values_list)
+
         attributes = []
-        attributes_list = random.choice(attributes_lists)
-        for index, resume in enumerate(all_resumes):
-            attribute = random.choice(attributes_list)
-            resume = f"{attribute_type}: {attribute}\n{resume}"
-            all_resumes_with_attributes.append(resume)
-            attributes.append(attribute)
+        for count, attribute_value in zip(combo, attribute_values_list):
+            attributes.extend([attribute_value] * count)
+        random.shuffle(attributes)
         assert len(set(attributes)) <= 2
 
-        candidate_order = [0, 1, 2, 3, 4]
-        random.shuffle(candidate_order)
-        ordered_resumes = [all_resumes_with_attributes[i] for i in candidate_order]
-        prompt = get_prompt(ordered_resumes)
+        ordered_resumes_with_attributes = []
+
+        for attribute, resume in zip(attributes, ordered_resumes):
+            resume = f"{attribute_type}: {attribute}\n{resume}"
+            ordered_resumes_with_attributes.append(resume)
+
+        prompt = get_prompt(ordered_resumes_with_attributes)
 
         try:
             response = complete(prompt, model_name="msra-gpt-4o", reasoning_effort_or_thinking_budget=None)
