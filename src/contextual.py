@@ -81,6 +81,7 @@ if __name__ == "__main__":
             item = json.loads(line)
             all_resumes = item["paraphrased_resumes"]
             break
+    all_combos = list(compositions_with_zeros(len(all_resumes)))[:(len(all_resumes) // 2 + 1)]
 
     attribute_type = sys.argv[1]
     if attribute_type == "Race":
@@ -127,7 +128,6 @@ if __name__ == "__main__":
         random.shuffle(candidate_order)
         ordered_resumes = [all_resumes[i] for i in candidate_order]
 
-        all_combos = list(compositions_with_zeros(len(all_resumes)))[:(len(all_resumes) // 2 + 1)]
         combo = random.choice(all_combos)
 
         attribute_values_list = random.choice(attributes_lists)
