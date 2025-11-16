@@ -38,14 +38,10 @@ def compute_results(attribute_type, resume_count):
         # print(f"part {anchor_index}: {end_index - start_index + 1}; start_index: {start_index}, end_index: {end_index}")
 
         if anchor_index not in anchor_index_to_results:
-            anchor_index_to_results[anchor_index] = {
+            anchor_index_to_results[anchor_index] = defaultdict(lambda: {
                 "same_attr_count_to_count": defaultdict(int),
                 "same_attr_count_to_hit_count": defaultdict(int),
-                "attr_value_to_results": defaultdict(lambda: {
-                    "same_attr_count_to_count": defaultdict(int),
-                    "same_attr_count_to_hit_count": defaultdict(int),
-                }),
-            }
+            })
 
         cur_index = 0
         with open(f"outputs/contextual/{attribute_type}/consultant_samples_{resume_count}.jsonl", "r") as f:
@@ -61,12 +57,12 @@ def compute_results(attribute_type, resume_count):
 
                 # record the results for the anchor attribute
                 same_attr_count = attributes.count(attributes[anchor_index]) - 1
-                anchor_index_to_results[anchor_index]["same_attr_count_to_count"][same_attr_count] += 1
-                anchor_index_to_results[anchor_index]["same_attr_count_to_hit_count"][same_attr_count] += (1 if anchor_index == hit_candidate_id else 0)
+                anchor_index_to_results[anchor_index]["all_attr_values"]["same_attr_count_to_count"][same_attr_count] += 1
+                anchor_index_to_results[anchor_index]["all_attr_values"]["same_attr_count_to_hit_count"][same_attr_count] += (1 if anchor_index == hit_candidate_id else 0)
 
                 anchor_index_attr_value = attributes[candidate_order.index(anchor_index)]
-                anchor_index_to_results[anchor_index]["attr_value_to_results"][anchor_index_attr_value]["same_attr_count_to_count"][same_attr_count] += 1
-                anchor_index_to_results[anchor_index]["attr_value_to_results"][anchor_index_attr_value]["same_attr_count_to_hit_count"][same_attr_count] += (1 if anchor_index == hit_candidate_id else 0)
+                anchor_index_to_results[anchor_index][anchor_index_attr_value]["same_attr_count_to_count"][same_attr_count] += 1
+                anchor_index_to_results[anchor_index][anchor_index_attr_value]["same_attr_count_to_hit_count"][same_attr_count] += (1 if anchor_index == hit_candidate_id else 0)
                 # TODO: revise from here
 
     same_attr_count_to_count = defaultdict(int)
