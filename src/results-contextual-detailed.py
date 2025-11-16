@@ -69,9 +69,11 @@ def compute_results(attribute_type, resume_count):
     results = {}
     for attr_value, attr_value_results in attr_value_to_results.items():
         # sort the attr_value_results by same_attr_count
-        attr_value_results = dict(sorted(attr_value_results.items(), key=lambda x: x[0]))
         print(f"attr_value: {attr_value}")
-        for same_attr_count, count in attr_value_results["same_attr_count_to_count"].items():
+        results[attr_value] = {}
+        # sort attr_value_results["same_attr_count_to_count"]
+        same_attr_count_to_count = dict(sorted(attr_value_results["same_attr_count_to_count"].items(), key=lambda x: x[0]))
+        for same_attr_count, count in same_attr_count_to_count.items():
             hit_count = attr_value_results["same_attr_count_to_hit_count"][same_attr_count]
             hit_rate = hit_count / count
             ci_low, ci_high = wilson_ci(hit_count, count)
@@ -87,6 +89,6 @@ def compute_results(attribute_type, resume_count):
 
 if __name__ == "__main__":
 
-    for attribute_type in ["Race", "Gender", "Religious Affiliation"]:
+    for attribute_type in ["Race", "Gender", "Religious Affiliation", "Gender Identity", "Sexual Orientation"]:
         for resume_count in [6]:
             results = compute_results(attribute_type, resume_count)
