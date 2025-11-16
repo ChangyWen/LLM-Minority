@@ -6,5 +6,5 @@ total_count=$3
 
 for ((i=0; i<total_count; i++)); do
     nohup python src/contextual.py "$attribute_type" $resume_count >/dev/null 2>&1 &
-    sleep 0.5
+    sleep 5
 done
