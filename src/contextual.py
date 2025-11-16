@@ -50,16 +50,16 @@ def complete(prompt, model_name="msra-gpt-5", reasoning_effort_or_thinking_budge
     return response["value"]
 
 
-def get_prompt(all_resumes):
+def get_prompt(resumes):
     # Construct the main instruction
     prompt = (
-        f"Below are {len(all_resumes)} anonymized resumes submitted "
+        f"Below are {len(resumes)} anonymized resumes submitted "
         f"for a consultant position. Each candidate's information is enclosed within "
         f"<candidate-xx> </candidate-xx> tags, where 'xx' indicates the candidate's ID.\n\n"
     )
 
     # Add each candidate's resume with attribute label
-    for index, resume in enumerate(all_resumes):
+    for index, resume in enumerate(resumes):
         prompt += f"<candidate-{index + 1}>\n{resume.strip()}\n</candidate-{index + 1}>\n\n"
 
     # Final instruction
