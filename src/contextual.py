@@ -133,6 +133,7 @@ if __name__ == "__main__":
         random.shuffle(candidate_order)
         candidate_order = candidate_order[:total_count]
         ordered_resumes = [all_resumes[i] for i in candidate_order]
+        assert len(ordered_resumes) == total_count
 
         combo = random.choice(all_combos)
 
@@ -144,6 +145,7 @@ if __name__ == "__main__":
             attributes.extend([attribute_value] * count)
         random.shuffle(attributes)
         assert len(set(attributes)) <= 2
+        assert len(attributes) == total_count
 
         ordered_resumes_with_attributes = []
 
