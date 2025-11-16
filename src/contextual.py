@@ -81,9 +81,10 @@ if __name__ == "__main__":
             item = json.loads(line)
             all_resumes = item["paraphrased_resumes"]
             break
-    all_combos = list(compositions_with_zeros(len(all_resumes)))[:(len(all_resumes) // 2 + 1)]
 
     attribute_type = sys.argv[1]
+    total_count = int(sys.argv[2])
+
     if attribute_type == "Race":
         attributes_lists = [
             # Black, White, Asian
@@ -123,11 +124,14 @@ if __name__ == "__main__":
         raise ValueError(f"Invalid attribute type: {attribute_type}")
 
     os.makedirs(f"outputs/contextual/{attribute_type}", exist_ok=True)
-    save_file = f"outputs/contextual/{attribute_type}/consultant_samples_{len(all_resumes)}.jsonl"
+    save_file = f"outputs/contextual/{attribute_type}/consultant_samples_{len(total_count)}.jsonl"
+
+    all_combos = list(compositions_with_zeros(total_count))[:(total_count // 2 + 1)]
 
     while True:
         candidate_order = [i for i in range(len(all_resumes))]
         random.shuffle(candidate_order)
+        candidate_order = candidate_order[:total_count]
         ordered_resumes = [all_resumes[i] for i in candidate_order]
 
         combo = random.choice(all_combos)
