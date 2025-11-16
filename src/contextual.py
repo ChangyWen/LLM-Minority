@@ -129,8 +129,9 @@ if __name__ == "__main__":
     all_combos = list(compositions_with_zeros(total_count))[:(total_count // 2 + 1)]
 
     while True:
-        candidate_order = [i for i in range(len(all_resumes))][:total_count]
+        candidate_order = [i for i in range(len(all_resumes))]
         random.shuffle(candidate_order)
+        candidate_order = candidate_order[:total_count]
         ordered_resumes = [all_resumes[i] for i in candidate_order]
         assert len(ordered_resumes) == total_count
 
