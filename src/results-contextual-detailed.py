@@ -23,25 +23,22 @@ def wilson_ci(k, n, z=1.96):
 
 
 def compute_results(attribute_type, resume_count):
-    anchor_index_to_results = {}
-
     total_count = 0
 
     # check the total count of the file
     with open(f"outputs/contextual/{attribute_type}/consultant_samples_{resume_count}.jsonl", "r") as f:
         total_count = sum(1 for _ in f)
-    part_size = total_count // resume_count
+    part_size = total_count // 6
 
-    for anchor_index in range(resume_count):
+    attr_value_to_results = defaultdict(lambda: {
+        "same_attr_count_to_count": defaultdict(int),
+        "same_attr_count_to_hit_count": defaultdict(int),
+    })
+
+    for anchor_index in range(6):
         start_index = anchor_index * part_size
         end_index = start_index + part_size - 1
         # print(f"part {anchor_index}: {end_index - start_index + 1}; start_index: {start_index}, end_index: {end_index}")
-
-        if anchor_index not in anchor_index_to_results:
-            anchor_index_to_results[anchor_index] = defaultdict(lambda: {
-                "same_attr_count_to_count": defaultdict(int),
-                "same_attr_count_to_hit_count": defaultdict(int),
-            })
 
         cur_index = 0
         with open(f"outputs/contextual/{attribute_type}/consultant_samples_{resume_count}.jsonl", "r") as f:
@@ -55,40 +52,35 @@ def compute_results(attribute_type, resume_count):
                 hit_candidate_id = item["hit_candidate_id"]
                 candidate_order = item["candidate_order"]
 
-                # record the results for the anchor attribute
-                same_attr_count = attributes.count(attributes[anchor_index]) - 1
-                anchor_index_to_results[anchor_index]["all_attr_values"]["same_attr_count_to_count"][same_attr_count] += 1
-                anchor_index_to_results[anchor_index]["all_attr_values"]["same_attr_count_to_hit_count"][same_attr_count] += (1 if anchor_index == hit_candidate_id else 0)
+                if anchor_index not in candidate_order:
+                    continue
 
                 anchor_index_attr_value = attributes[candidate_order.index(anchor_index)]
-                anchor_index_to_results[anchor_index][anchor_index_attr_value]["same_attr_count_to_count"][same_attr_count] += 1
-                anchor_index_to_results[anchor_index][anchor_index_attr_value]["same_attr_count_to_hit_count"][same_attr_count] += (1 if anchor_index == hit_candidate_id else 0)
-                # TODO: revise from here
 
-    same_attr_count_to_count = defaultdict(int)
-    same_attr_count_to_hit_count = defaultdict(int)
+                # record the results for the anchor attribute
+                same_attr_count = attributes.count(anchor_index_attr_value) - 1
+                attr_value_to_results["all_attr_values"]["same_attr_count_to_count"][same_attr_count] += 1
+                attr_value_to_results["all_attr_values"]["same_attr_count_to_hit_count"][same_attr_count] += (1 if anchor_index == hit_candidate_id else 0)
 
-    for anchor_index, results in anchor_index_to_results.items():
-        for same_attr_count, count in results["same_attr_count_to_count"].items():
-            same_attr_count_to_count[same_attr_count] += count
-        for same_attr_count, hit_count in results["same_attr_count_to_hit_count"].items():
-            same_attr_count_to_hit_count[same_attr_count] += hit_count
-
-    same_attr_count_to_count = dict(sorted(same_attr_count_to_count.items(), key=lambda x: x[0]))
+                attr_value_to_results[anchor_index_attr_value]["same_attr_count_to_count"][same_attr_count] += 1
+                attr_value_to_results[anchor_index_attr_value]["same_attr_count_to_hit_count"][same_attr_count] += (1 if anchor_index == hit_candidate_id else 0)
 
     print(f"Attribute type: {attribute_type}")
     results = {}
-    for same_attr_count, count in same_attr_count_to_count.items():
-        hit_count = same_attr_count_to_hit_count[same_attr_count]
-        hit_rate = hit_count / count
-        ci_low, ci_high = wilson_ci(hit_count, count)
-        print(f"same_attr_count: {same_attr_count}, count: {count}, hit_rate: {hit_rate:.6f} [{ci_low:.6f}, {ci_high:.6f}]")
-        results[same_attr_count] = {
-            "count": count,
-            "hit_rate": hit_rate,
-            "ci_low": ci_low,
-            "ci_high": ci_high,
-        }
+    for attr_value, attr_value_results in attr_value_to_results.items():
+        # sort the attr_value_results by same_attr_count
+        attr_value_results = dict(sorted(attr_value_results.items(), key=lambda x: x[0]))
+        print(f"attr_value: {attr_value}")
+        for same_attr_count, count in attr_value_results["same_attr_count_to_count"].items():
+            hit_count = attr_value_results["same_attr_count_to_hit_count"][same_attr_count]
+            hit_rate = hit_count / count
+            ci_low, ci_high = wilson_ci(hit_count, count)
+            print(f"same_attr_count: {same_attr_count}, total: {count}, hit_rate: {hit_rate:.6f} [{ci_low:.6f}, {ci_high:.6f}]")
+            results[attr_value][same_attr_count] = {
+                "hit_rate": hit_rate,
+                "ci_low": ci_low,
+                "ci_high": ci_high,
+            }
 
     return results
 
