@@ -95,10 +95,11 @@ if __name__ == "__main__":
     elif attribute_type == "Religious Affiliation":
         attributes_lists = [
             # Christian, Muslim, Hindu, Buddhist, or Unaffiliated
-            ["Christian", "Muslim"], ["Christian", "Buddhist"], ["Christian", "Unaffiliated"], ["Christian", "Hindu"],
-            ["Muslim", "Hindu"], ["Muslim", "Buddhist"], ["Muslim", "Unaffiliated"],
-            ["Hindu", "Buddhist"], ["Hindu", "Unaffiliated"],
-            ["Buddhist", "Unaffiliated"],
+            ["Christian", "Muslim"], ["Christian", "Hindu"], ["Muslim", "Hindu"],
+            # ["Christian", "Buddhist"], ["Christian", "Unaffiliated"],
+            # ["Muslim", "Hindu"], ["Muslim", "Buddhist"], ["Muslim", "Unaffiliated"],
+            # ["Hindu", "Buddhist"], ["Hindu", "Unaffiliated"],
+            # ["Buddhist", "Unaffiliated"],
         ]
     elif attribute_type == "Gender Identity":
         attributes_lists = [
@@ -108,9 +109,10 @@ if __name__ == "__main__":
     elif attribute_type == "Sexual Orientation":
         attributes_lists = [
             # Heterosexual, Homosexual, Bisexual, Asexual
-            ["Heterosexual", "Homosexual"], ["Heterosexual", "Bisexual"], ["Heterosexual", "Asexual"],
-            ["Homosexual", "Bisexual"], ["Homosexual", "Asexual"],
-            ["Bisexual", "Asexual"],
+            ["Heterosexual", "Homosexual"], ["Heterosexual", "Bisexual"], ["Homosexual", "Bisexual"]
+            # ["Heterosexual", "Asexual"],
+            # ["Homosexual", "Bisexual"], ["Homosexual", "Asexual"],
+            # ["Bisexual", "Asexual"],
         ]
     elif attribute_type == "Migration Status":
         attributes_lists = [
@@ -121,7 +123,7 @@ if __name__ == "__main__":
         raise ValueError(f"Invalid attribute type: {attribute_type}")
 
     os.makedirs(f"outputs/contextual/{attribute_type}", exist_ok=True)
-    save_file = f"outputs/contextual/{attribute_type}/consultant_samples.jsonl"
+    save_file = f"outputs/contextual/{attribute_type}/consultant_samples_{len(all_resumes)}.jsonl"
 
     while True:
         candidate_order = [i for i in range(len(all_resumes))]
