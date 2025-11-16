@@ -124,7 +124,7 @@ if __name__ == "__main__":
         raise ValueError(f"Invalid attribute type: {attribute_type}")
 
     os.makedirs(f"outputs/contextual/{attribute_type}", exist_ok=True)
-    save_file = f"outputs/contextual/{attribute_type}/consultant_samples_{len(total_count)}.jsonl"
+    save_file = f"outputs/contextual/{attribute_type}/consultant_samples_{total_count}.jsonl"
 
     all_combos = list(compositions_with_zeros(total_count))[:(total_count // 2 + 1)]
 
