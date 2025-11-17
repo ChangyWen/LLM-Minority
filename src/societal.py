@@ -95,7 +95,7 @@ if __name__ == "__main__":
     save_file = f"outputs/societal/{attribute_type}/consultant_samples.jsonl"
 
     while True:
-        candidate_order = [0, 1, 2, 3, 4, 5, 6]
+        candidate_order = [0, 1, 2, 3, 4, 5]
         random.shuffle(candidate_order)
         candidate_order = candidate_order[:2]
 
