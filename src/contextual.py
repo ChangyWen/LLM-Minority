@@ -108,10 +108,9 @@ if __name__ == "__main__":
     elif attribute_type == "Sexual Orientation":
         attributes_lists = [
             # Heterosexual, Homosexual, Bisexual, Asexual
-            ["Heterosexual", "Homosexual"], ["Heterosexual", "Bisexual"], ["Homosexual", "Bisexual"]
-            # ["Heterosexual", "Asexual"],
-            # ["Homosexual", "Bisexual"], ["Homosexual", "Asexual"],
-            # ["Bisexual", "Asexual"],
+            ["Heterosexual", "Homosexual"], ["Heterosexual", "Bisexual"], ["Homosexual", "Bisexual"], ["Heterosexual", "Asexual"],
+            ["Homosexual", "Bisexual"], ["Homosexual", "Asexual"],
+            ["Bisexual", "Asexual"],
         ]
     elif attribute_type == "Migration Status":
         attributes_lists = [
