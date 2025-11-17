@@ -100,13 +100,6 @@ if __name__ == "__main__":
             ["Muslim", "Hindu"], ["Muslim", "Unaffiliated"],
             ["Hindu", "Unaffiliated"],
         ]
-    elif attribute_type == "Sexual Orientation":
-        attributes_lists = [
-            # Heterosexual, Homosexual, Bisexual, Asexual
-            ["Heterosexual", "Homosexual"], ["Heterosexual", "Bisexual"], ["Heterosexual", "Asexual"],
-            ["Homosexual", "Bisexual"], ["Homosexual", "Asexual"],
-            ["Bisexual", "Asexual"],
-        ]
     else:
         raise ValueError(f"Invalid attribute type: {attribute_type}")
 
