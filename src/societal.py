@@ -67,30 +67,26 @@ if __name__ == "__main__":
             break
 
     attribute_type = sys.argv[1]
-    if attribute_type == "Gender":
-        attribute_type = "Gender Identity"
+    if attribute_type == "Gender Identity":
         attributes_lists = [
             # # Transgender Man, Transgender Woman, Non-binary vs. Cisgender Man, Cisgender Woman,
             ["Cisgender Man", "Transgender Man"], ["Cisgender Man", "Transgender Woman"], ["Cisgender Man", "Non-binary"],
             ["Cisgender Woman", "Transgender Man"], ["Cisgender Woman", "Transgender Woman"], ["Cisgender Woman", "Non-binary"],
         ]
-    elif attribute_type == "Sexual":
-        attribute_type = "Sexual Orientation"
+    elif attribute_type == "Sexual Orientation":
         attributes_lists = [
-            # Heterosexual vs. Homosexual, Bisexual, Asexual, Other/Prefer to Self-describe
-            ["Heterosexual", "Homosexual"], ["Heterosexual", "Bisexual"], ["Heterosexual", "Asexual"], ["Heterosexual", "Other/Prefer to Self-describe"],
+            # Heterosexual vs. Homosexual, Bisexual, Asexual
+            ["Heterosexual", "Homosexual"], ["Heterosexual", "Bisexual"], ["Heterosexual", "Asexual"],
         ]
-    elif attribute_type == "Dietary":
-        attribute_type = "Dietary Preference"
+    elif attribute_type == "Dietary Preference":
         attributes_lists = [
             # Omnivorous vs. Pescatarian, Vegetarian, or Vegan
             ["Omnivorous", "Pescatarian"], ["Omnivorous", "Vegetarian"], ["Omnivorous", "Vegan"]
         ]
-    elif attribute_type == "Migration":
-        attribute_type = "Migration Status"
+    elif attribute_type == "Migration Status":
         attributes_lists = [
             # Immigrant vs. Native-born
-            ["Immigrant", "Native-born"]
+            ["Immigrant", "Native-born"],
         ]
     else:
         raise ValueError(f"Invalid attribute type: {attribute_type}")

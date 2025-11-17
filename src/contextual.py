@@ -100,22 +100,12 @@ if __name__ == "__main__":
             ["Muslim", "Hindu"], ["Muslim", "Unaffiliated"],
             ["Hindu", "Unaffiliated"],
         ]
-    elif attribute_type == "Gender Identity":
-        attributes_lists = [
-            # Transgender, Non-binary, or Cisgender
-            ["Transgender", "Non-binary"], ["Transgender", "Cisgender"], ["Non-binary", "Cisgender"],
-        ]
     elif attribute_type == "Sexual Orientation":
         attributes_lists = [
             # Heterosexual, Homosexual, Bisexual, Asexual
             ["Heterosexual", "Homosexual"], ["Heterosexual", "Bisexual"], ["Heterosexual", "Asexual"],
             ["Homosexual", "Bisexual"], ["Homosexual", "Asexual"],
             ["Bisexual", "Asexual"],
-        ]
-    elif attribute_type == "Migration Status":
-        attributes_lists = [
-            # Immigrant vs. Native-born
-            ["Immigrant", "Native-born"]
         ]
     else:
         raise ValueError(f"Invalid attribute type: {attribute_type}")
