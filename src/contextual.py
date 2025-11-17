@@ -95,12 +95,10 @@ if __name__ == "__main__":
         attributes_lists = [["Male", "Female"]]
     elif attribute_type == "Religious Affiliation":
         attributes_lists = [
-            # Christian, Muslim, Hindu, Buddhist, or Unaffiliated
-            ["Christian", "Muslim"], ["Christian", "Hindu"], ["Muslim", "Hindu"],
-            # ["Christian", "Buddhist"], ["Christian", "Unaffiliated"],
-            # ["Muslim", "Hindu"], ["Muslim", "Buddhist"], ["Muslim", "Unaffiliated"],
-            # ["Hindu", "Buddhist"], ["Hindu", "Unaffiliated"],
-            # ["Buddhist", "Unaffiliated"],
+            # Christian, Muslim, Hindu, or Unaffiliated
+            ["Christian", "Muslim"], ["Christian", "Hindu"], ["Christian", "Unaffiliated"],
+            ["Muslim", "Hindu"], ["Muslim", "Unaffiliated"],
+            ["Hindu", "Unaffiliated"],
         ]
     elif attribute_type == "Gender Identity":
         attributes_lists = [
@@ -126,7 +124,7 @@ if __name__ == "__main__":
     os.makedirs(f"outputs/contextual/{attribute_type}", exist_ok=True)
     save_file = f"outputs/contextual/{attribute_type}/consultant_samples_{total_count}.jsonl"
 
-    all_combos = list(compositions_with_zeros(total_count))[:(total_count // 2 + 1)]
+    all_combos = list(compositions_with_zeros(total_count))
 
     while True:
         candidate_order = [i for i in range(len(all_resumes))]
@@ -136,9 +134,7 @@ if __name__ == "__main__":
         assert len(ordered_resumes) == total_count
 
         combo = random.choice(all_combos)
-
         attribute_values_list = random.choice(attributes_lists)
-        random.shuffle(attribute_values_list)
 
         attributes = []
         for count, attribute_value in zip(combo, attribute_values_list):
@@ -172,6 +168,7 @@ if __name__ == "__main__":
                     "suggested_candidate_id": suggested_candidate_id,
                     "hit_candidate_id": hit_candidate_id,
                     "combo": combo,
+                    "attribute_values_list": attribute_values_list,
                 }) + "\n")
         except Exception as e:
             print(f"Error in ranking resumes: {e}")
