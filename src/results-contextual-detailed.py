@@ -87,8 +87,102 @@ def compute_results(attribute_type, resume_count):
     return results
 
 
+def draw_results(attribute_type, resume_count, all_results):
+    """
+    all_results: dict mapping attribute_type -> results dict (as returned by compute_results)
+    """
+    # Match your previous style
+    plt.rcParams.update({
+        "font.size": 11,
+        "axes.titlesize": 13,
+        "axes.labelsize": 11,
+        "xtick.labelsize": 10,
+        "ytick.labelsize": 10,
+        "axes.edgecolor": "gray",
+        "axes.linewidth": 0.8,
+    })
+
+    # Modern color palette
+    non_all_values = set(all_results.keys()) - {"all_attr_values"}
+    attribute_values = ["all_attr_values"] + list(non_all_values)
+    palette = sns.color_palette("Set2", len(attribute_values))
+
+    fig, ax = plt.subplots(dpi=1024)
+    baseline_value = 0
+    xticks = []
+
+    for i, attribute_value in enumerate(attribute_values):
+        res = all_results[attribute_value]
+
+        # ensure x is sorted
+        xs = sorted(res.keys())
+        xticks = xs
+        baseline_value = 1 / (len(xs))
+        ys = [res[x]["hit_rate"] for x in xs]
+
+        # asymmetric error bars from CI
+        lower_err = [res[x]["hit_rate"] - res[x]["ci_low"] for x in xs]
+        upper_err = [res[x]["ci_high"] - res[x]["hit_rate"] for x in xs]
+        yerr = [lower_err, upper_err]
+
+        ax.errorbar(
+            xs,
+            ys,
+            yerr=yerr,
+            marker="o",
+            markersize=4,
+            linewidth=1.5,
+            linestyle="-",
+            label=attribute_value if attribute_value != "all_attr_values" else "All",
+            color=palette[i],
+            capsize=8,
+        )
+
+    # Baseline at 0.20 (1 out of 5 candidates)
+    ax.axhline(
+        y=baseline_value,
+        color="red",
+        linestyle="-",
+        linewidth=1.2,
+        alpha=0.8,
+    )
+    # Optional annotation for baseline
+    ax.text(
+        0.02, baseline_value,
+        f"Random ({baseline_value:.3f})",
+        transform=ax.get_yaxis_transform(),  # x in data coords, y in axis coords
+        fontsize=9,
+        fontweight="bold",
+        color="red",
+        ha="left",
+        va="bottom",
+    )
+
+    ax.set_xticks(xticks)
+    ax.set_xlim(-0.1, len(xticks) - 1 + 0.1)
+
+    ax.set_xlabel("Number of same-attribute candidates", fontsize=11, fontweight="bold")
+    ax.set_ylabel("Selection rate of randomly anchored candidate", fontsize=11, fontweight="bold")
+    ax.set_title(f"Contextual Minority ({attribute_type}) – Selection Rate vs. Same-attribute Count\n(Mean w/ 95% CI)", pad=15, weight="bold")
+
+    ax.grid(axis="y", linestyle=":", linewidth=0.7, alpha=0.6)
+    ax.set_axisbelow(True)
+
+    # Remove top/right spines for a cleaner look
+    for spine in ["top", "right"]:
+        ax.spines[spine].set_visible(False)
+
+    ax.legend(title="Attribute type", fontsize=12, title_fontsize=13, markerscale=1.6)
+
+    plt.tight_layout()
+    save_file = f"outputs/contextual_{attribute_type}_{resume_count}.png"
+    plt.savefig(save_file, bbox_inches="tight")
+    plt.close()
+
+
 if __name__ == "__main__":
 
-    for attribute_type in ["Race", "Gender", "Religious Affiliation", "Gender Identity", "Sexual Orientation"]:
-        for resume_count in [6]:
+    for attribute_type in ["Race", "Gender"]:
+        for resume_count in [4, 6]:
             results = compute_results(attribute_type, resume_count)
+            draw_results(attribute_type, resume_count, results)
