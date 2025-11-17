@@ -8,7 +8,7 @@ import numpy as np
 
 type_to_minority_attributes = {
     "Gender Identity": ["Transgender Man", "Transgender Woman", "Non-binary"],
-    "Sexual Orientation": ["Homosexual", "Bisexual", "Asexual", "Other/Prefer to Self-describe"],
+    "Sexual Orientation": ["Homosexual", "Bisexual", "Asexual"],
     "Dietary Preference": ["Pescatarian", "Vegetarian", "Vegan"],
     "Migration Status": ["Immigrant"],
 }

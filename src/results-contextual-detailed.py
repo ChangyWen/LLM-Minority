@@ -182,7 +182,7 @@ def draw_results(attribute_type, resume_count, all_results):
 
 if __name__ == "__main__":
 
-    for attribute_type in ["Race", "Gender"]:
+    for attribute_type in ["Race", "Gender", "Religious Affiliation"]:
         for resume_count in [4, 6]:
             results = compute_results(attribute_type, resume_count)
             draw_results(attribute_type, resume_count, results)
