@@ -23,11 +23,11 @@ def wilson_ci(k, n, z=1.96):
     return (lower, upper)
 
 
-def compute_results(attribute_type, resume_count):
+def compute_results(file_name, attribute_type, resume_count):
     total_count = 0
 
     # check the total count of the file
-    with open(f"outputs/contextual/{attribute_type}/consultant_samples_{resume_count}.jsonl", "r") as f:
+    with open(file_name, "r") as f:
         total_count = sum(1 for _ in f)
     part_size = total_count // 6
 
@@ -42,7 +42,7 @@ def compute_results(attribute_type, resume_count):
         # print(f"part {anchor_index}: {end_index - start_index + 1}; start_index: {start_index}, end_index: {end_index}")
 
         cur_index = 0
-        with open(f"outputs/contextual/{attribute_type}/consultant_samples_{resume_count}.jsonl", "r") as f:
+        with open(file_name, "r") as f:
             for line in f:
                 if cur_index < start_index or cur_index > end_index:
                     cur_index += 1
@@ -88,7 +88,7 @@ def compute_results(attribute_type, resume_count):
     return results
 
 
-def draw_results(attribute_type, resume_count, all_results):
+def draw_results(model_name, attribute_type, resume_count, all_results):
     """
     all_results: dict mapping attribute_type -> results dict (as returned by compute_results)
     """
@@ -176,15 +176,17 @@ def draw_results(attribute_type, resume_count, all_results):
     ax.legend(title="Attribute type", fontsize=12, title_fontsize=13, markerscale=1.6)
 
     plt.tight_layout()
-    save_file = f"outputs/contextual_{attribute_type}_{resume_count}.png"
+    save_file = f"outputs/contextual_{model_name}_{attribute_type}_{resume_count}.png"
     plt.savefig(save_file, bbox_inches="tight")
     plt.close()
 
 
 if __name__ == "__main__":
 
-    for attribute_type in ["Race", "Gender", "Religious Affiliation", "Sexual Orientation", "Gender Identity"]:
-        for resume_count in [4, 6]:
-            if os.path.exists(f"outputs/contextual/{attribute_type}/consultant_samples_{resume_count}.jsonl"):
-                results = compute_results(attribute_type, resume_count)
-                draw_results(attribute_type, resume_count, results)
+    for attribute_type in ["Gender"]:
+        for resume_count in [5]:
+            file_name = f"outputs/contextual/{attribute_type}/msra-gpt-4o_{resume_count}.jsonl"
+            model_name = file_name.split("/")[-1].split("_")[0]
+            if os.path.exists(file_name):
+                results = compute_results(file_name, attribute_type, resume_count)
+                draw_results(model_name, attribute_type, resume_count, results)
