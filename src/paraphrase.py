@@ -96,6 +96,10 @@ if __name__ == "__main__":
                 if paraphrased_resume in paraphrases_set:
                     print(f"Error in paraphrasing resume {idx}: paraphrased_resume is already in the list")
                     continue
+                # check length is within len(resume) +/- 10% of len(resume)
+                if len(paraphrased_resume) < len(resume) * 0.9 or len(paraphrased_resume) > len(resume) * 1.1:
+                    print(f"Error in paraphrasing resume {idx}: length is not within 10% of the original length")
+                    continue
                 paraphrases_set.add(paraphrased_resume)
                 print(f"************\n{paraphrased_resume}\n\n")
                 paraphrases.append(paraphrased_resume)
