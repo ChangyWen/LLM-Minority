@@ -84,10 +84,10 @@ if __name__ == "__main__":
                 continue
             resume = item["resume"]
             print(f"paraphrasing resume {idx}:\n{resume}")
-            paraphrases = [resume]
-            paraphrases_set = set([resume])
-            while len(paraphrases) < 10:
-                prompt = prompt.format(resume=random.choice(paraphrases))
+            paraphrases = []
+            paraphrases_set = set()
+            while len(paraphrases_set) < 10:
+                prompt = prompt.format(resume=resume)
                 response = complete(prompt)
                 paraphrased_resume = extract_from_tags(response, "paraphrased-resume")
                 if paraphrased_resume is None:
