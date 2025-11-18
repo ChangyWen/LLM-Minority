@@ -54,7 +54,7 @@ def get_prompt(resumes, job_title):
     # Construct the main instruction
     prompt = (
         f"Below are {len(resumes)} anonymized resumes submitted "
-        f"for one {job_title} position. Each candidate's information is enclosed within "
+        f"for one {job_title} position. Each candidate's resume is enclosed within "
         f"<candidate-xx> </candidate-xx> tags, where 'xx' indicates the candidate's ID.\n\n"
     )
 
