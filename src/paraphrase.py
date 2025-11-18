@@ -85,6 +85,7 @@ if __name__ == "__main__":
             resume = item["resume"]
             print(f"paraphrasing resume {idx}:\n{resume}")
             paraphrases = [resume]
+            paraphrases_set = set([resume])
             while len(paraphrases) < 10:
                 prompt = prompt.format(resume=random.choice(paraphrases))
                 response = complete(prompt)
@@ -92,6 +93,10 @@ if __name__ == "__main__":
                 if paraphrased_resume is None:
                     print(f"Error in paraphrasing resume {idx}")
                     continue
+                if paraphrased_resume in paraphrases_set:
+                    print(f"Error in paraphrasing resume {idx}: paraphrased_resume is already in the list")
+                    continue
+                paraphrases_set.add(paraphrased_resume)
                 print(f"************\n{paraphrased_resume}\n\n")
                 paraphrases.append(paraphrased_resume)
             item["paraphrased_resumes"] = paraphrases
