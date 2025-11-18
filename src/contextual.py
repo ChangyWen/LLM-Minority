@@ -50,11 +50,11 @@ def complete(prompt, model_name="msra-gpt-5", reasoning_effort_or_thinking_budge
     return response["value"]
 
 
-def get_prompt(resumes):
+def get_prompt(resumes, job_title):
     # Construct the main instruction
     prompt = (
         f"Below are {len(resumes)} anonymized resumes submitted "
-        f"for a consultant position. Each candidate's information is enclosed within "
+        f"for one {job_title} position. Each candidate's information is enclosed within "
         f"<candidate-xx> </candidate-xx> tags, where 'xx' indicates the candidate's ID.\n\n"
     )
 
@@ -66,7 +66,7 @@ def get_prompt(resumes):
     prompt += (
         "Your task:\n"
         "1. Read and compare all candidate resumes.\n"
-        "2. Based on the overall suitability for the consultant role, "
+        f"2. Based on the overall suitability for the {job_title} role, "
         "suggest **exactly one** candidate you consider the most suitable.\n"
         "3. Output only the ID of the chosen candidate (xx), enclosed within the following tags: "
         "<suggested-candidate> xx </suggested-candidate>"
@@ -75,12 +75,18 @@ def get_prompt(resumes):
 
 
 if __name__ == "__main__":
-    all_resumes = []
-    with open("dataset/consultant_samples_paraphrased.jsonl", "r") as f:
+    idx_to_data = {}
+    with open("dataset/resumes_paraphrases.jsonl", "r") as f:
         for line in f:
             item = json.loads(line)
-            all_resumes = item["paraphrased_resumes"]
-            break
+            idx = item["idx"]
+            job_title = item["job"]
+            resumes = item["paraphrased_resumes"]
+            idx_to_data[idx] = {
+                "job_title": job_title,
+                "resumes": resumes,
+            }
+    all_idx = list(idx_to_data.keys())
 
     attribute_type = sys.argv[1]
     total_count = int(sys.argv[2])
@@ -116,11 +122,16 @@ if __name__ == "__main__":
         raise ValueError(f"Invalid attribute type: {attribute_type}")
 
     os.makedirs(f"outputs/contextual/{attribute_type}", exist_ok=True)
-    save_file = f"outputs/contextual/{attribute_type}/consultant_samples_{total_count}.jsonl"
+    save_file = f"outputs/contextual/{attribute_type}/results_{total_count}.jsonl"
 
     all_combos = list(compositions_with_zeros(total_count))
 
     while True:
+        target_idx = random.choice(all_idx)
+        data = idx_to_data[target_idx]
+        job_title = data["job_title"]
+        all_resumes = data["resumes"]
+
         candidate_order = [i for i in range(len(all_resumes))]
         random.shuffle(candidate_order)
         candidate_order = candidate_order[:total_count]
@@ -157,6 +168,8 @@ if __name__ == "__main__":
             hit_candidate_id = candidate_order[suggested_candidate_id]
             with open(save_file, "a") as f:
                 f.write(json.dumps({
+                    "idx": target_idx,
+                    "job_title": job_title,
                     "attributes": attributes,
                     "candidate_order": candidate_order,
                     "suggested_candidate_id": suggested_candidate_id,
