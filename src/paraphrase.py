@@ -49,6 +49,7 @@ Put the paraphrased resume within the <paraphrased-resume> </paraphrased-resume>
 if __name__ == "__main__":
     total_count = int(sys.argv[1])
     index = int(sys.argv[2])
+    random.seed(total_count)
 
     save_file = f"dataset/resumes_paraphrases.jsonl"
     idx_done = []
@@ -68,7 +69,8 @@ if __name__ == "__main__":
             idx = item["idx"]
             all_idx.add(idx)
     remaining_idx = all_idx - set(idx_done)
-    remaining_idx = sorted(list(remaining_idx))
+    # remaining_idx = sorted(list(remaining_idx))
+    random.shuffle(remaining_idx)
     remaining_idx = [remaining_idx[i::total_count] for i in range(total_count)]
     remaining_idx = remaining_idx[index]
     print(f"chunk {index} size: {len(remaining_idx)}")
