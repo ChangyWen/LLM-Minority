@@ -166,9 +166,8 @@ if __name__ == "__main__":
         job_title = data["job_title"]
         all_resumes = data["resumes"]
 
-        candidate_order = [i for i in range(len(all_resumes))]
+        candidate_order = [i for i in range(len(all_resumes))][:total_count]
         random.shuffle(candidate_order)
-        candidate_order = candidate_order[:total_count]
         ordered_resumes = [all_resumes[i] for i in candidate_order]
         assert len(ordered_resumes) == total_count
 
