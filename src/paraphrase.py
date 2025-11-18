@@ -74,6 +74,8 @@ if __name__ == "__main__":
     remaining_idx = [remaining_idx[i::total_count] for i in range(total_count)]
     remaining_idx = remaining_idx[index]
     print(f"chunk {index} size: {len(remaining_idx)}")
+    print(f"total size: {len(remaining_idx)}")
+    print(remaining_idx)
 
     with open("dataset/resumes.jsonl", "r") as f:
         for line in f:
