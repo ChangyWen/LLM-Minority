@@ -88,7 +88,9 @@ if __name__ == "__main__":
             print(f"paraphrasing resume {idx}:\n{resume}")
             paraphrases = []
             paraphrases_set = set()
-            while len(paraphrases_set) < 10:
+            repeat_count = 0
+            while len(paraphrases_set) < 10 and repeat_count < 30:
+                repeat_count += 1
                 prompt = prompt.format(resume=resume)
                 response = complete(prompt)
                 paraphrased_resume = extract_from_tags(response, "paraphrased-resume")
@@ -105,6 +107,7 @@ if __name__ == "__main__":
                 paraphrases_set.add(paraphrased_resume)
                 print(f"************\n{paraphrased_resume}\n\n")
                 paraphrases.append(paraphrased_resume)
-            item["paraphrased_resumes"] = paraphrases
+            if len(paraphrases) == 10:
+                item["paraphrased_resumes"] = paraphrases
             with open(save_file, "a") as f:
                 f.write(json.dumps(item) + "\n")
