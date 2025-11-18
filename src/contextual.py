@@ -191,7 +191,7 @@ if __name__ == "__main__":
         prompt = get_prompt(ordered_resumes_with_attributes, job_title)
 
         try:
-            response = complete(prompt, model_name="msra-gpt-4o", reasoning_effort_or_thinking_budget=None)
+            response = complete(prompt, model_name=model_name, reasoning_effort_or_thinking_budget=None)
             if response is None:
                 print(f"Error in ranking resumes")
                 continue
