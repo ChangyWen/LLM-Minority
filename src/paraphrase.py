@@ -111,5 +111,5 @@ if __name__ == "__main__":
                 paraphrases.append(paraphrased_resume)
             if len(paraphrases) == 10:
                 item["paraphrased_resumes"] = paraphrases
-            with open(save_file, "a") as f:
-                f.write(json.dumps(item) + "\n")
+                with open(save_file, "a") as f:
+                    f.write(json.dumps(item) + "\n")
