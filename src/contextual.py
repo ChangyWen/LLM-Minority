@@ -202,6 +202,7 @@ if __name__ == "__main__":
                     "hit_candidate_id": hit_candidate_id,
                     "combo": combo,
                     "attribute_values_list": attribute_values_list,
+                    "response": response,
                 }) + "\n")
         except Exception as e:
             print(f"Error in ranking resumes: {e}")
