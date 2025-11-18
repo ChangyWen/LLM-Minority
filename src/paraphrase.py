@@ -90,7 +90,7 @@ if __name__ == "__main__":
             paraphrases = []
             paraphrases_set = set()
             repeat_count = 0
-            while len(paraphrases_set) < 10 and repeat_count < 30:
+            while len(paraphrases_set) < 10 and repeat_count < 50:
                 repeat_count += 1
                 prompt = prompt.format(resume=resume)
                 response = complete(prompt)
