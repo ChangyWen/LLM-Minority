@@ -165,6 +165,8 @@ if __name__ == "__main__":
             ordered_resumes_with_attributes.append(resume)
 
         prompt = get_prompt(ordered_resumes_with_attributes, job_title)
+        print(f"prompt: {prompt}")
+        input()
 
         try:
             response = complete(prompt, model_name="msra-gpt-4o", reasoning_effort_or_thinking_budget=None)
