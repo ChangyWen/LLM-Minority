@@ -97,14 +97,6 @@ def get_data(target_idx):
 
 
 if __name__ == "__main__":
-    all_idx = set()
-    with open("dataset/resumes_paraphrases.jsonl", "r") as f:
-        for line in f:
-            item = json.loads(line)
-            idx = item["idx"]
-            all_idx.add(idx)
-    all_idx = list(all_idx)
-
     model_name = sys.argv[1]
     attribute_type = sys.argv[2]
     total_count = int(sys.argv[3])
@@ -146,9 +138,25 @@ if __name__ == "__main__":
     else:
         raise ValueError(f"Invalid attribute type: {attribute_type}")
 
-    os.makedirs(f"outputs/contextual/{attribute_type}", exist_ok=True)
-    sub_model_name = model_name.split("/")[-1]
-    save_file = f"outputs/contextual/{attribute_type}/{sub_model_name}_{total_count}.jsonl"
+
+    if "msra" in model_name:
+        os.makedirs(f"outputs/contextual/{attribute_type}", exist_ok=True)
+        sub_model_name = model_name.split("/")[-1]
+        save_file = f"outputs/contextual/{attribute_type}/{sub_model_name}_{total_count}.jsonl"
+        dataset_file = "dataset/resumes_paraphrases.jsonl"
+    else:
+        os.makedirs(f"/mnt/blob_output/v-dachengwen/LLM-Minority/contextual/{attribute_type}", exist_ok=True)
+        sub_model_name = model_name.split("/")[-1]
+        save_file = f"/mnt/blob_output/v-dachengwen/LLM-Minority/contextual/{attribute_type}/{sub_model_name}_{total_count}.jsonl"
+        dataset_file = f"/mnt/blob_output/v-dachengwen/LLM-Minority/dataset/resumes_paraphrases.jsonl"
+
+    all_idx = set()
+    with open(dataset_file, "r") as f:
+        for line in f:
+            item = json.loads(line)
+            idx = item["idx"]
+            all_idx.add(idx)
+    all_idx = list(all_idx)
 
     all_combos = list(compositions_with_zeros(total_count))
 
