@@ -17,7 +17,7 @@ def extract_from_tags(text, tag):
     return None
 
 
-def complete(prompt, model_name="msra-gpt-5", reasoning_effort_or_thinking_budget="low"):
+def complete(prompt, model_name="msra-gpt-5", reasoning_effort_or_thinking_budget="medium"):
     response = chat(
         max_retry=1,
         prompt=prompt,
@@ -38,11 +38,13 @@ Below is an anonymous resume (enclosed within the <resume> </resume> tags).
 <resume>
 {resume}
 </resume>
-Please help me paraphrase the resume.
-1. Preserve the original content. Do not add or remove any important information.
-2. Maintain a similar length.
-3. Maintain the original style and tone.
-Put the paraphrased resume within the <paraphrased-resume> </paraphrased-resume> tags at the end of the response.
+
+**Your Task:**
+Paraphrase the resume while following all requirements below:
+1. Preserve all original information. Do not add new content or remove any important details.
+2. Keep the length comparable to the original (do not significantly shorten or lengthen it).
+3. Maintain the original style and tone (e.g., professional, concise, descriptive).
+At last, put the paraphrased resume within the <paraphrased-resume> </paraphrased-resume> tags at the end of the your response.
 """.strip()
 
 
