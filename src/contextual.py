@@ -96,6 +96,8 @@ if __name__ == "__main__":
             item = json.loads(line)
             idx = item["idx"]
             all_idx.add(idx)
+            if len(all_idx) >= 200:
+                break
     all_idx = list(all_idx)
 
     attribute_type = sys.argv[1]
