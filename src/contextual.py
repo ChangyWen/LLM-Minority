@@ -35,19 +35,22 @@ def extract_from_tags(text, tag):
 
 
 def complete(prompt, model_name="msra-gpt-5", reasoning_effort_or_thinking_budget="high"):
-    response = chat(
-        max_retry=1,
-        prompt=prompt,
-        model_name=model_name,
-        enable_search=False,
-        enable_thinking=True,
-        reasoning_effort_or_thinking_budget=reasoning_effort_or_thinking_budget,
-        temperature=1.0,
-        top_p=1.0,
-    )
-    if response is None:
-        return None
-    return response["value"]
+    if "msra" in model_name:
+        response = chat(
+            max_retry=1,
+            prompt=prompt,
+            model_name=model_name,
+            enable_search=False,
+            enable_thinking=True,
+            reasoning_effort_or_thinking_budget=reasoning_effort_or_thinking_budget,
+            temperature=1.0,
+            top_p=1.0,
+        )
+        if response is None:
+            return None
+        return response["value"]
+    else:
+        pass
 
 
 def get_prompt(resumes, job_title):
