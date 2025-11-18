@@ -4,6 +4,7 @@ from collections import defaultdict
 import math
 import seaborn as sns
 import matplotlib.pyplot as plt
+import os
 
 
 # -----------------------------
@@ -182,7 +183,8 @@ def draw_results(attribute_type, resume_count, all_results):
 
 if __name__ == "__main__":
 
-    for attribute_type in ["Race", "Gender", "Religious Affiliation"]:
+    for attribute_type in ["Race", "Gender", "Religious Affiliation", "Sexual Orientation", "Gender Identity"]:
         for resume_count in [4, 6]:
-            results = compute_results(attribute_type, resume_count)
-            draw_results(attribute_type, resume_count, results)
+            if os.path.exists(f"outputs/contextual/{attribute_type}/consultant_samples_{resume_count}.jsonl"):
+                results = compute_results(attribute_type, resume_count)
+                draw_results(attribute_type, resume_count, results)

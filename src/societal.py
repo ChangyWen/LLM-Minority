@@ -91,6 +91,8 @@ if __name__ == "__main__":
     else:
         raise ValueError(f"Invalid attribute type: {attribute_type}")
 
+    # disability (红绿色盲), disease (HIV carrier), education background (高中毕业), appearance (红头发)
+
     os.makedirs(f"outputs/societal/{attribute_type}", exist_ok=True)
     save_file = f"outputs/societal/{attribute_type}/consultant_samples.jsonl"
 
