@@ -30,7 +30,7 @@ def timeout_decorator(func):
         thread = threading.Thread(target=target)
         thread.daemon = True
         thread.start()
-        timeout_in_seconds = 35
+        timeout_in_seconds = 60
         thread.join(timeout=timeout_in_seconds)
 
         if thread.is_alive():
