@@ -74,19 +74,29 @@ def get_prompt(resumes, job_title):
     return prompt
 
 
-if __name__ == "__main__":
-    idx_to_data = {}
+def get_data(target_idx):
     with open("dataset/resumes_paraphrases.jsonl", "r") as f:
         for line in f:
             item = json.loads(line)
             idx = item["idx"]
-            job_title = item["job"]
-            resumes = item["paraphrased_resumes"]
-            idx_to_data[idx] = {
-                "job_title": job_title,
-                "resumes": resumes,
-            }
-    all_idx = list(idx_to_data.keys())
+            if idx == target_idx:
+                job_title = item["job"]
+                resumes = item["paraphrased_resumes"]
+                return {
+                    "job_title": job_title,
+                    "resumes": resumes,
+                }
+    return None
+
+
+if __name__ == "__main__":
+    all_idx = set()
+    with open("dataset/resumes_paraphrases.jsonl", "r") as f:
+        for line in f:
+            item = json.loads(line)
+            idx = item["idx"]
+            all_idx.add(idx)
+    all_idx = list(all_idx)
 
     attribute_type = sys.argv[1]
     total_count = int(sys.argv[2])
@@ -128,7 +138,7 @@ if __name__ == "__main__":
 
     while True:
         target_idx = random.choice(all_idx)
-        data = idx_to_data[target_idx]
+        data = get_data(target_idx)
         job_title = data["job_title"]
         all_resumes = data["resumes"]
 
@@ -154,7 +164,9 @@ if __name__ == "__main__":
             resume = f"{attribute_type}: {attribute}\n{resume}"
             ordered_resumes_with_attributes.append(resume)
 
-        prompt = get_prompt(ordered_resumes_with_attributes)
+        prompt = get_prompt(ordered_resumes_with_attributes, job_title)
+        print(prompt)
+        input("Press Enter to continue...")
 
         try:
             response = complete(prompt, model_name="msra-gpt-4o", reasoning_effort_or_thinking_budget=None)
