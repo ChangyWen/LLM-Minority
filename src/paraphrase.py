@@ -53,7 +53,7 @@ if __name__ == "__main__":
     index = int(sys.argv[2])
     random.seed(total_count)
 
-    save_file = f"dataset/resumes_paraphrases.jsonl"
+    save_file = f"dataset/resumes_paraphrases_.jsonl"
     idx_done = []
     if not os.path.exists(save_file):
         with open(save_file, "w") as f:
