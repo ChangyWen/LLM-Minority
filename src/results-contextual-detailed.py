@@ -183,7 +183,7 @@ def draw_results(model_name, attribute_type, resume_count, all_results):
 
 if __name__ == "__main__":
 
-    for attribute_type in ["Gender"]:
+    for attribute_type in ["Gender", "Race"]:
         for resume_count in [5]:
             file_name = f"outputs/contextual/{attribute_type}/msra-gpt-4o_{resume_count}.jsonl"
             model_name = file_name.split("/")[-1].split("_")[0]
