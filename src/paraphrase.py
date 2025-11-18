@@ -85,6 +85,7 @@ if __name__ == "__main__":
             if idx not in remaining_idx:
                 continue
             resume = item["resume"]
+            original_word_count = len(resume.split())
             print(f"paraphrasing resume {idx}:\n{resume}")
             paraphrases = []
             paraphrases_set = set()
@@ -101,7 +102,8 @@ if __name__ == "__main__":
                     print(f"Error in paraphrasing resume {idx}: paraphrased_resume is already in the list")
                     continue
                 # check length is within len(resume) +/- 10% of len(resume)
-                if len(paraphrased_resume) < len(resume) * 0.92 or len(paraphrased_resume) > len(resume) * 1.08:
+                paraphrased_word_count = len(paraphrased_resume.split())
+                if paraphrased_word_count < original_word_count * 0.92 or paraphrased_word_count > original_word_count * 1.08:
                     print(f"Error in paraphrasing resume {idx}: length is not within 10% of the original length")
                     continue
                 paraphrases_set.add(paraphrased_resume)
