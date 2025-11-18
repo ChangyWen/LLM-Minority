@@ -7,6 +7,7 @@ import re
 import random
 import time
 from itertools import combinations
+from openai import OpenAI
 
 
 def compositions_with_zeros(n, k=2):
@@ -50,7 +51,10 @@ def complete(prompt, model_name="msra-gpt-5", reasoning_effort_or_thinking_budge
             return None
         return response["value"]
     else:
-        pass
+        if client is None:
+            return None
+        completion = client.chat.completions.create(model=model_name, messages=[{"role": "user", "content": prompt}])
+        return completion.choices[0].message.content
 
 
 def get_prompt(resumes, job_title):
@@ -101,8 +105,16 @@ if __name__ == "__main__":
             all_idx.add(idx)
     all_idx = list(all_idx)
 
-    attribute_type = sys.argv[1]
-    total_count = int(sys.argv[2])
+    model_name = sys.argv[1]
+    attribute_type = sys.argv[2]
+    total_count = int(sys.argv[3])
+
+    client = None
+    if "msra" not in model_name:
+        client = OpenAI(
+            base_url="http://localhost:8000/v1",
+            api_key="xxx"
+        )
 
     if attribute_type == "Race":
         attributes_lists = [
@@ -135,7 +147,8 @@ if __name__ == "__main__":
         raise ValueError(f"Invalid attribute type: {attribute_type}")
 
     os.makedirs(f"outputs/contextual/{attribute_type}", exist_ok=True)
-    save_file = f"outputs/contextual/{attribute_type}/results_{total_count}.jsonl"
+    sub_model_name = model_name.split("/")[-1]
+    save_file = f"outputs/contextual/{attribute_type}/{sub_model_name}_{total_count}.jsonl"
 
     all_combos = list(compositions_with_zeros(total_count))
 
