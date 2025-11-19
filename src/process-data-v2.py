@@ -42,7 +42,7 @@ Below is a resume (enclosed within the <resume> </resume> tags).
 **Your Task:**
 1. Read the resume carefully.
 2. Check if the resume satisfies the following criteria:
-- It does not contain the candidate's name (first name, last name, or any identifiable personal name).
+- It does not contain the candidate's name (first name, last name, initials, or any identifiable personal name of the candidate).
 - It does not contain the candidate's gender (e.g., "male", "female", or pronouns)
 - It does not contain the candidate's race (e.g., racial or ethnic identifiers such as "Black", "White", "Asian", "Hispanic", etc.).
 - It does not explicitly mention the age or the birth date of the candidate. However, references to work timelines and experience periods (e.g., "2019–2022", "10+ years of experience") are acceptable.
