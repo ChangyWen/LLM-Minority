@@ -84,33 +84,36 @@ if __name__ == "__main__":
             idx = item["idx"]
             if idx not in remaining_idx:
                 continue
-            resume = item["resume"].strip()
-            original_resume = resume
-            prompt = prompt_template.format(resume=resume)
-            response = complete(prompt)
-            job_title = extract_from_tags(response, "job-titles")
-            job_title_idx = resume.find(job_title)
-            if job_title_idx != 0:
-                print(f"Error in finding job title in resume {idx}")
-                print("********************")
-                print(resume)
-                print("--------------------------------")
-                print(response)
-                print("********************")
+            try:
+                resume = item["resume"].strip()
+                original_resume = resume
+                prompt = prompt_template.format(resume=resume)
+                response = complete(prompt)
+                job_title = extract_from_tags(response, "job-titles")
+                job_title_idx = resume.find(job_title)
+                if job_title_idx != 0:
+                    print(f"Error in finding job title in resume {idx}")
+                    print("********************")
+                    print(resume)
+                    print("--------------------------------")
+                    print(response)
+                    print("********************")
+                    continue
+                resume = resume.replace(job_title, "", 1)
+                resume = resume.strip()
+                if (job_title not in original_resume) or (resume not in original_resume):
+                    print(f"Error in finding job title in resume {idx}")
+                    print("********************")
+                    print(original_resume)
+                    print("--------------------------------")
+                    print(job_title)
+                    print("--------------------------------")
+                    print(resume)
+                    print("********************")
+                    continue
+                item["resume"] = resume
+                item["job_title"] = job_title
+                with open(save_file, "a") as f:
+                    f.write(json.dumps(item) + "\n")
+            except Exception as e:
                 continue
-            resume = resume.replace(job_title, "", 1)
-            resume = resume.strip()
-            if (job_title not in original_resume) or (resume not in original_resume):
-                print(f"Error in finding job title in resume {idx}")
-                print("********************")
-                print(original_resume)
-                print("--------------------------------")
-                print(job_title)
-                print("--------------------------------")
-                print(resume)
-                print("********************")
-                continue
-            item["resume"] = resume
-            item["job_title"] = job_title
-            with open(save_file, "a") as f:
-                f.write(json.dumps(item) + "\n")
