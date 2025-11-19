@@ -196,7 +196,7 @@ if __name__ == "__main__":
                 reasoning_effort_or_thinking_budget = None
             response = complete(prompt, model_name=model_name, reasoning_effort_or_thinking_budget=reasoning_effort_or_thinking_budget)
             if response is None:
-                print(f"Error in ranking resumes")
+                print(f"Error in ranking resumes: None response")
                 continue
             suggested_candidate_id = int(extract_from_tags(response, "suggested-candidate").strip()) - 1
             if suggested_candidate_id < 0 or suggested_candidate_id >= len(candidate_order):
