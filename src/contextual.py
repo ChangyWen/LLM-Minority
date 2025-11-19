@@ -184,10 +184,6 @@ if __name__ == "__main__":
             resume_count = sum(1 for _ in f)
             all_jobs_counts.append(math.comb(min(resume_count, pool_count), total_count))
 
-    print(f"all_jobs: {all_jobs}")
-    print(f"all_jobs_counts: {all_jobs_counts}")
-    print(f"job_to_file: {job_to_file}")
-    input()
     all_combos = list(compositions_with_zeros(total_count))
 
     while True:
@@ -214,8 +210,6 @@ if __name__ == "__main__":
             ordered_resumes_with_attributes.append(final_resume)
 
         prompt = get_prompt(ordered_resumes_with_attributes, sampled_job)
-        print(f"Prompt:\n {prompt}")
-        input()
 
         try:
             if "gpt-5" in model_name:
