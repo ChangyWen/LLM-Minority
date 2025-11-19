@@ -21,7 +21,7 @@ environment:
     - pip install mamba-ssm[causal-conv1d] --no-build-isolation
 
 code:
-  local_dir: /Users/wendacheng/Projects/LLM-Stability-v2
+  local_dir: /Users/wendacheng/Projects/LLM-Minority
 
 target:
   service: sing
