@@ -185,8 +185,8 @@ if __name__ == "__main__":
 
     for attribute_type in ["Gender", "Race"]:
         for resume_count in [5]:
-            file_name = f"outputs/contextual/{attribute_type}/msra-gpt-4o_{resume_count}.jsonl"
-            model_name = file_name.split("/")[-1].split("_")[0]
-            if os.path.exists(file_name):
-                results = compute_results(file_name, attribute_type, resume_count)
-                draw_results(model_name, attribute_type, resume_count, results)
+            for model_name in ["msra-gpt-4o", "msra-gpt-5"]:
+                file_name = f"outputs/contextual/{attribute_type}/{model_name}_{resume_count}.jsonl"
+                if os.path.exists(file_name):
+                    results = compute_results(file_name, attribute_type, resume_count)
+                    draw_results(model_name, attribute_type, resume_count, results)
