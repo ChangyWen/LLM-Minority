@@ -17,7 +17,7 @@ def extract_from_tags(text, tag):
     return None
 
 
-def complete(prompt, model_name="msra-gpt-5", reasoning_effort_or_thinking_budget="low"):
+def complete(prompt, model_name="msra-gpt-5", reasoning_effort_or_thinking_budget="high"):
     response = chat(
         max_retry=1,
         prompt=prompt,
