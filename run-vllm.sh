@@ -15,10 +15,5 @@ NUM_JOBS=3   # change this to however many parallel runs you want
 
 for i in $(seq 1 $NUM_JOBS); do
     echo "=== starting job $i ==="
-    python src/contextual.py Qwen/Qwen3-Next-80B-A3B-Instruct Gender 5 &
-done
-
-for i in $(seq 1 $NUM_JOBS); do
-    echo "=== starting job $i ==="
-    python src/contextual.py Qwen/Qwen3-Next-80B-A3B-Instruct Race 5 &
+    python src/contextual.py Qwen/Qwen3-Next-80B-A3B-Instruct Gender 4 10 &
 done
