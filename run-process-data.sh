@@ -4,6 +4,6 @@ total_count=$1
 
 
 for ((i=0; i<total_count; i++)); do
-    nohup python src/process-data.py $total_count $i >/dev/null 2>&1 &
+    nohup python src/process-data-v2.py $total_count $i >/dev/null 2>&1 &
     sleep 0.1
 done
