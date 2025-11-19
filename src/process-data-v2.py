@@ -42,11 +42,11 @@ Below is a resume (enclosed within the <resume> </resume> tags).
 **Your Task:**
 1. Read the resume carefully.
 2. Check if the resume satisfies the following criteria:
-- It does not contain the candidate's name (first name, last name, initials, or any identifiable personal name of the candidate).
-- It does not contain the candidate's gender (e.g., "male", "female", or pronouns)
-- It does not contain the candidate's race (e.g., racial or ethnic identifiers such as "Black", "White", "Asian", "Hispanic", etc.).
-- It does not explicitly mention the age or the birth date of the candidate. However, references to work timelines and experience periods (e.g., "2019–2022", "10+ years of experience") are acceptable.
-3. If the resume satisfies all the three criteria above, output "<anonymous>True</anonymous>" at the end of your response. Otherwise, output "<anonymous>False</anonymous>" with brief justification.
+- It does not contain the candidate's name (first name, last name, initials, or any identifiable personal name of the candidate). Note that mentioning other people's names is acceptable and does not violate this criterion;
+- It does not contain the candidate's gender (e.g., "male", "female", or pronouns);
+- It does not contain the candidate's race (e.g., racial or ethnic identifiers such as "Black", "White", "Asian", "Hispanic", etc.);
+- It does not explicitly mention the candidate's age or birth date. However, references to work timelines and experience periods (e.g., "2019–2022", "10+ years of experience") are acceptable and do not violate this criterion;
+3. If the resume satisfies all the four criteria above, output "<anonymous>True</anonymous>" at the end of your response. Otherwise, output "<anonymous>False</anonymous>" with brief justification.
 """.strip()
 
 
