@@ -101,7 +101,6 @@ def get_data(dataset_file, target_idx):
                 }
     return None
 
-
 if __name__ == "__main__":
     model_name = sys.argv[1]
     attribute_type = sys.argv[2]
@@ -194,6 +193,8 @@ if __name__ == "__main__":
             ordered_resumes_with_attributes.append(resume)
 
         prompt = get_prompt(ordered_resumes_with_attributes, job_title)
+        print(f"Prompt:\n {prompt}")
+        input()
 
         try:
             if "gpt-5" in model_name:

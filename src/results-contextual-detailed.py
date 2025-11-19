@@ -105,13 +105,14 @@ def draw_results(model_name, attribute_type, resume_count, all_results):
 
     # Modern color palette
     non_all_values = set(all_results.keys()) - {"all_attr_values"}
-    attribute_values = ["all_attr_values"] + list(non_all_values)
-    palette = sns.color_palette("Set2", len(attribute_values))
+    attribute_values = sorted(list(non_all_values)) + ["all_attr_values"]
+    palette = sns.color_palette("husl", len(attribute_values))
 
     fig, ax = plt.subplots(dpi=1024)
     baseline_value = 0
     xticks = []
 
+    all_barlines = []
     for i, attribute_value in enumerate(attribute_values):
         res = all_results[attribute_value]
 
@@ -126,25 +127,33 @@ def draw_results(model_name, attribute_type, resume_count, all_results):
         upper_err = [res[x]["ci_high"] - res[x]["hit_rate"] for x in xs]
         yerr = [lower_err, upper_err]
 
-        ax.errorbar(
+        line, caplines, barlines = ax.errorbar(
             xs,
             ys,
             yerr=yerr,
             marker="o",
             markersize=4,
             linewidth=1.5,
-            linestyle="-",
+            linestyle="--" if attribute_value != "all_attr_values" else "-",
             label=attribute_value if attribute_value != "all_attr_values" else "All",
             color=palette[i],
-            capsize=8,
+            capsize=4,
+            capthick=1.5,
         )
+        if attribute_value != "all_attr_values":
+            all_barlines.extend(barlines)
+
+    # barlines is a list of Line2D objects for the error bars
+    for bar in all_barlines:
+        bar.set_linestyle("--")     # or "--", ":", "-.", etc.
+        bar.set_linewidth(1.2)
 
     # Baseline at 0.20 (1 out of 5 candidates)
     ax.axhline(
         y=baseline_value,
-        color="red",
+        color="black",
         linestyle="-",
-        linewidth=1.2,
+        linewidth=1.5,
         alpha=0.8,
     )
     # Optional annotation for baseline
@@ -154,7 +163,7 @@ def draw_results(model_name, attribute_type, resume_count, all_results):
         transform=ax.get_yaxis_transform(),  # x in data coords, y in axis coords
         fontsize=9,
         fontweight="bold",
-        color="red",
+        color="black",
         ha="left",
         va="bottom",
     )
@@ -164,7 +173,8 @@ def draw_results(model_name, attribute_type, resume_count, all_results):
 
     ax.set_xlabel("Number of same-attribute candidates", fontsize=11, fontweight="bold")
     ax.set_ylabel("Selection rate of randomly anchored candidate", fontsize=11, fontweight="bold")
-    ax.set_title(f"Contextual Minority ({attribute_type}) – Selection Rate vs. Same-attribute Count\n(Mean w/ 95% CI)", pad=15, weight="bold")
+    model_name = model_name.replace("msra-", "")
+    ax.set_title(f"{model_name} ({attribute_type}) – Selection Rate vs. Same-attribute Count\n(Mean w/ 95% CI)", pad=15, weight="bold")
 
     ax.grid(axis="y", linestyle=":", linewidth=0.7, alpha=0.6)
     ax.set_axisbelow(True)
@@ -185,8 +195,9 @@ if __name__ == "__main__":
 
     for attribute_type in ["Gender", "Race"]:
         for resume_count in [5]:
-            for model_name in ["msra-gpt-4o", "msra-gpt-5"]:
+            for model_name in ["msra-gpt-4o", "msra-gpt-5", "msra-gpt-4.1-nano"]:
                 file_name = f"outputs/contextual/{attribute_type}/{model_name}_{resume_count}.jsonl"
                 if os.path.exists(file_name):
+                    print(f"------------------------------------\n\n{file_name}")
                     results = compute_results(file_name, attribute_type, resume_count)
                     draw_results(model_name, attribute_type, resume_count, results)
