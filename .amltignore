@@ -1,5 +1,5 @@
 outputs
-datasets
+dataset
 archive
 .env
 _*

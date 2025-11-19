@@ -25,7 +25,7 @@ code:
 
 target:
   service: sing
-  name: Recall
+  name: Feeds
   workspace_name: CS-NewsAndFeeds-Singularity
 
 storage:
@@ -38,7 +38,7 @@ storage:
 jobs:
 - name: llm-stability
   sku: G8-A100
-  sla_tier: Premium
+  sla_tier: Standard
   command:
     - bash run-vllm.sh
   submit_args:
