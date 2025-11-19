@@ -100,7 +100,7 @@ if __name__ == "__main__":
                 continue
             resume = resume.replace(job_title, "", 1)
             resume = resume.strip()
-            if (not original_resume.includes(job_title)) or (not original_resume.includes(resume)):
+            if (job_title not in original_resume) or (resume not in original_resume):
                 print(f"Error in finding job title in resume {idx}")
                 print("********************")
                 print(original_resume)
