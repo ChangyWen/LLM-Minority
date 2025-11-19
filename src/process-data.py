@@ -42,8 +42,8 @@ Below is an anonymous resume (enclosed within the <resume> </resume> tags).
 **Your Task:**
 1. Read the resume carefully.
 2. Identify the job title(s) listed at the very beginning of the resume.
+- "At the very beginning" means the first line(s) of the resume before any words/phrases like "Summary", "Experience", "Education", or "Executive Profile" that are not all in capital letters.
 - These may include one or multiple professional titles (e.g., "HR DIRECTOR", "FINANCE OFFICE ASSOCIATE", "LICENSED UNITED HEALTHCARE INSURANCE SALES AGENT"), typically presented in all capital letters.
-- “At the very beginning” means the first line(s) of the resume before any sections such as "Summary", "Experience", "Education", etc.
 3. Extract these job titles verbatim, without modifying capitalization, punctuation, or spacing.
 4. Extract only those job titles that are listed at the very beginning of the resume. Ignore any job titles appearing later in the resume.
 5. If one or more job titles are found, output them inside <job-titles> and </job-titles> tags at the end of your response.
