@@ -52,8 +52,14 @@ def complete(prompt, model_name="msra-gpt-5", reasoning_effort_or_thinking_budge
         return response["value"]
     else:
         if client is None:
-            return None
-        completion = client.chat.completions.create(model=model_name, messages=[{"role": "user", "content": prompt}])
+            print(f"Client is not initialized")
+            raise ValueError(f"Client is not initialized")
+        if model_name == "Qwen/Qwen3-Next-80B-A3B-Instruct":
+            temperature = 0.7
+        else:
+            print(f"Model name {model_name} not supported")
+            raise ValueError(f"Model name {model_name} not supported")
+        completion = client.chat.completions.create(model=model_name, messages=[{"role": "user", "content": prompt}], temperature=temperature)
         return completion.choices[0].message.content
 
 
