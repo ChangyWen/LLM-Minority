@@ -190,7 +190,11 @@ if __name__ == "__main__":
         prompt = get_prompt(ordered_resumes_with_attributes, job_title)
 
         try:
-            response = complete(prompt, model_name=model_name, reasoning_effort_or_thinking_budget=None)
+            if "gpt-5" in model_name:
+                reasoning_effort_or_thinking_budget = "low"
+            else:
+                reasoning_effort_or_thinking_budget = None
+            response = complete(prompt, model_name=model_name, reasoning_effort_or_thinking_budget=reasoning_effort_or_thinking_budget)
             if response is None:
                 print(f"Error in ranking resumes")
                 continue
