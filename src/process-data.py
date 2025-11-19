@@ -85,6 +85,7 @@ if __name__ == "__main__":
             if idx not in remaining_idx:
                 continue
             resume = item["resume"].strip()
+            original_resume = resume
             prompt = prompt_template.format(resume=resume)
             response = complete(prompt)
             job_title = extract_from_tags(response, "job-titles")
@@ -99,6 +100,16 @@ if __name__ == "__main__":
                 continue
             resume = resume.replace(job_title, "", 1)
             resume = resume.strip()
+            if (not original_resume.includes(job_title)) or (not original_resume.includes(resume)):
+                print(f"Error in finding job title in resume {idx}")
+                print("********************")
+                print(original_resume)
+                print("--------------------------------")
+                print(job_title)
+                print("--------------------------------")
+                print(resume)
+                print("********************")
+                continue
             item["resume"] = resume
             item["job_title"] = job_title
             with open(save_file, "a") as f:
