@@ -81,8 +81,8 @@ def get_prompt(resumes, job_title):
     return prompt
 
 
-def get_data(target_idx):
-    with open("dataset/resumes_paraphrases.jsonl", "r") as f:
+def get_data(dataset_file, target_idx):
+    with open(dataset_file, "r") as f:
         for line in f:
             item = json.loads(line)
             idx = item["idx"]
@@ -162,7 +162,7 @@ if __name__ == "__main__":
 
     while True:
         target_idx = random.choice(all_idx)
-        data = get_data(target_idx)
+        data = get_data(dataset_file, target_idx)
         job_title = data["job_title"]
         all_resumes = data["resumes"]
 
