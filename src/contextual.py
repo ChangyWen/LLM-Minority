@@ -221,7 +221,7 @@ if __name__ == "__main__":
                     "attribute_values_list": attribute_values_list,
                     "response": response,
                 }) + "\n")
-                print(f"{target_idx} -> {suggested_candidate_id} -> {hit_candidate_id} [Saved to {save_file}]")
+                print(f"{attribute_type} {target_idx} -> {suggested_candidate_id} -> {hit_candidate_id} [Saved to {save_file}]")
         except Exception as e:
             print(f"Error in ranking resumes: {e}")
             continue
