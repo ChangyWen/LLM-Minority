@@ -46,7 +46,12 @@ jobs:
     - sleep 360
     - echo "*********** Done waiting ***********"
     ######### run the job #########
-    - python src/contextual.py Qwen/Qwen3-Next-80B-A3B-Instruct Gender 5
+    - python src/contextual.py Qwen/Qwen3-Next-80B-A3B-Instruct Gender 5 &
+    - python src/contextual.py Qwen/Qwen3-Next-80B-A3B-Instruct Gender 5 &
+    - python src/contextual.py Qwen/Qwen3-Next-80B-A3B-Instruct Gender 5 &
+    - python src/contextual.py Qwen/Qwen3-Next-80B-A3B-Instruct Race 5 &
+    - python src/contextual.py Qwen/Qwen3-Next-80B-A3B-Instruct Race 5 &
+    - python src/contextual.py Qwen/Qwen3-Next-80B-A3B-Instruct Race 5 &
   submit_args:
     env:
       {
