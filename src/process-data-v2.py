@@ -34,7 +34,7 @@ def complete(prompt, model_name="msra-gpt-5", reasoning_effort_or_thinking_budge
 
 
 prompt_template = """
-Below is an anonymous resume (enclosed within the <resume> </resume> tags).
+Below is a resume (enclosed within the <resume> </resume> tags).
 <resume>
 {resume}
 </resume>
