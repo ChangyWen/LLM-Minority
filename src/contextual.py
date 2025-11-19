@@ -8,6 +8,7 @@ import random
 import time
 from itertools import combinations
 from openai import OpenAI
+import math
 
 
 def compositions_with_zeros(n, k=2):
@@ -101,10 +102,26 @@ def get_data(dataset_file, target_idx):
                 }
     return None
 
+
+def sample_resumes(job_file, total_count, pool_count):
+    all_resumes = []
+    count = 0
+    with open(job_file, "r") as f:
+        for line in f:
+            if count >= pool_count:
+                break
+            count += 1
+            item = json.loads(line)
+            all_resumes.append(item)
+    random.shuffle(all_resumes)
+    return all_resumes[:total_count]
+
+
 if __name__ == "__main__":
     model_name = sys.argv[1]
     attribute_type = sys.argv[2]
     total_count = int(sys.argv[3])
+    pool_count = int(sys.argv[4])
 
     client = None
     if "msra" not in model_name:
@@ -147,52 +164,56 @@ if __name__ == "__main__":
     if "msra" in model_name:
         os.makedirs(f"outputs/contextual/{attribute_type}", exist_ok=True)
         sub_model_name = model_name.split("/")[-1]
-        save_file = f"outputs/contextual/{attribute_type}/{sub_model_name}_{total_count}.jsonl"
+        save_file = f"outputs/contextual/{attribute_type}/{sub_model_name}_{total_count}_{pool_count}.jsonl"
+        dataset_dir = "dataset"
         dataset_file = "dataset/resumes_paraphrases.jsonl"
     else:
         os.makedirs(f"/mnt/blob_output/v-dachengwen/LLM-Minority/contextual/{attribute_type}", exist_ok=True)
         sub_model_name = model_name.split("/")[-1]
-        save_file = f"/mnt/blob_output/v-dachengwen/LLM-Minority/contextual/{attribute_type}/{sub_model_name}_{total_count}.jsonl"
+        save_file = f"/mnt/blob_output/v-dachengwen/LLM-Minority/contextual/{attribute_type}/{sub_model_name}_{total_count}_{pool_count}.jsonl"
+        dataset_dir = "/mnt/blob_output/v-dachengwen/LLM-Minority/dataset"
         dataset_file = f"/mnt/blob_output/v-dachengwen/LLM-Minority/dataset/resumes_paraphrases.jsonl"
 
-    all_idx = set()
-    with open(dataset_file, "r") as f:
-        for line in f:
-            item = json.loads(line)
-            idx = item["idx"]
-            all_idx.add(idx)
-    all_idx = list(all_idx)
+    all_job_files = [file for file in os.listdir(dataset_dir) if file.startswith("job_")]
+    all_jobs = [file[4:-6] for file in all_job_files]
+    all_jobs_counts = []
+    job_to_file = {}
+    for job, job_file in zip(all_jobs, all_job_files):
+        job_to_file[job] = os.path.join(dataset_dir, job_file)
+        with open(os.path.join(dataset_dir, job_file), "r") as f:
+            resume_count = sum(1 for _ in f)
+            all_jobs_counts.append(math.comb(min(resume_count, pool_count), total_count))
 
+    print(f"all_jobs: {all_jobs}")
+    print(f"all_jobs_counts: {all_jobs_counts}")
+    print(f"job_to_file: {job_to_file}")
+    input()
     all_combos = list(compositions_with_zeros(total_count))
 
     while True:
-        target_idx = random.choice(all_idx)
-        data = get_data(dataset_file, target_idx)
-        job_title = data["job_title"]
-        all_resumes = data["resumes"]
-
-        candidate_order = [i for i in range(len(all_resumes))][:total_count]
-        random.shuffle(candidate_order)
-        ordered_resumes = [all_resumes[i] for i in candidate_order]
-        assert len(ordered_resumes) == total_count
+        sampled_job = random.choices(all_jobs, weights=all_jobs_counts, k=1)[0]
+        sampled_file = job_to_file[sampled_job]
+        all_resume_data_list = sample_resumes(sampled_file, total_count, pool_count)
+        candidate_order = [item["idx"] for item in all_resume_data_list]
 
         combo = random.choice(all_combos)
         attribute_values_list = random.choice(attributes_lists)
-
         attributes = []
         for count, attribute_value in zip(combo, attribute_values_list):
             attributes.extend([attribute_value] * count)
         random.shuffle(attributes)
         assert len(set(attributes)) <= 2
         assert len(attributes) == total_count
+        assert len(candidate_order) == total_count
 
         ordered_resumes_with_attributes = []
+        for attribute, item in zip(attributes, all_resume_data_list):
+            resume = item["resume"]
+            job_title = item["job_title"]
+            final_resume = f"{job_title}\n{attribute_type}: {attribute}\n{resume}"
+            ordered_resumes_with_attributes.append(final_resume)
 
-        for attribute, resume in zip(attributes, ordered_resumes):
-            resume = f"{attribute_type}: {attribute}\n{resume}"
-            ordered_resumes_with_attributes.append(resume)
-
-        prompt = get_prompt(ordered_resumes_with_attributes, job_title)
+        prompt = get_prompt(ordered_resumes_with_attributes, sampled_job)
         print(f"Prompt:\n {prompt}")
         input()
 
@@ -212,8 +233,7 @@ if __name__ == "__main__":
             hit_candidate_id = candidate_order[suggested_candidate_id]
             with open(save_file, "a") as f:
                 f.write(json.dumps({
-                    "idx": target_idx,
-                    "job_title": job_title,
+                    "job": sampled_job,
                     "attributes": attributes,
                     "candidate_order": candidate_order,
                     "suggested_candidate_id": suggested_candidate_id,
@@ -222,7 +242,7 @@ if __name__ == "__main__":
                     "attribute_values_list": attribute_values_list,
                     "response": response,
                 }) + "\n")
-                print(f"{attribute_type} {target_idx} -> {suggested_candidate_id} -> {hit_candidate_id} [Saved to {save_file}]")
+                print(f"{attribute_type} {sampled_job} -> {suggested_candidate_id} -> {hit_candidate_id} [Saved to {save_file}]")
         except Exception as e:
             print(f"Error in ranking resumes: {e}")
             continue
