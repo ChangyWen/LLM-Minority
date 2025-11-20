@@ -217,7 +217,7 @@ if __name__ == "__main__":
 
     for attribute_type in ["Gender"]:
         for resume_count in [5]:
-            for model_name in ["msra-gpt-4o", "msra-gpt-4.1-nano"]:
+            for model_name in ["msra-gpt-4o", "msra-gpt-4.1-nano", "Qwen3-Next-80B-A3B-Instruct"]:
                 file_name = f"outputs/contextual/{attribute_type}/{model_name}_{resume_count}_{pool_count}.jsonl"
                 if os.path.exists(file_name):
                     print(f"------------------------------------\n\n{file_name}")

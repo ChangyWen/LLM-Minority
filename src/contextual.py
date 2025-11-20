@@ -12,6 +12,7 @@ import time
 from itertools import combinations
 from openai import OpenAI
 import math
+import time
 
 
 def compositions_with_zeros(n, k=2):
@@ -173,7 +174,8 @@ if __name__ == "__main__":
     else:
         os.makedirs(f"/mnt/blob_output/v-dachengwen/LLM-Minority/outputs/contextual/{attribute_type}", exist_ok=True)
         sub_model_name = model_name.split("/")[-1]
-        save_file = f"/mnt/blob_output/v-dachengwen/LLM-Minority/outputs/contextual/{attribute_type}/{sub_model_name}_{total_count}_{pool_count}.jsonl"
+        ts = int(time.time() * 1000)
+        save_file = f"/mnt/blob_output/v-dachengwen/LLM-Minority/outputs/contextual/{attribute_type}/{sub_model_name}_{total_count}_{pool_count}_ts{ts}_rd{random.randint(1, 1000000)}.jsonl"
         dataset_dir = "/mnt/blob_output/v-dachengwen/LLM-Minority/dataset"
         dataset_file = f"/mnt/blob_output/v-dachengwen/LLM-Minority/dataset/resumes_paraphrases.jsonl"
 
@@ -190,6 +192,7 @@ if __name__ == "__main__":
     all_combos = list(compositions_with_zeros(total_count))
 
     while True:
+        start_time = time.time()
         sampled_job = random.choices(all_jobs, weights=all_jobs_counts, k=1)[0]
         sampled_file = job_to_file[sampled_job]
         all_resume_data_list = sample_resumes(sampled_file, total_count, pool_count)
@@ -239,7 +242,7 @@ if __name__ == "__main__":
                     "attribute_values_list": attribute_values_list,
                     "response": response,
                 }) + "\n")
-                print(f"{attribute_type} {sampled_job} -> {suggested_candidate_id} -> {hit_candidate_id}")
+                print(f"{attribute_type} {sampled_job} -> {suggested_candidate_id} -> {hit_candidate_id}; [Time taken: {time.time() - start_time:.2f} seconds]")
         except Exception as e:
             print(f"Error in ranking resumes: {e}")
             continue
