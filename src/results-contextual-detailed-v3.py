@@ -23,69 +23,27 @@ def wilson_ci(k, n, z=1.96):
     return (lower, upper)
 
 
-def get_anchor_idx_to_resume_idx(pool_count):
-    dataset_dir = "dataset"
-    anchor_idx_to_resume_idx = defaultdict(set)
-    all_job_files = [file for file in os.listdir(dataset_dir) if file.startswith("job_")]
-    for job_file in all_job_files:
-        anchor_idx = 0
-        with open(os.path.join(dataset_dir, job_file), "r") as f:
-            for anchor_idx, line in enumerate(f):
-                if anchor_idx >= pool_count:
-                    break
-                item = json.loads(line)
-                resume_idx = item["idx"]
-                anchor_idx_to_resume_idx[anchor_idx].add(resume_idx)
-    return anchor_idx_to_resume_idx
-
-
-def compute_results(file_name, attribute_type, pool_count, anchor_idx_to_resume_idx, max_line=float('inf')):
-    total_count = 0
-
-    # check the total count of the file
-    with open(file_name, "r") as f:
-        total_count = sum(1 for _ in f)
-    total_count = min(total_count, max_line)
-    part_size = total_count // pool_count
+def compute_results(file_name, attribute_type):
 
     attr_value_to_results = defaultdict(lambda: {
         "same_attr_count_to_count": defaultdict(int),
         "same_attr_count_to_hit_count": defaultdict(int),
     })
 
-    for anchor_index in range(pool_count):
-        start_index = anchor_index * part_size
-        end_index = start_index + part_size - 1
-        # print(f"part {anchor_index}: {end_index - start_index + 1}; start_index: {start_index}, end_index: {end_index}")
+    with open(file_name, "r") as f:
+        for line in f:
 
-        cur_index = 0
-        with open(file_name, "r") as f:
-            for line in f:
-                if cur_index < start_index or cur_index > end_index:
-                    cur_index += 1
-                    continue
-                cur_index += 1
-                item = json.loads(line)
-                attributes = item["attributes"]
-                hit_candidate_id = item["hit_candidate_id"]
-                candidate_order = item["candidate_order"]
+            item = json.loads(line)
+            attributes = item["attributes"]
+            suggested_candidate_id = item["suggested_candidate_id"]
 
-                matched_candidate_idx = set(candidate_order) & anchor_idx_to_resume_idx[anchor_index]
-                if len(matched_candidate_idx) <= 0:
-                    print(f"No matched candidate for anchor {anchor_index}")
-                    continue
-                assert len(matched_candidate_idx) == 1
-                matched_candidate_idx = list(matched_candidate_idx)[0]
-
-                anchor_index_attr_value = attributes[candidate_order.index(matched_candidate_idx)]
-
-                # record the results for the anchor attribute
-                same_attr_count = attributes.count(anchor_index_attr_value) - 1
+            for inner_idx, attr_value in enumerate(attributes):
+                same_attr_count = attributes.count(attr_value) - 1
                 attr_value_to_results["all_attr_values"]["same_attr_count_to_count"][same_attr_count] += 1
-                attr_value_to_results["all_attr_values"]["same_attr_count_to_hit_count"][same_attr_count] += (1 if matched_candidate_idx == hit_candidate_id else 0)
+                attr_value_to_results["all_attr_values"]["same_attr_count_to_hit_count"][same_attr_count] += (1 if inner_idx == suggested_candidate_id else 0)
 
-                attr_value_to_results[anchor_index_attr_value]["same_attr_count_to_count"][same_attr_count] += 1
-                attr_value_to_results[anchor_index_attr_value]["same_attr_count_to_hit_count"][same_attr_count] += (1 if matched_candidate_idx == hit_candidate_id else 0)
+                attr_value_to_results[attr_value]["same_attr_count_to_count"][same_attr_count] += 1
+                attr_value_to_results[attr_value]["same_attr_count_to_hit_count"][same_attr_count] += (1 if inner_idx == suggested_candidate_id else 0)
 
     print(f"Attribute type: {attribute_type}")
     results = {}
@@ -207,20 +165,19 @@ def draw_results(model_name, attribute_type, resume_count, all_results):
     ax.legend(title="Attribute type", fontsize=12, title_fontsize=13, markerscale=1.6)
 
     plt.tight_layout()
-    save_file = f"outputs/contextual_{model_name}_{attribute_type}_{resume_count}.png"
+    save_file = f"outputs/contextual_{model_name}_{attribute_type}_{resume_count}-v3.png"
     plt.savefig(save_file, bbox_inches="tight")
     plt.close()
 
 
 if __name__ == "__main__":
     pool_count = 5
-    anchor_idx_to_resume_idx = get_anchor_idx_to_resume_idx(pool_count)
 
     for attribute_type in ["Gender"]:
         for resume_count in [5]:
-            for model_name in ["msra-gpt-4o", "msra-gpt-4.1-nano", "Qwen3-Next-80B-A3B-Instruct"]:
+            for model_name in ["msra-gpt-4o", "msra-gpt-4.1-nano"]:
                 file_name = f"outputs/contextual/{attribute_type}/{model_name}_{resume_count}_{pool_count}.jsonl"
                 if os.path.exists(file_name):
                     print(f"------------------------------------\n\n{file_name}")
-                    results = compute_results(file_name, attribute_type, pool_count, anchor_idx_to_resume_idx, max_line=3800000)
+                    results = compute_results(file_name, attribute_type)
                     draw_results(model_name, attribute_type, resume_count, results)

@@ -10,6 +10,8 @@ echo "*********** Waiting for vllm server to start ***********"
 sleep 600
 echo "*********** Done waiting ***********"
 
-python src/contextual.py Qwen/Qwen3-Next-80B-A3B-Instruct Gender 5 10 &
+python src/contextual.py Qwen/Qwen3-Next-80B-A3B-Instruct Gender 5 200 &
 sleep 5
-python src/contextual.py Qwen/Qwen3-Next-80B-A3B-Instruct Gender 5 10
+python src/contextual.py Qwen/Qwen3-Next-80B-A3B-Instruct Gender 5 200 &
+sleep 5
+python src/contextual.py Qwen/Qwen3-Next-80B-A3B-Instruct Gender 5 200
