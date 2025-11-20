@@ -3,13 +3,12 @@ set -x
 ######### start vllm server #########
 nohup vllm serve Qwen/Qwen3-Next-80B-A3B-Instruct \
   --tensor-parallel-size 8 \
-  --max-model-len 10240 \
+  --max-model-len 12288 \
   --port 8000 >/dev/null 2>&1 &
 
 echo "*********** Waiting for vllm server to start ***********"
 sleep 600
 echo "*********** Done waiting ***********"
 
-python src/contextual.py Qwen/Qwen3-Next-80B-A3B-Instruct Gender 4 10 &
-python src/contextual.py Qwen/Qwen3-Next-80B-A3B-Instruct Gender 4 10 &
-python src/contextual.py Qwen/Qwen3-Next-80B-A3B-Instruct Gender 4 10
+python src/contextual.py Qwen/Qwen3-Next-80B-A3B-Instruct Gender 5 10 &
+python src/contextual.py Qwen/Qwen3-Next-80B-A3B-Instruct Gender 5 10
