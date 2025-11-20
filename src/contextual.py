@@ -171,9 +171,9 @@ if __name__ == "__main__":
         dataset_dir = "dataset"
         dataset_file = "dataset/resumes_paraphrases.jsonl"
     else:
-        os.makedirs(f"/mnt/blob_output/v-dachengwen/LLM-Minority/contextual/{attribute_type}", exist_ok=True)
+        os.makedirs(f"/mnt/blob_output/v-dachengwen/LLM-Minority/outputs/contextual/{attribute_type}", exist_ok=True)
         sub_model_name = model_name.split("/")[-1]
-        save_file = f"/mnt/blob_output/v-dachengwen/LLM-Minority/contextual/{attribute_type}/{sub_model_name}_{total_count}_{pool_count}.jsonl"
+        save_file = f"/mnt/blob_output/v-dachengwen/LLM-Minority/outputs/contextual/{attribute_type}/{sub_model_name}_{total_count}_{pool_count}.jsonl"
         dataset_dir = "/mnt/blob_output/v-dachengwen/LLM-Minority/dataset"
         dataset_file = f"/mnt/blob_output/v-dachengwen/LLM-Minority/dataset/resumes_paraphrases.jsonl"
 
