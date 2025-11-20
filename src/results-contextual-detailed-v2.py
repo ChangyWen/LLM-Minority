@@ -5,22 +5,38 @@ import math
 import seaborn as sns
 import matplotlib.pyplot as plt
 import os
+import random
+import numpy as np
+from scipy import stats
 
 
-# -----------------------------
-# Wilson 95% CI for proportions
-# -----------------------------
-def wilson_ci(k, n, z=1.96):
-    if n == 0:
-        return (0.0, 0.0)
+def prob_ci_from_estimates(p_hats, alpha=0.05):
+    """
+    p_hats: list/array of independent probability estimates in [0, 1]
+    alpha: 1 - confidence level (0.05 for 95% CI)
 
-    p = k / n
-    denominator = 1 + (z**2) / n
-    centre = p + (z**2) / (2 * n)
-    margin = z * math.sqrt((p * (1 - p) / n) + (z**2) / (4 * n**2))
-    lower = (centre - margin) / denominator
-    upper = (centre + margin) / denominator
-    return (lower, upper)
+    Returns:
+        mean_estimate, lower_ci, upper_ci
+    """
+    p_hats = np.asarray(p_hats, dtype=float)
+    m = len(p_hats)
+    if m < 2:
+        raise ValueError("Need at least 2 estimates to compute a CI")
+
+    mean = p_hats.mean()
+    sd = p_hats.std(ddof=1)
+    se = sd / np.sqrt(m)
+
+    # t critical value for two-sided (1 - alpha) CI
+    tcrit = stats.t.ppf(1 - alpha / 2, df=m - 1)
+    lower = mean - tcrit * se
+    upper = mean + tcrit * se
+
+    # Clamp to [0, 1]
+    lower = max(0.0, lower)
+    upper = min(1.0, upper)
+
+    return mean, lower, upper
 
 
 def get_anchor_idx_to_resume_idx(pool_count):
@@ -41,30 +57,34 @@ def get_anchor_idx_to_resume_idx(pool_count):
 
 def compute_results(file_name, attribute_type, pool_count, anchor_idx_to_resume_idx, max_line=float('inf')):
     total_count = 0
-
     # check the total count of the file
     with open(file_name, "r") as f:
         total_count = sum(1 for _ in f)
     total_count = min(total_count, max_line)
     part_size = total_count // pool_count
 
-    attr_value_to_results = defaultdict(lambda: {
-        "same_attr_count_to_count": defaultdict(int),
-        "same_attr_count_to_hit_count": defaultdict(int),
-    })
+    print(f"Attribute type: {attribute_type}")
+    results = {}
 
-    for anchor_index in range(pool_count):
-        start_index = anchor_index * part_size
-        end_index = start_index + part_size - 1
-        # print(f"part {anchor_index}: {end_index - start_index + 1}; start_index: {start_index}, end_index: {end_index}")
+    repeat_count = 0
+    while repeat_count < 20:
+        all_line_idxs = [i for i in range(part_size * pool_count)]
+        random.shuffle(all_line_idxs)
+        line_idx_to_anchor_idx = {}
+        for abs_idx, line_idx in enumerate(all_line_idxs):
+            anchor_idx = abs_idx // part_size
+            line_idx_to_anchor_idx[line_idx] = anchor_idx
 
-        cur_index = 0
+        attr_value_to_results = defaultdict(lambda: {
+            "same_attr_count_to_count": defaultdict(int),
+            "same_attr_count_to_hit_count": defaultdict(int),
+        })
+
         with open(file_name, "r") as f:
-            for line in f:
-                if cur_index < start_index or cur_index > end_index:
-                    cur_index += 1
-                    continue
-                cur_index += 1
+            for line_idx, line in enumerate(f):
+                if line_idx >= part_size * pool_count:
+                    break
+                anchor_index = line_idx_to_anchor_idx[line_idx]
                 item = json.loads(line)
                 attributes = item["attributes"]
                 hit_candidate_id = item["hit_candidate_id"]
@@ -87,24 +107,27 @@ def compute_results(file_name, attribute_type, pool_count, anchor_idx_to_resume_
                 attr_value_to_results[anchor_index_attr_value]["same_attr_count_to_count"][same_attr_count] += 1
                 attr_value_to_results[anchor_index_attr_value]["same_attr_count_to_hit_count"][same_attr_count] += (1 if matched_candidate_idx == hit_candidate_id else 0)
 
-    print(f"Attribute type: {attribute_type}")
-    results = {}
-    for attr_value, attr_value_results in attr_value_to_results.items():
-        # sort the attr_value_results by same_attr_count
+        for attr_value, attr_value_results in attr_value_to_results.items():
+            if attr_value not in results:
+                results[attr_value] = {}
+            same_attr_count_to_count = dict(sorted(attr_value_results["same_attr_count_to_count"].items(), key=lambda x: x[0]))
+            for same_attr_count, count in same_attr_count_to_count.items():
+                if same_attr_count not in results[attr_value]:
+                    results[attr_value][same_attr_count] = {"hit_rate": []}
+                hit_count = attr_value_results["same_attr_count_to_hit_count"][same_attr_count]
+                hit_rate = hit_count / count
+                results[attr_value][same_attr_count]["hit_rate"].append(hit_rate)
+        repeat_count += 1
+
+    for attr_value, attr_value_results in results.items():
         print(f"attr_value: {attr_value}")
-        results[attr_value] = {}
-        # sort attr_value_results["same_attr_count_to_count"]
-        same_attr_count_to_count = dict(sorted(attr_value_results["same_attr_count_to_count"].items(), key=lambda x: x[0]))
-        for same_attr_count, count in same_attr_count_to_count.items():
-            hit_count = attr_value_results["same_attr_count_to_hit_count"][same_attr_count]
-            hit_rate = hit_count / count
-            ci_low, ci_high = wilson_ci(hit_count, count)
-            print(f"same_attr_count: {same_attr_count}, total: {count}, hit_rate: {hit_rate:.6f} [{ci_low:.6f}, {ci_high:.6f}]")
-            results[attr_value][same_attr_count] = {
-                "hit_rate": hit_rate,
-                "ci_low": ci_low,
-                "ci_high": ci_high,
-            }
+        for same_attr_count, same_attr_count_results in attr_value_results.items():
+            all_hit_rates = same_attr_count_results["hit_rate"]
+            mean_hit_rate, lower_ci, upper_ci = prob_ci_from_estimates(all_hit_rates)
+            print(f"same_attr_count: {same_attr_count}, hit_rate: {mean_hit_rate:.6f} [{lower_ci:.6f}, {upper_ci:.6f}]")
+            same_attr_count_results["hit_rate"] = mean_hit_rate
+            same_attr_count_results["ci_low"] = lower_ci
+            same_attr_count_results["ci_high"] = upper_ci
 
     return results
 
@@ -207,7 +230,7 @@ def draw_results(model_name, attribute_type, resume_count, all_results):
     ax.legend(title="Attribute type", fontsize=12, title_fontsize=13, markerscale=1.6)
 
     plt.tight_layout()
-    save_file = f"outputs/contextual_{model_name}_{attribute_type}_{resume_count}.png"
+    save_file = f"outputs/contextual_{model_name}_{attribute_type}_{resume_count}-v2.png"
     plt.savefig(save_file, bbox_inches="tight")
     plt.close()
 
@@ -218,7 +241,7 @@ if __name__ == "__main__":
 
     for attribute_type in ["Gender"]:
         for resume_count in [5]:
-            for model_name in ["msra-gpt-4o", "msra-gpt-4.1-nano", "Qwen3-Next-80B-A3B-Instruct"]:
+            for model_name in ["msra-gpt-4.1-nano", "msra-gpt-4o"]:
                 file_name = f"outputs/contextual/{attribute_type}/{model_name}_{resume_count}_{pool_count}.jsonl"
                 if os.path.exists(file_name):
                     print(f"------------------------------------\n\n{file_name}")
