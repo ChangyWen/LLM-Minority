@@ -165,7 +165,7 @@ def draw_results(model_name, attribute_type, resume_count, all_results):
     ax.legend(title="Attribute type", fontsize=12, title_fontsize=13, markerscale=1.6)
 
     plt.tight_layout()
-    save_file = f"outputs/contextual_{model_name}_{attribute_type}_{resume_count}-v3.png"
+    save_file = f"outputs/contextual_{model_name}_{attribute_type}_{resume_count}.png"
     plt.savefig(save_file, bbox_inches="tight")
     plt.close()
 
