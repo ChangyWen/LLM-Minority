@@ -96,9 +96,9 @@ def draw_results(model_name, attribute_type, resume_count, all_results):
         res = all_results[attribute_value]
 
         # ensure x is sorted
-        xs = sorted(res.keys())
+        xs = sorted(res.keys())[:-1]
         xticks = xs
-        baseline_value = 1 / (len(xs))
+        baseline_value = 1 / (len(xs) + 1)
         ys = [res[x]["hit_rate"] for x in xs]
 
         # asymmetric error bars from CI
