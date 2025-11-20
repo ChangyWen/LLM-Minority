@@ -171,11 +171,11 @@ def draw_results(model_name, attribute_type, resume_count, all_results):
 
 
 if __name__ == "__main__":
-    pool_count = 5
+    pool_count = 200
 
     for attribute_type in ["Gender"]:
         for resume_count in [5]:
-            for model_name in ["msra-gpt-4o", "msra-gpt-4.1-nano"]:
+            for model_name in ["msra-gpt-4o", "msra-gpt-4.1-nano", "Qwen3-Next-80B-A3B-Instruct"]:
                 file_name = f"outputs/contextual/{attribute_type}/{model_name}_{resume_count}_{pool_count}.jsonl"
                 if os.path.exists(file_name):
                     print(f"------------------------------------\n\n{file_name}")
