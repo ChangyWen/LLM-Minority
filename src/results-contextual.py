@@ -120,6 +120,8 @@ def draw_results(model_name, attribute_type, resume_count, all_results, n_trials
     all_barlines = []
     for i, attribute_value in enumerate(attribute_values):
         res = all_results[attribute_value]
+        global_test_p_value = res["global_test_p_value"]
+        del res["global_test_p_value"]
 
         # ensure x is sorted
         xs = sorted(res.keys())
@@ -179,7 +181,7 @@ def draw_results(model_name, attribute_type, resume_count, all_results, n_trials
     ax.set_xlabel("Number of same-attribute candidates", fontsize=11, fontweight="bold")
     ax.set_ylabel("Selection rate of randomly anchored candidate", fontsize=11, fontweight="bold")
     model_name = model_name.replace("msra-", "")
-    ax.set_title(f"{attribute_type} ({model_name})\n# of trials: {n_trials}; Mean w/ 95% CI", pad=15, weight="bold")
+    ax.set_title(f"{attribute_type} ({model_name})\nMean w/ 95% CI", pad=15, weight="bold")
 
     ax.grid(axis="y", linestyle=":", linewidth=0.7, alpha=0.6)
     ax.set_axisbelow(True)
