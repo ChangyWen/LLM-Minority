@@ -212,8 +212,8 @@ if __name__ == "__main__":
         for attribute, item in zip(attributes, all_resume_data_list):
             resume = item["resume"]
             job_title = item["job_title"]
-            # final_resume = f"{job_title}\n{attribute_type}: {attribute}\n{resume}"
-            final_resume = f"{attribute_type}: {attribute}\n{job_title}\t\t{resume}"
+            final_resume = f"{job_title}\n{attribute_type}: {attribute}\n{resume}"
+            # final_resume = f"{attribute_type}: {attribute}\n{job_title}\t\t{resume}"
             ordered_resumes_with_attributes.append(final_resume)
 
         prompt = get_prompt(ordered_resumes_with_attributes, sampled_job)
