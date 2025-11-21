@@ -5,6 +5,7 @@ import math
 import seaborn as sns
 import matplotlib.pyplot as plt
 import os
+from scipy.stats import chi2_contingency, norm
 
 
 # -----------------------------
@@ -29,9 +30,11 @@ def compute_results(file_name, attribute_type):
         "same_attr_count_to_count": defaultdict(int),
         "same_attr_count_to_hit_count": defaultdict(int),
     })
+    n_trials = 0
 
     with open(file_name, "r") as f:
         for line in f:
+            n_trials += 1
 
             item = json.loads(line)
             attributes = item["attributes"]
@@ -64,10 +67,10 @@ def compute_results(file_name, attribute_type):
                 "ci_high": ci_high,
             }
 
-    return results
+    return results, n_trials
 
 
-def draw_results(model_name, attribute_type, resume_count, all_results):
+def draw_results(model_name, attribute_type, resume_count, all_results, n_trials):
     """
     all_results: dict mapping attribute_type -> results dict (as returned by compute_results)
     """
@@ -96,9 +99,9 @@ def draw_results(model_name, attribute_type, resume_count, all_results):
         res = all_results[attribute_value]
 
         # ensure x is sorted
-        xs = sorted(res.keys())[:-1]
+        xs = sorted(res.keys())
         xticks = xs
-        baseline_value = 1 / (len(xs) + 1)
+        baseline_value = 1 / (len(xs))
         ys = [res[x]["hit_rate"] for x in xs]
 
         # asymmetric error bars from CI
@@ -153,7 +156,7 @@ def draw_results(model_name, attribute_type, resume_count, all_results):
     ax.set_xlabel("Number of same-attribute candidates", fontsize=11, fontweight="bold")
     ax.set_ylabel("Selection rate of randomly anchored candidate", fontsize=11, fontweight="bold")
     model_name = model_name.replace("msra-", "")
-    ax.set_title(f"{model_name} ({attribute_type}) – Selection Rate vs. Same-attribute Count\n(Mean w/ 95% CI)", pad=15, weight="bold")
+    ax.set_title(f"{attribute_type} ({model_name})\n# of trials: {n_trials}; Mean w/ 95% CI", pad=15, weight="bold")
 
     ax.grid(axis="y", linestyle=":", linewidth=0.7, alpha=0.6)
     ax.set_axisbelow(True)
@@ -179,5 +182,5 @@ if __name__ == "__main__":
                 file_name = f"outputs/contextual/{attribute_type}/{model_name}_{resume_count}_{pool_count}.jsonl"
                 if os.path.exists(file_name):
                     print(f"------------------------------------\n\n{file_name}")
-                    results = compute_results(file_name, attribute_type)
-                    draw_results(model_name, attribute_type, resume_count, results)
+                    results, n_trials = compute_results(file_name, attribute_type)
+                    draw_results(model_name, attribute_type, resume_count, results, n_trials)
