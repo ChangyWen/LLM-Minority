@@ -41,6 +41,32 @@ def chi2_test_same_attr_effect(attr_counts):
     return chi2, p, dof, levels
 
 
+def two_proportion_z_test(x1, n1, x2, n2):
+    """
+    Two-sided z-test for equality of two proportions.
+    H0: p1 == p2
+    H1: p1 != p2
+
+    Returns: z, p_two_sided
+    """
+    if n1 == 0 or n2 == 0:
+        return float("nan"), float("nan")
+
+    p1 = x1 / n1
+    p2 = x2 / n2
+    p_pool = (x1 + x2) / (n1 + n2)
+
+    # standard error under H0
+    se = math.sqrt(p_pool * (1 - p_pool) * (1.0 / n1 + 1.0 / n2))
+    if se == 0:
+        # no variability: proportions are identical or degenerate
+        return float("nan"), 1.0
+
+    z = (p1 - p2) / se
+    p = 2.0 * (1.0 - norm.cdf(abs(z)))
+    return z, p
+
+
 def compute_results(file_name, attribute_type):
 
     attr_value_to_results = defaultdict(lambda: {
@@ -67,11 +93,16 @@ def compute_results(file_name, attribute_type):
 
     print(f"Attribute type: {attribute_type}")
     results = {}
+    significance = {}
     for attr_value, attr_value_results in attr_value_to_results.items():
         # sort the attr_value_results by same_attr_count
         print(f"attr_value: {attr_value}")
         results[attr_value] = {}
-        table = []
+        significance[attr_value] = {}
+
+        # store raw counts for global and pairwise tests
+        attr_counts = {}
+
         # sort attr_value_results["same_attr_count_to_count"]
         same_attr_count_to_count = dict(sorted(attr_value_results["same_attr_count_to_count"].items(), key=lambda x: x[0]))
         for same_attr_count, count in same_attr_count_to_count.items():
@@ -84,16 +115,48 @@ def compute_results(file_name, attribute_type):
                 "ci_low": ci_low,
                 "ci_high": ci_high,
             }
-            table.append([hit_count, count - hit_count])
-        # global test: chi-square test of independence
-        chi2, p, dof, expected = chi2_contingency(table)
-        print(f"p-value: {p:.6f}")
-        results[attr_value]["global_test_p_value"] = p
 
-    return results, n_trials
+            attr_counts[same_attr_count] = (hit_count, count)
+
+        # ---------- Global test (χ²) ----------
+        chi2, p_global, dof, levels = chi2_test_same_attr_effect(attr_counts)
+        print(f"[Global test] p-value={p_global:.6g}")
+        significance[attr_value]["global_test_p_value"] = p_global
+
+        # ---------- Pairwise tests (two-proportion z-tests) ----------
+        levels = sorted(levels)
+        print("[Pairwise tests: two-proportion z-test]")
+        for i in range(len(levels)):
+            for j in range(i + 1, len(levels)):
+                c1 = levels[i]
+                c2 = levels[j]
+                h1, n1 = attr_counts[c1]
+                h2, n2 = attr_counts[c2]
+                z, p_pair = two_proportion_z_test(h1, n1, h2, n2)
+                significance[attr_value][str((c1, c2))] = p_pair
+
+                print(f"[Pairwise test] {c1} vs {c2}: p-value={p_pair:.6g}")
+
+    return results, significance, n_trials
 
 
-def draw_results(model_name, attribute_type, resume_count, all_results, n_trials):
+def p_to_stars(p):
+    """
+    Convert p-value to significance stars.
+    """
+    if math.isnan(p):
+        return ""
+    if p < 0.001:
+        return "***"
+    elif p < 0.01:
+        return "**"
+    elif p < 0.05:
+        return "*"
+    else:
+        return ""
+
+
+def draw_results(model_name, attribute_type, resume_count, all_results, significance):
     """
     all_results: dict mapping attribute_type -> results dict (as returned by compute_results)
     """
@@ -120,8 +183,6 @@ def draw_results(model_name, attribute_type, resume_count, all_results, n_trials
     all_barlines = []
     for i, attribute_value in enumerate(attribute_values):
         res = all_results[attribute_value]
-        global_test_p_value = res["global_test_p_value"]
-        del res["global_test_p_value"]
 
         # ensure x is sorted
         xs = sorted(res.keys())
@@ -139,12 +200,12 @@ def draw_results(model_name, attribute_type, resume_count, all_results, n_trials
             ys,
             yerr=yerr,
             marker="o",
-            markersize=4,
+            markersize=6,
             linewidth=1.5,
             linestyle="--" if attribute_value != "all_attr_values" else "-",
             label=attribute_value if attribute_value != "all_attr_values" else "All",
             color=palette[i],
-            capsize=4,
+            capsize=6,
             capthick=1.5,
         )
         if attribute_value != "all_attr_values":
@@ -190,7 +251,7 @@ def draw_results(model_name, attribute_type, resume_count, all_results, n_trials
     for spine in ["top", "right"]:
         ax.spines[spine].set_visible(False)
 
-    ax.legend(title="Attribute type", fontsize=12, title_fontsize=13, markerscale=1.6)
+    ax.legend(title="Attribute type", fontsize=12, title_fontsize=13, markerscale=1)
 
     plt.tight_layout()
     save_file = f"outputs/contextual_{model_name}_{attribute_type}_{resume_count}.png"
@@ -207,5 +268,5 @@ if __name__ == "__main__":
                 file_name = f"outputs/contextual/{attribute_type}/{model_name}_{resume_count}_{pool_count}.jsonl"
                 if os.path.exists(file_name):
                     print(f"------------------------------------\n\n{file_name}")
-                    results, n_trials = compute_results(file_name, attribute_type)
-                    draw_results(model_name, attribute_type, resume_count, results, n_trials)
+                    results, significance, n_trials = compute_results(file_name, attribute_type)
+                    draw_results(model_name, attribute_type, resume_count, results, significance)
