@@ -24,8 +24,8 @@ code:
 
 target:
   service: sing
-  # name: msrresrchbasicvc
-  name: msrresrchvc
+  name: msrresrchbasicvc
+  # name: msrresrchvc
   workspace_name: CS-NewsAndFeeds-Singularity
 
 storage:
@@ -37,10 +37,10 @@ storage:
 # SKU usage: G1 (single GPU), G4 (quad GPU), G4-V100 (1 machine, 4 V100 gpus), etc...
 jobs:
 - name: llm-stability
-  # sku: G8-H100
-  sku: G8-A100
-  # sla_tier: Standard
-  sla_tier: Premium
+  sku: G8-H100
+  # sku: G8-A100
+  sla_tier: Standard
+  # sla_tier: Premium
   command:
     - bash run-vllm.sh
   submit_args:
