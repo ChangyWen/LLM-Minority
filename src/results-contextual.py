@@ -24,6 +24,23 @@ def wilson_ci(k, n, z=1.96):
     return (lower, upper)
 
 
+def chi2_test_same_attr_effect(attr_counts):
+    """
+    attr_counts: dict[int -> (hit_count, total_count)]
+                 e.g. {0: (h0, n0), 1: (h1, n1), ...}
+    Returns: chi2, p_value, dof
+    """
+    table = []
+    levels = sorted(attr_counts.keys())
+    for c in levels:
+        hit, total = attr_counts[c]
+        miss = total - hit
+        table.append([hit, miss])
+
+    chi2, p, dof, expected = chi2_contingency(table)
+    return chi2, p, dof, levels
+
+
 def compute_results(file_name, attribute_type):
 
     attr_value_to_results = defaultdict(lambda: {
@@ -54,6 +71,7 @@ def compute_results(file_name, attribute_type):
         # sort the attr_value_results by same_attr_count
         print(f"attr_value: {attr_value}")
         results[attr_value] = {}
+        table = []
         # sort attr_value_results["same_attr_count_to_count"]
         same_attr_count_to_count = dict(sorted(attr_value_results["same_attr_count_to_count"].items(), key=lambda x: x[0]))
         for same_attr_count, count in same_attr_count_to_count.items():
@@ -66,6 +84,11 @@ def compute_results(file_name, attribute_type):
                 "ci_low": ci_low,
                 "ci_high": ci_high,
             }
+            table.append([hit_count, count - hit_count])
+        # global test: chi-square test of independence
+        chi2, p, dof, expected = chi2_contingency(table)
+        print(f"p-value: {p:.6f}")
+        results[attr_value]["global_test_p_value"] = p
 
     return results, n_trials
 
