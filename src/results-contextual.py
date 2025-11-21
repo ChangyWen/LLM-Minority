@@ -173,35 +173,71 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
     attribute_values = sorted(list(non_all_values)) + ["all_attr_values"]
     palette = sns.color_palette("husl", len(attribute_values))
 
+    # -----------------------------------------------------------
+    # FIRST: collect brackets per attribute and count total rows
+    # -----------------------------------------------------------
+    attr_to_pairs = {}
+    total_rows = 0
+    for attr_value in attribute_values:
+        res = all_results[attr_value]
+        sig_dict = significance.get(attr_value, {})
+        pairs = []
+
+        for key, p_val in sig_dict.items():
+            if key == "global_test_p_value":
+                continue
+            stars = p_to_stars(p_val)
+            if not stars:
+                continue
+
+            s = key.strip()[1:-1]
+            c1, c2 = map(int, s.split(","))
+            if c1 > c2:
+                c1, c2 = c2, c1
+            if c1 in res and c2 in res:
+                pairs.append((c1, c2, stars))
+
+        # largest |c1-c2| first within each attribute group
+        pairs.sort(key=lambda t: (-(t[1] - t[0]), t[0]))
+        attr_to_pairs[attr_value] = pairs
+        total_rows += len(pairs)
+
+    # -----------------------------------------------------------
+    # Create figure and GridSpec, with bracket height depending
+    # on total_rows (0 height → no bracket panel at all)
+    # -----------------------------------------------------------
     fig = plt.figure(dpi=1024)
 
-    # -----------------------------------------------
-    # Create a main title ABOVE the brackets panel
-    # -----------------------------------------------
     model_name_clean = model_name.replace("msra-", "")
     fig.suptitle(
         f"{attribute_type} ({model_name_clean})",
         fontweight="bold",
-        y=0.93        # push title higher
+        y=0.93
     )
 
-    # -----------------------------------------------
-    # Now the figure has THREE vertical regions:
-    # suptitle (automatic)
-    # brackets panel   (gs row 0)
-    # main plot        (gs row 1)
-    # -----------------------------------------------
-    gs = gridspec.GridSpec(
-        2, 1,
-        height_ratios=[0.32, 1.0],   # give brackets a bit more room
-        hspace=0.05                  # decrease spacing
-    )
+    if total_rows == 0:
+        # No brackets → single axis
+        gs = gridspec.GridSpec(1, 1, height_ratios=[1.0])
+        ax_main = fig.add_subplot(gs[0])
+        ax_brackets = None
+    else:
+        # Some brackets → allocate a small but growing panel above
+        # base height for 1 row, then add per-row increment, capped
+        base = 0.10    # height ratio for 1 row
+        per_row = 0.04 # extra per additional row
+        bracket_ratio = base + per_row * max(0, total_rows - 1)
+        bracket_ratio = min(bracket_ratio, 0.35)  # cap if many brackets
 
-    ax_brackets = fig.add_subplot(gs[0])
-    ax_main = fig.add_subplot(gs[1])
+        gs = gridspec.GridSpec(
+            2, 1,
+            height_ratios=[bracket_ratio, 1.0],
+            hspace=0.03
+        )
+        ax_brackets = fig.add_subplot(gs[0])
+        ax_main = fig.add_subplot(gs[1])
 
     # -----------------------------------------------------------
-    # MAIN PLOT: Exactly your original code (slightly adapted)
+    # MAIN PLOT
     # -----------------------------------------------------------
 
     baseline_value = 0
@@ -238,7 +274,6 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
         if attribute_value != "all_attr_values":
             all_barlines.extend(barlines)
 
-        # Legend label with global significance
         base_label = attribute_value if attribute_value != "all_attr_values" else "All"
         p_global = significance.get(attribute_value, {}).get("global_test_p_value", float("nan"))
         stars = p_to_stars(p_global)
@@ -250,7 +285,7 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
         bar.set_linestyle("--")
         bar.set_linewidth(1.2)
 
-    # Draw the baseline WITH a legend label
+    # baseline with legend
     ax_main.axhline(
         y=baseline_value,
         color="black",
@@ -272,7 +307,6 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
         ax_main.spines[spine].set_visible(False)
 
     handles, labels = ax_main.get_legend_handles_labels()
-
     ax_main.legend(
         line_handles + handles,
         legend_labels + labels,
@@ -282,91 +316,45 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
     )
 
     # -----------------------------------------------------------
-    # BRACKET PANEL (Top): ONLY brackets + stars here
+    # BRACKET PANEL (Top): ONLY if we have brackets
     # -----------------------------------------------------------
+    if total_rows > 0 and ax_brackets is not None:
+        # Turn off all axis decorations
+        ax_brackets.set_xlim(ax_main.get_xlim())
+        ax_brackets.set_ylim(0, 1)
+        ax_brackets.axis("off")
 
-    # Turn off all axis decorations
-    ax_brackets.set_xlim(ax_main.get_xlim())
-    ax_brackets.set_ylim(0, 1)
-    ax_brackets.axis("off")
+        row_step = 1.0 / (total_rows + 1)
+        bracket_height = 0.35 * row_step
+        current_row = 0
 
-    # -----------------------------------------------------------
-    # Separate brackets BY ATTRIBUTE GROUP (legend order)
-    # -----------------------------------------------------------
-    attr_to_pairs = {attr_value: [] for attr_value in attribute_values}
+        for attr_value in attribute_values:   # legend order; "All" last
+            pairs = attr_to_pairs[attr_value]
+            color = attr_to_color[attr_value]
 
-    for attr_value in attribute_values:
-        res = all_results[attr_value]
-        sig_dict = significance.get(attr_value, {})
-        pairs = []
+            for (c1, c2, stars) in pairs:
+                y_bottom = 1 - (current_row + 1) * row_step
+                y_top = y_bottom + bracket_height
 
-        for key, p_val in sig_dict.items():
-            if key == "global_test_p_value":
-                continue
-            stars = p_to_stars(p_val)
-            if not stars:
-                continue
+                ax_brackets.plot(
+                    [c1, c1, c2, c2],
+                    [y_bottom, y_top, y_top, y_bottom],
+                    color=color,
+                    linewidth=1.2,
+                )
 
-            s = key.strip()[1:-1]
-            c1, c2 = map(int, s.split(","))
-            if c1 > c2:
-                c1, c2 = c2, c1
-            if c1 in res and c2 in res:
-                pairs.append((c1, c2, stars))
+                ax_brackets.text(
+                    (c1 + c2) / 2,
+                    y_bottom + bracket_height / 2,
+                    stars,
+                    ha="center",
+                    va="center",
+                    fontsize=11,
+                    fontweight="bold",
+                    color=color,
+                )
 
-        # Within each attribute group, sort so largest span |c1-c2| on top
-        pairs.sort(key=lambda t: (-(t[1] - t[0]), t[0]))
-        attr_to_pairs[attr_value] = pairs
-
-    # Count total rows required
-    total_rows = sum(len(v) for v in attr_to_pairs.values())
-
-    if total_rows == 0:
-        fig.tight_layout()
-        fig.savefig(f"outputs/contextual_{model_name_clean}_{attribute_type}_{resume_count}.png", bbox_inches="tight")
-        plt.close(fig)
-        return
-
-    # -----------------------------------------------------------
-    # Compute row geometry
-    # -----------------------------------------------------------
-    row_step = 1.0 / (total_rows + 1)
-    bracket_height = 0.35 * row_step  # thickness of bracket
-    current_row = 0
-
-    # -----------------------------------------------------------
-    # Draw brackets GROUP-BY-GROUP in legend order
-    # -----------------------------------------------------------
-    for attr_value in attribute_values:
-        pairs = attr_to_pairs[attr_value]
-        color = attr_to_color[attr_value]
-
-        for (c1, c2, stars) in pairs:
-            # Compute row placement
-            y_bottom = 1 - (current_row + 1) * row_step
-            y_top = y_bottom + bracket_height
-
-            # Draw bracket
-            ax_brackets.plot(
-                [c1, c1, c2, c2],
-                [y_bottom, y_top, y_top, y_bottom],
-                color=color,
-                linewidth=1.2,
-            )
-
-            # Draw stars INSIDE the bracket (vertically centered)
-            ax_brackets.text(
-                (c1 + c2) / 2,
-                y_bottom + bracket_height / 2,
-                stars,
-                ha="center",
-                va="center",
-                fontsize=11,
-                fontweight="bold",
-                color=color,
-            )
-
-            current_row += 1
+                current_row += 1
 
     fig.tight_layout()
     save_file = f"outputs/contextual_{model_name_clean}_{attribute_type}_{resume_count}.png"
@@ -379,7 +367,7 @@ if __name__ == "__main__":
 
     for attribute_type in ["Gender"]:
         for resume_count in [5]:
-            for model_name in ["msra-gpt-4o", "msra-gpt-4.1-nano", "Qwen3-Next-80B-A3B-Instruct"]:
+            for model_name in ["msra-gpt-4o", "msra-gpt-4.1-nano", "Qwen3-Next-80B-A3B-Instruct", "Llama-3.3-70B-Instruct"]:
                 file_name = f"outputs/contextual/{attribute_type}/{model_name}_{resume_count}_{pool_count}.jsonl"
                 if os.path.exists(file_name):
                     print(f"------------------------------------\n\n{file_name}")

@@ -170,7 +170,7 @@ if __name__ == "__main__":
     if "msra" in model_name:
         os.makedirs(f"outputs/contextual/{attribute_type}", exist_ok=True)
         sub_model_name = model_name.split("/")[-1]
-        save_file = f"outputs/contextual/{attribute_type}/{sub_model_name}_{total_count}_{pool_count}_pre-attribute.jsonl"
+        save_file = f"outputs/contextual/{attribute_type}/{sub_model_name}_{total_count}_{pool_count}.jsonl"
         dataset_dir = "dataset"
         dataset_file = "dataset/resumes_paraphrases.jsonl"
     else:
