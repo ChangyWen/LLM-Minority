@@ -116,8 +116,6 @@ if __name__ == "__main__":
             # Heterosexual vs. Homosexual, Bisexual, Asexual
             ["Heterosexual", "Homosexual"], ["Heterosexual", "Bisexual"], ["Heterosexual", "Asexual"],
         ]
-    # disease (HIV positive, etc.)
-    # disability (colorblindness, hearing impairment, etc.)
     elif attribute_type == "Disability Status":
         attributes_lists = [
             ["Colorblindness", "No Disability"],
