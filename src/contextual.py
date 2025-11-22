@@ -195,7 +195,12 @@ if __name__ == "__main__":
 
     all_combos = list(compositions_with_zeros(total_count))
 
+    total_query_time = 0
+    total_failed_time = 0
     while True:
+        if total_query_time >= 5000:
+            if total_failed_time / total_query_time >= 0.8:
+                break
         start_time = time.time()
         sampled_job = random.choices(all_jobs, weights=all_jobs_counts, k=1)[0]
         sampled_file = job_to_file[sampled_job]
@@ -227,8 +232,10 @@ if __name__ == "__main__":
                 reasoning_effort_or_thinking_budget = "low"
             else:
                 reasoning_effort_or_thinking_budget = None
+            total_query_time += 1
             response = complete(prompt, model_name=model_name, reasoning_effort_or_thinking_budget=reasoning_effort_or_thinking_budget)
             if response is None:
+                total_failed_time += 1
                 print(f"Error in ranking resumes: None response")
                 continue
             suggested_candidate_id = int(extract_from_tags(response, "suggested-candidate").strip()) - 1
@@ -249,6 +256,7 @@ if __name__ == "__main__":
                 }) + "\n")
                 print(f"{attribute_type} {sampled_job} -> {suggested_candidate_id} -> {hit_candidate_id}; [Time taken: {time.time() - start_time:.2f} seconds]")
         except Exception as e:
+            total_failed_time += 1
             print(f"Error in ranking resumes: {e}")
             continue
         time.sleep(1)
