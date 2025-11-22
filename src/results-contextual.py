@@ -68,7 +68,7 @@ def two_proportion_z_test(x1, n1, x2, n2):
     return z, p
 
 
-def compute_results(file_name, attribute_type):
+def compute_results(file_name, attribute_type, max_n_trials=100000):
 
     attr_value_to_results = defaultdict(lambda: {
         "same_attr_count_to_count": defaultdict(int),
@@ -78,6 +78,8 @@ def compute_results(file_name, attribute_type):
 
     with open(file_name, "r") as f:
         for line in f:
+            if n_trials >= max_n_trials:
+                break
             n_trials += 1
 
             item = json.loads(line)
@@ -364,6 +366,7 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
 
 if __name__ == "__main__":
     pool_count = 200
+    max_n_trials = 100000
 
     for attribute_type in ["Gender"]:
         for resume_count in [5]:
@@ -371,5 +374,5 @@ if __name__ == "__main__":
                 file_name = f"outputs/contextual/{attribute_type}/{model_name}_{resume_count}_{pool_count}.jsonl"
                 if os.path.exists(file_name):
                     print(f"------------------------------------\n\n{file_name}")
-                    results, significance, n_trials = compute_results(file_name, attribute_type)
+                    results, significance, n_trials = compute_results(file_name, attribute_type, max_n_trials)
                     draw_results(model_name, attribute_type, resume_count, results, significance)
