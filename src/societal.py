@@ -26,19 +26,35 @@ def extract_from_tags(text, tag):
 
 
 def complete(prompt, model_name="msra-gpt-5", reasoning_effort_or_thinking_budget="high"):
-    response = chat(
-        max_retry=1,
-        prompt=prompt,
-        model_name=model_name,
-        enable_search=False,
-        enable_thinking=True,
-        reasoning_effort_or_thinking_budget=reasoning_effort_or_thinking_budget,
-        temperature=1.0,
-        top_p=1.0,
-    )
-    if response is None:
-        return None
-    return response["value"]
+    if "msra" in model_name:
+        response = chat(
+            max_retry=1,
+            prompt=prompt,
+            model_name=model_name,
+            enable_search=False,
+            enable_thinking=True,
+            reasoning_effort_or_thinking_budget=reasoning_effort_or_thinking_budget,
+            temperature=1.0,
+            top_p=1.0,
+        )
+        if response is None:
+            return None
+        return response["value"]
+    else:
+        if client is None:
+            print(f"Client is not initialized")
+            raise ValueError(f"Client is not initialized")
+        if model_name == "Qwen/Qwen3-Next-80B-A3B-Instruct":
+            temperature = 0.7
+        elif model_name == "meta-llama/Llama-3.3-70B-Instruct":
+            temperature = 0.6
+        elif model_name == "openai/gpt-oss-120b":
+            temperature = 1.0
+        else:
+            print(f"Model name {model_name} not supported")
+            raise ValueError(f"Model name {model_name} not supported")
+        completion = client.chat.completions.create(model=model_name, messages=[{"role": "user", "content": prompt}], temperature=temperature)
+        return completion.choices[0].message.content
 
 
 def get_prompt(resumes, job_title):
@@ -138,14 +154,12 @@ if __name__ == "__main__":
         sub_model_name = model_name.split("/")[-1]
         save_file = f"outputs/societal/{attribute_type}/{sub_model_name}_{pool_count}.jsonl"
         dataset_dir = "dataset"
-        dataset_file = "dataset/resumes_paraphrases.jsonl"
     else:
         os.makedirs(f"/mnt/blob_output/v-dachengwen/LLM-Minority/outputs/societal/{attribute_type}", exist_ok=True)
         sub_model_name = model_name.split("/")[-1]
         ts = int(time.time() * 1000)
         save_file = f"/mnt/blob_output/v-dachengwen/LLM-Minority/outputs/societal/{attribute_type}/{sub_model_name}_{pool_count}_ts{ts}_rd{random.randint(1, 1000000)}.jsonl"
         dataset_dir = "/mnt/blob_output/v-dachengwen/LLM-Minority/dataset"
-        dataset_file = f"/mnt/blob_output/v-dachengwen/LLM-Minority/dataset/resumes_paraphrases.jsonl"
 
     all_job_files = [file for file in os.listdir(dataset_dir) if file.startswith("job_")]
     all_jobs = [file[4:-6] for file in all_job_files]
