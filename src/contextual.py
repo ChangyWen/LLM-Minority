@@ -63,6 +63,8 @@ def complete(prompt, model_name="msra-gpt-5", reasoning_effort_or_thinking_budge
             temperature = 0.7
         elif model_name == "meta-llama/Llama-3.3-70B-Instruct":
             temperature = 0.6
+        elif model_name == "openai/gpt-oss-120b":
+            temperature = 1.0
         else:
             print(f"Model name {model_name} not supported")
             raise ValueError(f"Model name {model_name} not supported")
