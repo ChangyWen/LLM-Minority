@@ -4,6 +4,7 @@ set -x
 # model=meta-llama/Llama-3.3-70B-Instruct
 # model=openai/gpt-oss-120b
 model=$1
+attribute_type=$2
 
 ######### start vllm server #########
 nohup vllm serve $model \
@@ -16,8 +17,8 @@ echo "*********** Waiting for vllm server to start ***********"
 sleep 600
 echo "*********** Done waiting ***********"
 
-python src/contextual.py $model Gender 5 200 &
+python src/contextual.py $model "$attribute_type" 5 200 &
 sleep 5
-python src/contextual.py $model Gender 5 200 &
+python src/contextual.py $model "$attribute_type" 5 200 &
 sleep 5
-python src/contextual.py $model Gender 5 200
+python src/contextual.py $model "$attribute_type" 5 200
