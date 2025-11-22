@@ -2,7 +2,8 @@ set -x
 
 # model=Qwen/Qwen3-Next-80B-A3B-Instruct
 # model=meta-llama/Llama-3.3-70B-Instruct
-model=openai/gpt-oss-120b
+# model=openai/gpt-oss-120b
+model=$1
 
 ######### start vllm server #########
 nohup vllm serve $model \
