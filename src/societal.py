@@ -116,6 +116,21 @@ if __name__ == "__main__":
             # Heterosexual vs. Homosexual, Bisexual, Asexual
             ["Heterosexual", "Homosexual"], ["Heterosexual", "Bisexual"], ["Heterosexual", "Asexual"],
         ]
+    # disease (HIV positive, etc.)
+    # disability (colorblindness, hearing impairment, etc.)
+    elif attribute_type == "Disability Status":
+        attributes_lists = [
+            ["Colorblindness", "No Disability"],
+            ["Hearing Impairment", "No Disability"],
+            ["Mobility Impairment", "No Disability"],
+        ]
+    elif attribute_type == "Chronic Health Condition Status":
+        attributes_lists = [
+            ["HIV Positive", "No Chronic Health Condition"],
+            ["Chronic Hepatitis", "No Chronic Health Condition"],
+            ["Type 1 Diabetes", "No Chronic Health Condition"],
+            ["Asthma", "No Chronic Health Condition"],
+        ]
     else:
         raise ValueError(f"Invalid attribute type: {attribute_type}")
 
