@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import os
+from scipy.stats import binomtest
 
 
 type_to_minority_attributes = {
@@ -29,6 +30,22 @@ def wilson_ci(k, n, z=1.96):
     lower = (centre - margin) / denominator
     upper = (centre + margin) / denominator
     return (lower, upper)
+
+
+def p_to_stars(p):
+    """
+    Convert p-value to significance stars.
+    """
+    if math.isnan(p):
+        return ""
+    if p < 0.001:
+        return "***"
+    elif p < 0.01:
+        return "**"
+    elif p < 0.05:
+        return "*"
+    else:
+        return ""
 
 
 def compute_results(model_name, attribute_type, pool_count):
@@ -58,15 +75,21 @@ def compute_results(model_name, attribute_type, pool_count):
     # Compute Wilson 95% CI
     ci_low, ci_high = wilson_ci(minority_hit_count, total_count)
 
+    # Two-sided binomial test
+    res = binomtest(minority_hit_count, total_count, p=0.5, alternative="two-sided")
+    p = res.pvalue
+
     print(f"Attribute type: {attribute_type}")
     print(f"total_count: {total_count}")
     print(f"minority_hit_count: {minority_hit_count}")
     print(f"hit_rate: {hit_rate:.6f} [{ci_low:.6f}, {ci_high:.6f}]")
+    print(f"p-value: {p:.10f}")
     return {
         "count": total_count,
         "hit_rate": hit_rate,
         "ci_low": ci_low,
         "ci_high": ci_high,
+        "p_value": p
     }
 
 
@@ -87,6 +110,7 @@ def draw_results(all_results, attribute_types, model_name):
     })
 
     xlabels = attribute_types
+    xlabels = [f"{xlabel}\n{p_to_stars(all_results[xlabel]['p_value'])}" for xlabel in xlabels]
 
     x = np.arange(len(attribute_types))
     x = np.array([-0.3 + i * 0.3 for i in range(len(attribute_types))])
@@ -102,6 +126,9 @@ def draw_results(all_results, attribute_types, model_name):
         res = all_results[attr]
         mean = res["hit_rate"]
         lower, upper = res["ci_low"], res["ci_high"]
+        p_value = res["p_value"]
+        stars = p_to_stars(p_value)
+        print(stars)
 
         # Asymmetric CI
         yerr_lower = mean - lower
@@ -126,7 +153,7 @@ def draw_results(all_results, attribute_types, model_name):
 
         # Add mean label
         ax.text(
-            x[i] + 0.035,
+            x[i] + 0.06,
             mean,
             f"{mean:.3f}",
             ha="center",
@@ -136,7 +163,7 @@ def draw_results(all_results, attribute_types, model_name):
         )
         # Add CI text labels
         ax.text(
-            x[i] + 0.035,
+            x[i] + 0.06,
             upper,
             f"{upper:.3f}",
             ha="center",
@@ -145,7 +172,7 @@ def draw_results(all_results, attribute_types, model_name):
             fontweight="bold",
         )
         ax.text(
-            x[i] + 0.035,
+            x[i] + 0.06,
             lower,
             f"{lower:.3f}",
             ha="center",
@@ -190,7 +217,7 @@ def draw_results(all_results, attribute_types, model_name):
     # ax.set_ylim(0.45, 0.7)
 
     model_name_clean = model_name.replace("msra-", "")
-    ax.set_title(f"{model_name_clean} – Selection Rate (Mean w/ 95% CI)", pad=15, weight="bold")
+    ax.set_title(f"{model_name_clean}", pad=15, weight="bold")
 
     ax.grid(axis="y", linestyle=":", linewidth=0.7, alpha=0.6)
     ax.set_axisbelow(True)
