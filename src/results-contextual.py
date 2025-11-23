@@ -366,7 +366,7 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
 
 if __name__ == "__main__":
     pool_count = 200
-    max_n_trials = 100000
+    max_n_trials = 1000000
 
     for attribute_type in ["Gender", "Race"]:
         for resume_count in [5]:
