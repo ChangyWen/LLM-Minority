@@ -10,6 +10,8 @@ import os
 type_to_minority_attributes = {
     "Gender Identity": ["Transgender", "Non-binary"],
     "Sexual Orientation": ["Homosexual", "Bisexual", "Asexual"],
+    "Disability Status": ["Colorblindness", "Hearing Impairment", "Mobility Impairment"],
+    "Chronic Health Condition Status": ["HIV Positive", "Chronic Hepatitis", "Type 1 Diabetes", "Asthma"],
 }
 
 
@@ -187,7 +189,8 @@ def draw_results(all_results, attribute_types, model_name):
     ax.set_ylabel("Selection rate of societal minority", fontsize=11, fontweight="bold")
     # ax.set_ylim(0.45, 0.7)
 
-    ax.set_title(f"{model_name} – Selection Rate (Mean w/ 95% CI)", pad=15, weight="bold")
+    model_name_clean = model_name.replace("msra-", "")
+    ax.set_title(f"{model_name_clean} – Selection Rate (Mean w/ 95% CI)", pad=15, weight="bold")
 
     ax.grid(axis="y", linestyle=":", linewidth=0.7, alpha=0.6)
     ax.set_axisbelow(True)
@@ -197,14 +200,14 @@ def draw_results(all_results, attribute_types, model_name):
         ax.spines[spine].set_visible(False)
 
     plt.tight_layout()
-    save_file = f"outputs/societal_{model_name}.png"
+    save_file = f"outputs/societal_{model_name_clean}.png"
     plt.savefig(save_file, bbox_inches="tight")
     plt.close()
 
 
 if __name__ == "__main__":
 
-    attribute_types = ["Gender Identity", "Sexual Orientation"]
+    attribute_types = ["Gender Identity", "Sexual Orientation", "Disability Status", "Chronic Health Condition Status"]
     pool_count = 200
 
     for model_name in ["msra-gpt-4o"]:
