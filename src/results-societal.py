@@ -237,7 +237,7 @@ if __name__ == "__main__":
     attribute_types = ["Gender Identity", "Sexual Orientation", "Disability Status", "Chronic Health Condition Status"]
     pool_count = 200
 
-    for model_name in ["msra-gpt-4o"]:
+    for model_name in ["msra-gpt-4o", "Qwen3-Next-80B-A3B-Instruct", "Llama-3.3-70B-Instruct", "gpt-oss-120b"]:
         all_results = {}
         for attribute_type in attribute_types:
             if os.path.exists(f"outputs/societal/{attribute_type}/{model_name}_{pool_count}.jsonl"):
