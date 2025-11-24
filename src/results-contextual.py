@@ -132,9 +132,6 @@ def compute_results(file_name, attribute_type, max_n_trials=100000):
 
             for inner_idx, attr_value in enumerate(attributes):
                 same_attr_count = attributes.count(attr_value) - 1
-                # attr_value_to_results["all_attr_values"]["same_attr_count_to_count"][same_attr_count] += 1
-                # attr_value_to_results["all_attr_values"]["same_attr_count_to_hit_count"][same_attr_count] += (1 if inner_idx == suggested_candidate_id else 0)
-
                 attr_value_to_results[attr_value]["same_attr_count_to_count"][same_attr_count] += 1
                 attr_value_to_results[attr_value]["same_attr_count_to_hit_count"][same_attr_count] += (1 if inner_idx == suggested_candidate_id else 0)
 
@@ -327,7 +324,6 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
         if attribute_value != "all_attr_values":
             all_barlines.extend(barlines)
 
-        base_label = attribute_value if attribute_value != "all_attr_values" else "All"
         p_global = significance.get(attribute_value, {}).get("global_test_p_value", float("nan"))
         p_one_inc = significance.get(attribute_value, {}).get("p_value_one_inc", float("nan"))
         p_one_dec = significance.get(attribute_value, {}).get("p_value_one_dec", float("nan"))
@@ -338,7 +334,7 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
             stars = p_to_stars(p_one_dec)
         else:
             raise ValueError(f"Unknown attribute value: {attribute_value}")
-        label = f"{base_label} {stars}" if stars else base_label
+        label = f"{attribute_value} {stars}" if stars else attribute_value
         line_handles.append(line)
         legend_labels.append(label)
 
