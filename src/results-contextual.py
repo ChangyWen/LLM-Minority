@@ -353,11 +353,11 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
         label=f"Random ({baseline_value:.2f})"
     )
 
-    ax_main.set_xticks(xticks)
+    ax_main.set_xticks(xticks, labels=[f"{(c + 1)/(len(xticks)) * 100:.0f}%" for c in xticks])
     ax_main.set_xlim(-0.1, len(xticks) - 1 + 0.1)
 
-    ax_main.set_xlabel("Number of same-attribute candidates", fontsize=11, fontweight="bold")
-    ax_main.set_ylabel("Selection rate", fontsize=11, fontweight="bold")
+    ax_main.set_xlabel("Same-attribute Ratio", fontsize=11, fontweight="bold")
+    ax_main.set_ylabel("Selection Rate", fontsize=11, fontweight="bold")
 
     ax_main.grid(axis="y", linestyle=":", linewidth=0.7, alpha=0.6)
     ax_main.set_axisbelow(True)

@@ -213,7 +213,7 @@ def draw_results(all_results, attribute_types, model_name):
         tick.set_color(colors[i])
         tick.set_fontweight("bold")     # optional
 
-    ax.set_ylabel("Selection rate of societal minority", fontsize=11, fontweight="bold")
+    ax.set_ylabel("Selection Rate of Societal Minority", fontsize=11, fontweight="bold")
     # ax.set_ylim(0.45, 0.7)
 
     model_name_clean = model_name.replace("msra-", "")
