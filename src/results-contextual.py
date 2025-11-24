@@ -78,13 +78,15 @@ def compute_results(file_name, attribute_type, max_n_trials=100000):
 
     with open(file_name, "r") as f:
         for line in f:
+            item = json.loads(line)
+            attributes = item["attributes"]
+            if "Asian" in attributes:
+                continue
+            suggested_candidate_id = item["suggested_candidate_id"]
+
             if n_trials >= max_n_trials:
                 break
             n_trials += 1
-
-            item = json.loads(line)
-            attributes = item["attributes"]
-            suggested_candidate_id = item["suggested_candidate_id"]
 
             for inner_idx, attr_value in enumerate(attributes):
                 same_attr_count = attributes.count(attr_value) - 1

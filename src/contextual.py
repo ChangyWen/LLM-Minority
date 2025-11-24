@@ -141,7 +141,8 @@ if __name__ == "__main__":
     if attribute_type == "Race":
         attributes_lists = [
             # Black, White, Asian
-            ["Black", "White"], ["Black", "Asian"], ["White", "Asian"]
+            ["Black", "White"],
+            # ["Black", "Asian"], ["White", "Asian"]
         ]
     elif attribute_type == "Gender":
         # Male or Female
