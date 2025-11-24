@@ -413,7 +413,7 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
 
                 current_row += 1
 
-    fig.tight_layout()
+    # fig.tight_layout()
     save_file = f"outputs/contextual_{model_name_clean}_{attribute_type}_{resume_count}.png"
     fig.savefig(save_file, bbox_inches="tight")
     plt.close(fig)
