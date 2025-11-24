@@ -330,8 +330,10 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
         # stars = p_to_stars(p_global)
         if attribute_value == "Male" or attribute_value == "White":
             stars = p_to_stars(p_one_inc)
+            stars = f"↑{stars}" if stars else ""
         elif attribute_value == "Female" or attribute_value == "Black":
             stars = p_to_stars(p_one_dec)
+            stars = f"↓{stars}" if stars else ""
         else:
             raise ValueError(f"Unknown attribute value: {attribute_value}")
         label = f"{attribute_value} {stars}" if stars else attribute_value
