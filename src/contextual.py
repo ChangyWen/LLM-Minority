@@ -65,10 +65,18 @@ def complete(prompt, model_name="msra-gpt-5", reasoning_effort_or_thinking_budge
             temperature = 0.6
         elif model_name == "openai/gpt-oss-120b":
             temperature = 1.0
+        elif model_name == "google/gemma-3-27b-it":
+            temperature = 1.0
+        elif model_name == "zai-org/GLM-4.5-Air":
+            temperature = 0.6
         else:
             print(f"Model name {model_name} not supported")
             raise ValueError(f"Model name {model_name} not supported")
-        completion = client.chat.completions.create(model=model_name, messages=[{"role": "user", "content": prompt}], temperature=temperature)
+        if model_name == "google/gemma-3-27b-it":
+            messages = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
+        else:
+            messages=[{"role": "user", "content": prompt}]
+        completion = client.chat.completions.create(model=model_name, messages=messages, temperature=temperature)
         return completion.choices[0].message.content
 
 
