@@ -44,11 +44,16 @@ jobs:
   sla_tier: Premium
   command:
     # - bash run-vllm-contextual.sh openai/gpt-oss-120b Gender
-    - bash run-vllm-contextual.sh Qwen/Qwen3-Next-80B-A3B-Instruct Race
+    # - bash run-vllm-contextual.sh Qwen/Qwen3-Next-80B-A3B-Instruct Race
     # - bash run-vllm-contextual.sh openai/gpt-oss-120b Race
     # - bash run-vllm-societal.sh Qwen/Qwen3-Next-80B-A3B-Instruct
     # - bash run-vllm-societal.sh meta-llama/Llama-3.3-70B-Instruct
     # - bash run-vllm-societal.sh openai/gpt-oss-120b
+    ####### TODO #######
+    - bash run-vllm-contextual.sh zai-org/GLM-4.5-Air Gender
+    - bash run-vllm-contextual.sh zai-org/GLM-4.5-Air Race
+    - bash run-vllm-societal.sh google/gemma-3-27b-it Gender
+    - bash run-vllm-societal.sh google/gemma-3-27b-it Race
   submit_args:
     env:
       {

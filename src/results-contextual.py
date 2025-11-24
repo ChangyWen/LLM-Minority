@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import os
 from scipy.stats import chi2_contingency, norm
 import matplotlib.gridspec as gridspec
+from scipy.stats import norm  # you already have this
 
 
 # -----------------------------
@@ -40,6 +41,47 @@ def chi2_test_same_attr_effect(attr_counts):
 
     chi2, p, dof, expected = chi2_contingency(table)
     return chi2, p, dof, levels
+
+
+def cochran_armitage_trend(attr_counts):
+    """
+    Cochran–Armitage trend test for ordered proportions.
+
+    returns:
+        z                # test statistic
+        p_two_sided
+        p_one_inc        # one-sided p for INCREASING trend
+        p_one_dec        # one-sided p for DECREASING trend
+    """
+    levels = sorted(attr_counts.keys())
+    if not levels:
+        return float("nan"), float("nan"), float("nan"), float("nan")
+
+    scores = [float(c) for c in levels]
+    hits = [attr_counts[c][0] for c in levels]
+    totals = [attr_counts[c][1] for c in levels]
+
+    N = sum(totals)
+    X = sum(hits)
+    if N == 0:
+        return float("nan"), float("nan"), float("nan"), float("nan")
+
+    p_hat = X / N
+    T = sum(w * (x - p_hat * n) for w, x, n in zip(scores, hits, totals))
+    sum_nw = sum(n * w for n, w in zip(totals, scores))
+    sum_nw2 = sum(n * (w ** 2) for n, w in zip(totals, scores))
+
+    var_T = p_hat * (1 - p_hat) * (sum_nw2 - (sum_nw ** 2) / N)
+    if var_T <= 0:
+        return float("nan"), float("nan"), float("nan"), float("nan")
+
+    z = T / math.sqrt(var_T)
+
+    p_two = 2 * (1 - norm.cdf(abs(z)))
+    p_inc = 1 - norm.cdf(z)   # one-sided increasing
+    p_dec = norm.cdf(z)       # one-sided decreasing
+
+    return z, p_two, p_inc, p_dec
 
 
 def two_proportion_z_test(x1, n1, x2, n2):
@@ -90,8 +132,8 @@ def compute_results(file_name, attribute_type, max_n_trials=100000):
 
             for inner_idx, attr_value in enumerate(attributes):
                 same_attr_count = attributes.count(attr_value) - 1
-                attr_value_to_results["all_attr_values"]["same_attr_count_to_count"][same_attr_count] += 1
-                attr_value_to_results["all_attr_values"]["same_attr_count_to_hit_count"][same_attr_count] += (1 if inner_idx == suggested_candidate_id else 0)
+                # attr_value_to_results["all_attr_values"]["same_attr_count_to_count"][same_attr_count] += 1
+                # attr_value_to_results["all_attr_values"]["same_attr_count_to_hit_count"][same_attr_count] += (1 if inner_idx == suggested_candidate_id else 0)
 
                 attr_value_to_results[attr_value]["same_attr_count_to_count"][same_attr_count] += 1
                 attr_value_to_results[attr_value]["same_attr_count_to_hit_count"][same_attr_count] += (1 if inner_idx == suggested_candidate_id else 0)
@@ -128,6 +170,12 @@ def compute_results(file_name, attribute_type, max_n_trials=100000):
         print(f"[Global test] p-value={p_global:.6g}")
         significance[attr_value]["global_test_p_value"] = p_global
 
+        z, p_two, p_inc, p_dec = cochran_armitage_trend(attr_counts)
+        print(f"[Cochran-Armitage trend test] p-value={p_two:.6g}, p-inc={p_inc:.6g}, p-dec={p_dec:.6g}")
+        significance[attr_value]["p_value_two_sided"] = p_two
+        significance[attr_value]["p_value_one_inc"] = p_inc
+        significance[attr_value]["p_value_one_dec"] = p_dec
+
         # ---------- Pairwise tests (two-proportion z-tests) ----------
         levels = sorted(levels)
         print("[Pairwise tests: two-proportion z-test]")
@@ -140,7 +188,7 @@ def compute_results(file_name, attribute_type, max_n_trials=100000):
                 z, p_pair = two_proportion_z_test(h1, n1, h2, n2)
                 significance[attr_value][str((c1, c2))] = p_pair
 
-                print(f"[Pairwise test] {c1} vs {c2}: p-value={p_pair:.6g}")
+                # print(f"[Pairwise test] {c1} vs {c2}: p-value={p_pair:.6g}")
 
     return results, significance, n_trials
 
@@ -189,7 +237,7 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
         pairs = []
 
         for key, p_val in sig_dict.items():
-            if key == "global_test_p_value":
+            if "p_value" in key:
                 continue
             stars = p_to_stars(p_val)
             if not stars:
