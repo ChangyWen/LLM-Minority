@@ -329,7 +329,15 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
 
         base_label = attribute_value if attribute_value != "all_attr_values" else "All"
         p_global = significance.get(attribute_value, {}).get("global_test_p_value", float("nan"))
-        stars = p_to_stars(p_global)
+        p_one_inc = significance.get(attribute_value, {}).get("p_value_one_inc", float("nan"))
+        p_one_dec = significance.get(attribute_value, {}).get("p_value_one_dec", float("nan"))
+        # stars = p_to_stars(p_global)
+        if attribute_value == "Male" or attribute_value == "White":
+            stars = p_to_stars(p_one_inc)
+        elif attribute_value == "Female" or attribute_value == "Black":
+            stars = p_to_stars(p_one_dec)
+        else:
+            raise ValueError(f"Unknown attribute value: {attribute_value}")
         label = f"{base_label} {stars}" if stars else base_label
         line_handles.append(line)
         legend_labels.append(label)
