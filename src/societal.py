@@ -175,7 +175,7 @@ if __name__ == "__main__":
     total_failed_time = 0
     while True:
         if total_query_time >= 5000:
-            if total_failed_time / total_query_time >= 0.8:
+            if total_failed_time / total_query_time >= 0.9:
                 break
         start_time = time.time()
         sampled_job = random.choices(all_jobs, weights=all_jobs_counts, k=1)[0]
