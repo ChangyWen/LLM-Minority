@@ -178,7 +178,7 @@ def compute_results(file_name, attribute_type, max_n_trials=100000):
 
         # ---------- Pairwise tests (two-proportion z-tests) ----------
         levels = sorted(levels)
-        print("[Pairwise tests: two-proportion z-test]")
+        # print("[Pairwise tests: two-proportion z-test]")
         for i in range(len(levels)):
             for j in range(i + 1, len(levels)):
                 c1 = levels[i]
