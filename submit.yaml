@@ -24,8 +24,8 @@ code:
 
 target:
   service: sing
-  # name: Ranking
-  name: msrresrchbasicvc
+  name: Ranking
+  # name: msrresrchbasicvc
   # name: msrresrchvc
   workspace_name: CS-NewsAndFeeds-Singularity
 
@@ -40,8 +40,8 @@ jobs:
 - name: llm-minority
   # sku: G8-H100
   sku: G8-A100
-  sla_tier: Standard
-  # sla_tier: Premium
+  # sla_tier: Standard
+  sla_tier: Premium
   command:
     # - bash run-vllm-contextual.sh openai/gpt-oss-120b Gender
     - bash run-vllm-contextual.sh Qwen/Qwen3-Next-80B-A3B-Instruct Race
