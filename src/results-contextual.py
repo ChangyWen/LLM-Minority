@@ -89,40 +89,55 @@ def cochran_armitage_trend(attr_counts):
 
 def trend_test_delta_counts(attr_counts_A, attr_counts_B):
     """
-    Tests whether delta(c) = pA(c) - pB(c) changes monotonically as c increases.
+    Tests whether delta(c) = pA(c) - pB(c) changes systematically with c
+    using a logistic regression with interaction term group*c.
+
     Returns: z, p_two_sided, p_one_inc, p_one_dec
     """
+    print("A counts:", attr_counts_A)
+    print("B counts:", attr_counts_B)
+    for c in sorted(set(attr_counts_A) & set(attr_counts_B)):
+        hA, nA = attr_counts_A[c]
+        hB, nB = attr_counts_B[c]
+        print(c, " A:", hA, "/", nA, "=", hA/nA, "  B:", hB, "/", nB, "=", hB/nB)
+
     levels = sorted(set(attr_counts_A) & set(attr_counts_B))
     rows = []
 
     for c in levels:
         hA, nA = attr_counts_A[c]
         hB, nB = attr_counts_B[c]
-        rows.append([1, c, hA, nA])  # group = 1 (A)
-        rows.append([0, c, hB, nB])  # group = 0 (B)
+        # group = 1 for A, 0 for B
+        rows.append([1, c, hA, nA])  # A
+        rows.append([0, c, hB, nB])  # B
 
-    rows = np.array(rows)
-    group = rows[:,0]
-    cvals = rows[:,1]
-    hits = rows[:,2]
-    totals = rows[:,3]
+    rows = np.array(rows, dtype=float)
+    group = rows[:, 0]
+    cvals = rows[:, 1]
+    hits = rows[:, 2]
+    totals = rows[:, 3]
+
+    # endog must be proportion in [0,1] when using freq_weights with Binomial
+    y = hits / totals
+    w = totals
 
     # design matrix: intercept + group + c + group*c
-    X = np.column_stack([np.ones_like(group), group, cvals, group*cvals])
-    y = hits
-    w = totals
+    X = np.column_stack([np.ones_like(group), group, cvals, group * cvals])
 
     model = sm.GLM(y, X, family=sm.families.Binomial(), freq_weights=w)
     result = model.fit()
 
-    # β3 = interaction coefficient
-    beta3 = result.params[3]
+    beta3 = result.params[3]   # interaction coefficient
     se3 = result.bse[3]
     z = beta3 / se3
 
+    # two-sided and one-sided p-values for the interaction
     p_two = 2 * (1 - norm.cdf(abs(z)))
-    p_inc = 1 - norm.cdf(z)   # delta increases
-    p_dec = norm.cdf(z)       # delta decreases
+    p_inc = 1 - norm.cdf(z)   # delta increases with c
+    p_dec = norm.cdf(z)       # delta decreases with c
+
+    print(result.summary())   # very helpful to inspect once
+    print("beta3, se3, z:", beta3, se3, z)
 
     return z, p_two, p_inc, p_dec
 
