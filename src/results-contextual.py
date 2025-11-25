@@ -10,6 +10,7 @@ import matplotlib.gridspec as gridspec
 from scipy.stats import norm
 import statsmodels.api as sm
 import numpy as np
+from matplotlib.lines import Line2D
 
 
 # -----------------------------
@@ -394,29 +395,32 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
             capthick=1.5,
         )
 
-        p_global = significance.get(attribute_value, {}).get("global_test_p_value", float("nan"))
         p_one_inc = significance.get(attribute_value, {}).get("p_value_one_inc", float("nan"))
         p_one_dec = significance.get(attribute_value, {}).get("p_value_one_dec", float("nan"))
-        # stars = p_to_stars(p_global)
-        if attribute_value == "Male" or attribute_value == "White":
+        if attribute_value in ("Male", "White"):
             stars = p_to_stars(p_one_inc)
             stars = f"↑{stars}" if stars else ""
-        elif attribute_value == "Female" or attribute_value == "Black":
+        elif attribute_value in ("Female", "Black"):
             stars = p_to_stars(p_one_dec)
             stars = f"↓{stars}" if stars else ""
         else:
             raise ValueError(f"Unknown attribute value: {attribute_value}")
         label = f"{attribute_value} {stars}" if stars else attribute_value
-        line_handles.append(line)
-        legend_labels.append(label)
+        # attach a proxy handle for legend
+        line_proxy = Line2D([0], [0],
+                            marker="o", linestyle="-",
+                            color=palette[i], linewidth=1.5,
+                            markersize=6)
+        ax_main.plot([], [], label=label, color=palette[i])  # for legend only
 
     # baseline with legend
+    baseline_handle = Line2D([0], [0],
+                             color="black", linestyle="-", linewidth=1.5)
     ax_main.axhline(
         y=baseline_value,
         color="black",
         linestyle="-",
         linewidth=1.5,
-        label=f"Random ({baseline_value:.1f})"
     )
 
     ax_main.set_xticks(xticks, labels=[f"{(c + 1)/(len(xticks)) * 100:.0f}%" for c in xticks])
@@ -431,20 +435,75 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
     for spine in ["top", "right"]:
         ax_main.spines[spine].set_visible(False)
 
-    handles, labels = ax_main.get_legend_handles_labels()
+    # -----------------------------------------------------------
+    # DELTA LINE on twin y-axis
+    # -----------------------------------------------------------
+    if "delta" in all_results:
+        ax_delta = ax_main.twinx()
+
+        delta_res = all_results["delta"]
+        xs_delta = sorted(delta_res.keys())
+        ys_delta = [delta_res[c]["delta"] for c in xs_delta]
+
+        # stars from trend_test_p_value_one_dec (delta trend)
+        delta_stars = p_to_stars(significance.get("delta", {}).get("p_value_one_dec", float("nan")))
+        delta_stars = f"↓{delta_stars}" if delta_stars else ""
+        delta_label = r"$\Delta$"
+        if delta_stars:
+            delta_label += f" {delta_stars}"
+
+        # choose a different color for delta
+        delta_color = "tab:gray"
+
+        delta_line, = ax_delta.plot(
+            xs_delta,
+            ys_delta,
+            linestyle="--",
+            linewidth=1.5,
+            color=delta_color,
+            label=delta_label,
+        )
+
+
+        delta_label = "(Female - Male)" if attribute_type == "Gender" else "(Black - White)"
+        ax_delta.set_ylabel(r"$\Delta$ in Selection Rate " + delta_label, fontsize=11, fontweight="bold", color=delta_color)
+        ax_delta.tick_params(axis="y", labelcolor=delta_color)
+
+        ax_delta.spines["top"].set_visible(False)
+    else:
+        ax_delta = None
+
+    # -----------------------------------------------------------
+    # LEGEND (combine main + delta)
+    # -----------------------------------------------------------
+    handles_main, labels_main = ax_main.get_legend_handles_labels()
+    extra_handles = [baseline_handle]
+    extra_labels = [f"Random ({baseline_value:.1f})"]
+
+    if ax_delta is not None:
+        handles_delta, labels_delta = ax_delta.get_legend_handles_labels()
+        handles = handles_main + extra_handles + handles_delta
+        labels = labels_main + extra_labels + labels_delta
+    else:
+        handles = handles_main + extra_handles
+        labels = labels_main + extra_labels
+
     ax_main.legend(
-        line_handles + handles,
-        legend_labels + labels,
+        handles,
+        labels,
         fontsize=12,
         title_fontsize=13,
         markerscale=1,
+        loc="upper right",        # ⬅ move legend box to top-right
+        frameon=True,             # (optional) draws a box around legend
+        framealpha=0.95,          # (optional) slight transparency
+        borderpad=0.4,            # (optional) tighten the box
     )
 
     # -----------------------------------------------------------
-    # BRACKET PANEL (Top): ONLY if we have brackets
+    # BRACKET PANEL
     # -----------------------------------------------------------
     if total_rows > 0 and ax_brackets is not None:
-        # Turn off all axis decorations
         ax_brackets.set_xlim(ax_main.get_xlim())
         ax_brackets.set_ylim(0, 1)
         ax_brackets.axis("off")
@@ -453,7 +512,7 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
         bracket_height = 0.35 * row_step
         current_row = 0
 
-        for attr_value in attribute_values:   # legend order; "All" last
+        for attr_value in attribute_values:
             pairs = attr_to_pairs[attr_value]
             color = attr_to_color[attr_value]
 
@@ -481,7 +540,6 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
 
                 current_row += 1
 
-    # fig.tight_layout()
     save_file = f"outputs/contextual_{model_name_clean}_{attribute_type}_{resume_count}.png"
     fig.savefig(save_file, bbox_inches="tight")
     plt.close(fig)
