@@ -315,14 +315,11 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
             marker="o",
             markersize=6,
             linewidth=1.5,
-            linestyle="--" if attribute_value != "all_attr_values" else "-",
+            linestyle="-",
             color=palette[i],
             capsize=6,
             capthick=1.5,
         )
-
-        if attribute_value != "all_attr_values":
-            all_barlines.extend(barlines)
 
         p_global = significance.get(attribute_value, {}).get("global_test_p_value", float("nan"))
         p_one_inc = significance.get(attribute_value, {}).get("p_value_one_inc", float("nan"))
@@ -340,17 +337,13 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
         line_handles.append(line)
         legend_labels.append(label)
 
-    for bar in all_barlines:
-        bar.set_linestyle("--")
-        bar.set_linewidth(1.2)
-
     # baseline with legend
     ax_main.axhline(
         y=baseline_value,
         color="black",
         linestyle="-",
         linewidth=1.5,
-        label=f"Random ({baseline_value:.2f})"
+        label=f"Random ({baseline_value:.1f})"
     )
 
     ax_main.set_xticks(xticks, labels=[f"{(c + 1)/(len(xticks)) * 100:.0f}%" for c in xticks])
