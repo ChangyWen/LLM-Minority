@@ -494,7 +494,7 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
         fontsize=12,
         title_fontsize=13,
         markerscale=1,
-        loc="upper right",        # ⬅ move legend box to top-right
+        loc="best",                # move legend box to best position
         frameon=True,             # (optional) draws a box around legend
         framealpha=0.95,          # (optional) slight transparency
         borderpad=0.4,            # (optional) tighten the box
