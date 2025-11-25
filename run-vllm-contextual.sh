@@ -7,26 +7,27 @@ application=$1
 model=$2
 attribute_type=$3
 
+if [ "$application" == "hiring" ]; then
+  pool_count=200
+  max_model_len=12288
+elif [ "$application" == "loan" ]; then
+  pool_count=500
+  max_model_len=5120
+else
+  echo "Invalid application: $application"
+  exit 1
+fi
+
 ######### start vllm server #########
 nohup vllm serve $model \
   --trust-remote-code \
   --tensor-parallel-size 8 \
-  --max-model-len 12288 \
+  --max-model-len $max_model_len \
   --port 8000 >/dev/null 2>&1 &
 
 echo "*********** Waiting for vllm server to start ***********"
 sleep 600
 echo "*********** Done waiting ***********"
-
-
-if [ "$application" == "hiring" ]; then
-  pool_count=200
-elif [ "$application" == "loan" ]; then
-  pool_count=500
-else
-  echo "Invalid application: $application"
-  exit 1
-fi
 
 python src/${application}/contextual.py $model "$attribute_type" 5 $pool_count &
 sleep 5

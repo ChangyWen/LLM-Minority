@@ -55,6 +55,8 @@ jobs:
     # - bash run-vllm-contextual.sh zai-org/GLM-4.5-Air Race
     # - bash run-vllm-contextual.sh google/gemma-3-27b-it Gender
     # - bash run-vllm-contextual.sh google/gemma-3-27b-it Race
+    ####### loan #########
+    - bash run-vllm-contextual.sh loan openai/gpt-oss-120b Gender
   submit_args:
     env:
       {
