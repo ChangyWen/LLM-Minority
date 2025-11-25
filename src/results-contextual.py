@@ -248,10 +248,10 @@ def compute_results(file_name, attribute_type, max_n_trials=100000):
         pA = hA / nA
         pB = hB / nB
         delta = pA - pB
-        var_delta = pA*(1 - pA)/nA + pB*(1 - pB)/nB
-        se_delta = math.sqrt(var_delta)
-        ci_low = delta - 1.96 * se_delta
-        ci_high = delta + 1.96 * se_delta
+        ciA_low, ciA_high = wilson_ci(hA, nA)
+        ciB_low, ciB_high = wilson_ci(hB, nB)
+        ci_low = ciA_low - ciB_high
+        ci_high = ciA_high - ciB_low
         results["delta"][c] = {
             "delta": delta,
             "ci_low": ci_low,
