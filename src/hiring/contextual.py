@@ -159,15 +159,15 @@ if __name__ == "__main__":
 
 
     if "msra" in model_name:
-        os.makedirs(f"outputs/contextual/{attribute_type}", exist_ok=True)
+        os.makedirs(f"outputs/hiring/contextual/{attribute_type}", exist_ok=True)
         sub_model_name = model_name.split("/")[-1]
-        save_file = f"outputs/contextual/{attribute_type}/{sub_model_name}_{total_count}_{pool_count}.jsonl"
+        save_file = f"outputs/hiring/contextual/{attribute_type}/{sub_model_name}_{total_count}_{pool_count}.jsonl"
         dataset_dir = "dataset/hiring"
     else:
-        os.makedirs(f"/mnt/blob_output/v-dachengwen/LLM-Minority/outputs/contextual/{attribute_type}", exist_ok=True)
+        os.makedirs(f"/mnt/blob_output/v-dachengwen/LLM-Minority/outputs/hiring/contextual/{attribute_type}", exist_ok=True)
         sub_model_name = model_name.split("/")[-1]
         ts = int(time.time() * 1000)
-        save_file = f"/mnt/blob_output/v-dachengwen/LLM-Minority/outputs/contextual/{attribute_type}/{sub_model_name}_{total_count}_{pool_count}_ts{ts}_rd{random.randint(1, 1000000)}.jsonl"
+        save_file = f"/mnt/blob_output/v-dachengwen/LLM-Minority/outputs/hiring/contextual/{attribute_type}/{sub_model_name}_{total_count}_{pool_count}_ts{ts}_rd{random.randint(1, 1000000)}.jsonl"
         dataset_dir = "/mnt/blob_output/v-dachengwen/LLM-Minority/dataset/hiring"
 
     all_job_files = [file for file in os.listdir(dataset_dir) if file.startswith("job_")]
