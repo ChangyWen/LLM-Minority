@@ -7,10 +7,8 @@ environment:
     - pip install packaging
     - pip install ninja
     - pip install https://github.com/Dao-AILab/flash-attention/releases/download/v2.8.0.post2/flash_attn-2.8.0.post2+cu12torch2.5cxx11abiFALSE-cp310-cp310-linux_x86_64.whl
-    - pip install vllm
     - pip install onnxruntime-gpu
     - pip install datasets
-    - pip install transformers
     - pip install python-dotenv
     - pip install uuid
     - pip install openai
@@ -45,17 +43,11 @@ jobs:
   sla_tier: Standard
   # sla_tier: Premium
   command:
-    # - bash run-vllm-contextual.sh openai/gpt-oss-120b Gender
-    # - bash run-vllm-contextual.sh Qwen/Qwen3-Next-80B-A3B-Instruct Race
-    # - bash run-vllm-contextual.sh openai/gpt-oss-120b Race
-    # - bash run-vllm-societal.sh Qwen/Qwen3-Next-80B-A3B-Instruct
-    # - bash run-vllm-societal.sh meta-llama/Llama-3.3-70B-Instruct
-    # - bash run-vllm-societal.sh openai/gpt-oss-120b
-    ####### TODO #######
-    # - bash run-vllm-contextual.sh zai-org/GLM-4.5-Air Gender
-    # - bash run-vllm-contextual.sh zai-org/GLM-4.5-Air Race
-    # - bash run-vllm-contextual.sh google/gemma-3-27b-it Gender
-    # - bash run-vllm-contextual.sh google/gemma-3-27b-it Race
+    - git clone https://github.com/vllm-project/vllm.git
+    - cd vllm
+    - VLLM_USE_PRECOMPILED=1 pip install --editable .
+    - pip install git+https://github.com/huggingface/transformers@v4.49.0-Gemma-3
+    - vllm serve google/gemma-3-27b-it --trust-remote-code --tensor-parallel-size 1 --max-model-len 512 --port 8000
   submit_args:
     env:
       {
