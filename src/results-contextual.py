@@ -238,10 +238,13 @@ def compute_results(file_name, attribute_type, max_n_trials=100000):
 
     z, p_two, p_inc, p_dec = trend_test_delta_counts(attr_counts_A, attr_counts_B)
     print(f"[Delta Trend test] z={z:.6g}, p-value={p_two:.6g}, p-inc={p_inc:.6g}, p-dec={p_dec:.6g}")
-    significance[attr_value]["trend_test_p_value_two_sided"] = p_two
-    significance[attr_value]["trend_test_p_value_one_inc"] = p_inc
-    significance[attr_value]["trend_test_p_value_one_dec"] = p_dec
+    significance["delta"] = {
+        "p_value_two_sided": p_two,
+        "p_value_one_inc": p_inc,
+        "p_value_one_dec": p_dec,
+    }
 
+    results["delta"] = {}
     for c in sorted(set(attr_counts_A) & set(attr_counts_B)):
         hA, nA = attr_counts_A[c]
         hB, nB = attr_counts_B[c]
