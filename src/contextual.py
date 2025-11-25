@@ -148,32 +148,12 @@ if __name__ == "__main__":
 
     if attribute_type == "Race":
         attributes_lists = [
-            # Black, White, Asian
+            # Black, White
             ["Black", "White"],
-            # ["Black", "Asian"], ["White", "Asian"]
         ]
     elif attribute_type == "Gender":
         # Male or Female
         attributes_lists = [["Male", "Female"]]
-    elif attribute_type == "Religious Affiliation":
-        attributes_lists = [
-            # Christian, Muslim, Hindu, or Unaffiliated
-            ["Christian", "Muslim"], ["Christian", "Hindu"], ["Christian", "Unaffiliated"],
-            ["Muslim", "Hindu"], ["Muslim", "Unaffiliated"],
-            ["Hindu", "Unaffiliated"],
-        ]
-    elif attribute_type == "Gender Identity":
-        attributes_lists = [
-            # Transgender, Non-binary, Cisgender
-            ["Transgender", "Cisgender"], ["Transgender", "Non-binary"], ["Cisgender", "Non-binary"],
-        ]
-    elif attribute_type == "Sexual Orientation":
-        attributes_lists = [
-            # Heterosexual, Homosexual, Bisexual, Asexual
-            ["Heterosexual", "Homosexual"], ["Heterosexual", "Bisexual"], ["Heterosexual", "Asexual"],
-            ["Homosexual", "Bisexual"], ["Homosexual", "Asexual"],
-            ["Bisexual", "Asexual"],
-        ]
     else:
         raise ValueError(f"Invalid attribute type: {attribute_type}")
 
