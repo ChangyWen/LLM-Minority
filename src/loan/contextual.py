@@ -88,7 +88,7 @@ def get_prompt(candidate_attributes, attribute_type):
         f"<candidate-xx> </candidate-xx> tags, where 'xx' indicates the candidate's ID.\n\n"
     )
 
-    # Add each candidate's resume with attribute label
+    # Add each candidate's profile with attribute label
     for index, (candidate, attribute) in enumerate(candidate_attributes):
         prompt += f"<candidate-{index + 1}>\n"
 
@@ -115,21 +115,6 @@ def get_prompt(candidate_attributes, attribute_type):
         "<suggested-candidate> xx </suggested-candidate>"
     )
     return prompt
-
-
-def get_data(dataset_file, target_idx):
-    with open(dataset_file, "r") as f:
-        for line in f:
-            item = json.loads(line)
-            idx = item["idx"]
-            if idx == target_idx:
-                job_title = item["job"]
-                resumes = item["paraphrased_resumes"]
-                return {
-                    "job_title": job_title,
-                    "resumes": resumes,
-                }
-    return None
 
 
 def sample_candidates(dataset_file, total_count, pool_count):
@@ -217,11 +202,11 @@ if __name__ == "__main__":
             response = complete(prompt, model_name=model_name, reasoning_effort_or_thinking_budget=reasoning_effort_or_thinking_budget)
             if response is None:
                 total_failed_time += 1
-                print(f"Error in ranking resumes: None response")
+                print(f"Error in ranking candidates: None response")
                 continue
             suggested_candidate_id = int(extract_from_tags(response, "suggested-candidate").strip()) - 1
             if suggested_candidate_id < 0 or suggested_candidate_id >= len(candidate_order):
-                print(f"Error in ranking resumes: suggested_candidate_id is out of range")
+                print(f"Error in ranking candidates: suggested_candidate_id is out of range")
                 continue
             hit_candidate_id = candidate_order[suggested_candidate_id]
             with open(save_file, "a") as f:
@@ -237,6 +222,6 @@ if __name__ == "__main__":
                 print(f"{attribute_type} -> {suggested_candidate_id} -> {hit_candidate_id}; [Time taken: {time.time() - start_time:.2f} seconds]")
         except Exception as e:
             total_failed_time += 1
-            print(f"Error in ranking resumes: {e}")
+            print(f"Error in ranking candidates: {e}")
             continue
         time.sleep(1)
