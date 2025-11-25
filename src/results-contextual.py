@@ -289,9 +289,8 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
         "axes.linewidth": 0.8,
     })
 
-    non_all_values = set(all_results.keys()) - {"all_attr_values"}
-    # attribute_values = sorted(list(non_all_values)) + ["all_attr_values"]
-    attribute_values = sorted(list(non_all_values))
+    non_delta_values = set(all_results.keys()) - {"delta"}
+    attribute_values = sorted(list(non_delta_values))
     palette = sns.color_palette("husl", len(attribute_values))
 
     # -----------------------------------------------------------
