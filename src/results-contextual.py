@@ -7,7 +7,9 @@ import matplotlib.pyplot as plt
 import os
 from scipy.stats import chi2_contingency, norm
 import matplotlib.gridspec as gridspec
-from scipy.stats import norm  # you already have this
+from scipy.stats import norm
+import statsmodels.api as sm
+import numpy as np
 
 
 # -----------------------------
@@ -84,6 +86,46 @@ def cochran_armitage_trend(attr_counts):
     return z, p_two, p_inc, p_dec
 
 
+def trend_test_delta_counts(attr_counts_A, attr_counts_B):
+    """
+    Tests whether delta(c) = pA(c) - pB(c) changes monotonically as c increases.
+    Returns: z, p_two_sided, p_one_inc, p_one_dec
+    """
+    levels = sorted(set(attr_counts_A) & set(attr_counts_B))
+    rows = []
+
+    for c in levels:
+        hA, nA = attr_counts_A[c]
+        hB, nB = attr_counts_B[c]
+        rows.append([1, c, hA, nA])  # group = 1 (A)
+        rows.append([0, c, hB, nB])  # group = 0 (B)
+
+    rows = np.array(rows)
+    group = rows[:,0]
+    cvals = rows[:,1]
+    hits = rows[:,2]
+    totals = rows[:,3]
+
+    # design matrix: intercept + group + c + group*c
+    X = np.column_stack([np.ones_like(group), group, cvals, group*cvals])
+    y = hits
+    w = totals
+
+    model = sm.GLM(y, X, family=sm.families.Binomial(), freq_weights=w)
+    result = model.fit()
+
+    # β3 = interaction coefficient
+    beta3 = result.params[3]
+    se3 = result.bse[3]
+    z = beta3 / se3
+
+    p_two = 2 * (1 - norm.cdf(abs(z)))
+    p_inc = 1 - norm.cdf(z)   # delta increases
+    p_dec = norm.cdf(z)       # delta decreases
+
+    return z, p_two, p_inc, p_dec
+
+
 def two_proportion_z_test(x1, n1, x2, n2):
     """
     Two-sided z-test for equality of two proportions.
@@ -138,6 +180,8 @@ def compute_results(file_name, attribute_type, max_n_trials=100000):
     print(f"Attribute type: {attribute_type}")
     results = {}
     significance = {}
+    attr_counts_A = None
+    attr_counts_B = None
     for attr_value, attr_value_results in attr_value_to_results.items():
         # sort the attr_value_results by same_attr_count
         print(f"attr_value: {attr_value}")
@@ -168,7 +212,7 @@ def compute_results(file_name, attribute_type, max_n_trials=100000):
         significance[attr_value]["global_test_p_value"] = p_global
 
         z, p_two, p_inc, p_dec = cochran_armitage_trend(attr_counts)
-        print(f"[Cochran-Armitage trend test] p-value={p_two:.6g}, p-inc={p_inc:.6g}, p-dec={p_dec:.6g}")
+        print(f"[Cochran-Armitage trend test] z={z:.6g}, p-value={p_two:.6g}, p-inc={p_inc:.6g}, p-dec={p_dec:.6g}")
         significance[attr_value]["p_value_two_sided"] = p_two
         significance[attr_value]["p_value_one_inc"] = p_inc
         significance[attr_value]["p_value_one_dec"] = p_dec
@@ -186,6 +230,33 @@ def compute_results(file_name, attribute_type, max_n_trials=100000):
                 significance[attr_value][str((c1, c2))] = p_pair
 
                 # print(f"[Pairwise test] {c1} vs {c2}: p-value={p_pair:.6g}")
+
+        if attr_value == "Black" or attr_value == "Female":
+            attr_counts_A = attr_counts
+        else:
+            attr_counts_B = attr_counts
+
+    z, p_two, p_inc, p_dec = trend_test_delta_counts(attr_counts_A, attr_counts_B)
+    print(f"[Delta Trend test] z={z:.6g}, p-value={p_two:.6g}, p-inc={p_inc:.6g}, p-dec={p_dec:.6g}")
+    significance[attr_value]["trend_test_p_value_two_sided"] = p_two
+    significance[attr_value]["trend_test_p_value_one_inc"] = p_inc
+    significance[attr_value]["trend_test_p_value_one_dec"] = p_dec
+
+    for c in sorted(set(attr_counts_A) & set(attr_counts_B)):
+        hA, nA = attr_counts_A[c]
+        hB, nB = attr_counts_B[c]
+        pA = hA / nA
+        pB = hB / nB
+        delta = pA - pB
+        var_delta = pA*(1 - pA)/nA + pB*(1 - pB)/nB
+        se_delta = math.sqrt(var_delta)
+        ci_low = delta - 1.96 * se_delta
+        ci_high = delta + 1.96 * se_delta
+        results["delta"][c] = {
+            "delta": delta,
+            "ci_low": ci_low,
+            "ci_high": ci_high,
+        }
 
     return results, significance, n_trials
 
