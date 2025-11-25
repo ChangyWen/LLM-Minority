@@ -569,7 +569,7 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
 
                 current_row += 1
 
-    save_file = f"outputs/contextual_{model_name_clean}_{attribute_type}_{resume_count}.png"
+    save_file = f"outputs/hiring/contextual_{model_name_clean}_{attribute_type}_{resume_count}.png"
     fig.savefig(save_file, bbox_inches="tight")
     plt.close(fig)
 
@@ -581,7 +581,7 @@ if __name__ == "__main__":
     for attribute_type in ["Gender", "Race"]:
         for resume_count in [5]:
             for model_name in ["msra-gpt-4o", "msra-gpt-4.1-nano", "Qwen3-Next-80B-A3B-Instruct", "Llama-3.3-70B-Instruct", "gpt-oss-120b", "GLM-4.5-Air", "gemma-3-27b-it"]:
-                file_name = f"outputs/contextual/{attribute_type}/{model_name}_{resume_count}_{pool_count}.jsonl"
+                file_name = f"outputs/hiring/contextual/{attribute_type}/{model_name}_{resume_count}_{pool_count}.jsonl"
                 if os.path.exists(file_name):
                     print(f"------------------------------------\n\n{file_name}")
                     results, significance, n_trials = compute_results(file_name, attribute_type, max_n_trials)
