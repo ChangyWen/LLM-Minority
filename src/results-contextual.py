@@ -473,10 +473,15 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
             color=delta_color,
             capsize=5,
             capthick=1.3,
-            label=delta_label,
         )
         for bar in bar_delta:
             bar.set_linestyle("--")
+        # ensure legend shows only the delta marker line
+        line_delta.set_label(delta_label)
+        for bar in bar_delta:
+            bar.set_label(None)
+        for cap in cap_delta:
+            cap.set_label(None)
 
         # axis styling
         ax_delta.set_ylabel(r"$\Delta$ in Selection Rate " + delta_label_pre, fontsize=11, fontweight="bold", color=delta_color)
