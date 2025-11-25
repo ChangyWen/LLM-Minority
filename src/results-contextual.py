@@ -509,7 +509,7 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
         markerscale=1,
         loc="upper right",
         frameon=True,
-        framealpha=0.8,
+        framealpha=0.5,
         borderpad=0.4,
     )
 
