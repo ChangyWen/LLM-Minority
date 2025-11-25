@@ -297,6 +297,8 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
     attribute_values = sorted(list(non_delta_values))
     palette = sns.color_palette("husl", len(attribute_values))
 
+    delta_color = "blue"      # fixed color for Δ
+
     # -----------------------------------------------------------
     # FIRST: collect brackets per attribute and count total rows
     # -----------------------------------------------------------
@@ -454,13 +456,10 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
         # stars from trend_test_p_value_one_dec (delta trend)
         delta_stars = p_to_stars(significance.get("delta", {}).get("p_value_one_dec", float("nan")))
         delta_stars = f"↓{delta_stars}" if delta_stars else ""
-        delta_label = "(F. - M.)" if attribute_type == "Gender" else "(B. - W.)"
-        delta_label = r"$\Delta $" + delta_label
+        delta_label_pre = "(F. - M.)" if attribute_type == "Gender" else "(B. - W.)"
+        delta_label = r"$\Delta $" + delta_label_pre
         if delta_stars:
             delta_label += f" {delta_stars}"
-
-        # distinct color for delta
-        delta_color = "tab:gray"
 
         # errorbar with marker + CI
         line_delta, cap_delta, bar_delta = ax_delta.errorbar(
@@ -476,9 +475,11 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
             capthick=1.3,
             label=delta_label,
         )
+        for bar in bar_delta:
+            bar.set_linestyle("--")
 
         # axis styling
-        ax_delta.set_ylabel(r"$\Delta$ in Selection Rate", fontsize=11, fontweight="bold", color=delta_color)
+        ax_delta.set_ylabel(r"$\Delta$ in Selection Rate " + delta_label_pre, fontsize=11, fontweight="bold", color=delta_color)
         ax_delta.tick_params(axis="y", labelcolor=delta_color)
 
         # remove top spine (keep right to show twin axis)
@@ -503,7 +504,7 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
         markerscale=1,
         loc="upper right",
         frameon=True,
-        framealpha=0.95,
+        framealpha=0.8,
         borderpad=0.4,
     )
 
