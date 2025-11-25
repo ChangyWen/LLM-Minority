@@ -52,7 +52,7 @@ jobs:
     # - bash run-vllm-societal.sh meta-llama/Llama-3.3-70B-Instruct
     # - bash run-vllm-societal.sh openai/gpt-oss-120b
     ####### TODO #######
-    # - bash run-vllm-contextual.sh zai-org/GLM-4.5-Air Gender
+    - bash run-vllm-contextual.sh zai-org/GLM-4.5-Air Gender
     # - bash run-vllm-contextual.sh zai-org/GLM-4.5-Air Race
     # - bash run-vllm-contextual.sh google/gemma-3-27b-it Gender
     # - bash run-vllm-contextual.sh google/gemma-3-27b-it Race

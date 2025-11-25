@@ -24,8 +24,8 @@ target:
   service: sing
   # name: Feeds
   # name: Recall
-  # name: Ranking
-  name: msrresrchbasicvc
+  name: Ranking
+  # name: msrresrchbasicvc
   # name: msrresrchvc
   workspace_name: CS-NewsAndFeeds-Singularity
 
@@ -38,16 +38,18 @@ storage:
 # SKU usage: G1 (single GPU), G4 (quad GPU), G4-V100 (1 machine, 4 V100 gpus), etc...
 jobs:
 - name: llm-minority
-  sku: G8-H100
-  # sku: 80G1-A100
-  sla_tier: Standard
-  # sla_tier: Premium
+  # sku: G8-H100
+  sku: 80G8-A100
+  # sla_tier: Standard
+  sla_tier: Premium
   command:
     - git clone https://github.com/vllm-project/vllm.git
     - cd vllm
     - VLLM_USE_PRECOMPILED=1 pip install --editable .
-    - pip install git+https://github.com/huggingface/transformers@v4.49.0-Gemma-3
-    - vllm serve google/gemma-3-27b-it --trust-remote-code --tensor-parallel-size 1 --max-model-len 512 --port 8000
+    - cd ..
+    - pip install transformers
+    # - bash run-vllm-contextual.sh google/gemma-3-27b-it Gender
+    - bash run-vllm-contextual.sh google/gemma-3-27b-it Race
   submit_args:
     env:
       {
