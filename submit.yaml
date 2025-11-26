@@ -53,11 +53,11 @@ jobs:
     # - bash run-vllm-societal.sh openai/gpt-oss-120b
     # - bash run-vllm-contextual.sh zai-org/GLM-4.5-Air Gender
     # - bash run-vllm-contextual.sh zai-org/GLM-4.5-Air Race
-    # - bash run-vllm-contextual.sh google/gemma-3-27b-it Gender
-    # - bash run-vllm-contextual.sh google/gemma-3-27b-it Race
     ####### loan #########
     # - bash run-vllm-contextual.sh loan openai/gpt-oss-120b Gender
-    - bash run-vllm-contextual.sh loan Qwen/Qwen3-Next-80B-A3B-Instruct Gender
+    # - bash run-vllm-contextual.sh loan Qwen/Qwen3-Next-80B-A3B-Instruct Gender
+    # - bash run-vllm-contextual.sh loan meta-llama/Llama-3.3-70B-Instruct Gender
+    # - bash run-vllm-contextual.sh loan zai-org/GLM-4.5-Air Gender
   submit_args:
     env:
       {
