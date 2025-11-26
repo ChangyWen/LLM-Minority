@@ -50,7 +50,7 @@ jobs:
     - pip install transformers
     # - bash run-vllm-contextual.sh google/gemma-3-27b-it Gender
     # - bash run-vllm-contextual.sh google/gemma-3-27b-it Race
-    - bash run-vllm-contextual.sh loan google/gemma-3-27b-it Gender
+    - bash run-vllm-contextual.sh loan google/gemma-3-27b-it Gender 8
   submit_args:
     env:
       {
