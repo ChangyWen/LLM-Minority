@@ -351,7 +351,7 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
 
     model_name_clean = model_name.replace("msra-", "")
     fig.suptitle(
-        f"{attribute_type} ({model_name_clean})",
+        f"Hiring - {attribute_type} ({model_name_clean})",
         fontweight="bold",
         y=0.93
     )
