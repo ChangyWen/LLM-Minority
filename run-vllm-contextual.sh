@@ -6,6 +6,11 @@ set -x
 application=$1
 model=$2
 attribute_type=$3
+gpu_count=$4
+
+if [ "$gpu_count" == "" ]; then
+  gpu_count=8
+fi
 
 if [ "$application" == "hiring" ]; then
   pool_count=200
@@ -21,7 +26,7 @@ fi
 ######### start vllm server #########
 nohup vllm serve $model \
   --trust-remote-code \
-  --tensor-parallel-size 8 \
+  --tensor-parallel-size $gpu_count \
   --max-model-len $max_model_len \
   --port 8000 >/dev/null 2>&1 &
 
