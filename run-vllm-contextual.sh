@@ -15,7 +15,7 @@ fi
 if [ "$application" == "hiring" ]; then
   pool_count=200
   max_model_len=12288
-elif [ "$application" == "loan" ]; then
+elif [ "$application" == "loan" || "$application" == "edu" ]; then
   pool_count=500
   max_model_len=5120
 else
