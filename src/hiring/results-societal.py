@@ -55,7 +55,7 @@ def compute_results(model_name, attribute_type, pool_count):
 
     minority_attributes = type_to_minority_attributes[attribute_type]
 
-    with open(f"outputs/societal/{attribute_type}/{model_name}_{pool_count}.jsonl", "r") as f:
+    with open(f"outputs/hiring/societal/{attribute_type}/{model_name}_{pool_count}.jsonl", "r") as f:
         for line in f:
             total_count += 1
             item = json.loads(line)
@@ -227,7 +227,7 @@ def draw_results(all_results, attribute_types, model_name):
         ax.spines[spine].set_visible(False)
 
     plt.tight_layout()
-    save_file = f"outputs/societal_{model_name_clean}.png"
+    save_file = f"outputs/hiring/societal_{model_name_clean}.png"
     plt.savefig(save_file, bbox_inches="tight")
     plt.close()
 
@@ -240,7 +240,7 @@ if __name__ == "__main__":
     for model_name in ["msra-gpt-4o", "Qwen3-Next-80B-A3B-Instruct", "Llama-3.3-70B-Instruct", "gpt-oss-120b"]:
         all_results = {}
         for attribute_type in attribute_types:
-            if os.path.exists(f"outputs/societal/{attribute_type}/{model_name}_{pool_count}.jsonl"):
+            if os.path.exists(f"outputs/hiring/societal/{attribute_type}/{model_name}_{pool_count}.jsonl"):
                 results = compute_results(model_name, attribute_type, pool_count)
                 all_results[attribute_type] = results
 
