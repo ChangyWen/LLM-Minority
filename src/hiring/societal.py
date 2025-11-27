@@ -105,7 +105,6 @@ def sample_resumes(job_file, total_count, pool_count):
 if __name__ == "__main__":
     model_name = sys.argv[1]
     attribute_type = sys.argv[2]
-    pool_count = 200
 
     client = None
     if "msra" not in model_name:
@@ -129,13 +128,13 @@ if __name__ == "__main__":
     if "msra" in model_name:
         os.makedirs(f"outputs/hiring/societal/{attribute_type}", exist_ok=True)
         sub_model_name = model_name.split("/")[-1]
-        save_file = f"outputs/hiring/societal/{attribute_type}/{sub_model_name}_{pool_count}.jsonl"
+        save_file = f"outputs/hiring/societal/{attribute_type}/{sub_model_name}.jsonl"
         dataset_dir = "dataset/hiring"
     else:
         os.makedirs(f"/mnt/blob_output/v-dachengwen/LLM-Minority/outputs/hiring/societal/{attribute_type}", exist_ok=True)
         sub_model_name = model_name.split("/")[-1]
         ts = int(time.time() * 1000)
-        save_file = f"/mnt/blob_output/v-dachengwen/LLM-Minority/outputs/hiring/societal/{attribute_type}/{sub_model_name}_{pool_count}_ts{ts}_rd{random.randint(1, 1000000)}.jsonl"
+        save_file = f"/mnt/blob_output/v-dachengwen/LLM-Minority/outputs/hiring/societal/{attribute_type}/{sub_model_name}_ts{ts}_rd{random.randint(1, 1000000)}.jsonl"
         dataset_dir = "/mnt/blob_output/v-dachengwen/LLM-Minority/dataset/hiring"
 
     all_job_files = [file for file in os.listdir(dataset_dir) if file.startswith("job_")]
@@ -146,7 +145,7 @@ if __name__ == "__main__":
         job_to_file[job] = os.path.join(dataset_dir, job_file)
         with open(os.path.join(dataset_dir, job_file), "r") as f:
             resume_count = sum(1 for _ in f)
-            all_jobs_counts.append(math.comb(min(resume_count, pool_count), 2))
+            all_jobs_counts.append(math.comb(min(resume_count, 500), 2))
 
     total_query_time = 0
     total_failed_time = 0
@@ -156,7 +155,7 @@ if __name__ == "__main__":
                 break
         sampled_job = random.choices(all_jobs, weights=all_jobs_counts, k=1)[0]
         sampled_file = job_to_file[sampled_job]
-        resume_data = sample_resumes(sampled_file, 1, pool_count)[0]
+        resume_data = sample_resumes(sampled_file, 1, 500)[0]
 
         for attribute in attributes_list:
             resume = resume_data["resume"]
