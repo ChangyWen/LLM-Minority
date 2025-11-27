@@ -9,7 +9,7 @@ model=$1
 nohup vllm serve $model \
   --trust-remote-code \
   --tensor-parallel-size 8 \
-  --max-model-len 10240 \
+  --max-model-len 5120 \
   --port 8000 >/dev/null 2>&1 &
 
 echo "*********** Waiting for vllm server to start ***********"
