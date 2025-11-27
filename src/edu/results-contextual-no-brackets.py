@@ -6,11 +6,8 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import os
 from scipy.stats import chi2_contingency, norm
-import matplotlib.gridspec as gridspec
-from scipy.stats import norm
 import statsmodels.api as sm
 import numpy as np
-from matplotlib.lines import Line2D
 
 
 # -----------------------------
@@ -33,7 +30,7 @@ def chi2_test_same_attr_effect(attr_counts):
     """
     attr_counts: dict[int -> (hit_count, total_count)]
                  e.g. {0: (h0, n0), 1: (h1, n1), ...}
-    Returns: chi2, p_value, dof
+    Returns: chi2, p_value, dof, levels
     """
     table = []
     levels = sorted(attr_counts.keys())
@@ -135,32 +132,6 @@ def trend_test_delta_counts(attr_counts_A, attr_counts_B):
     return z, p_two, p_inc, p_dec
 
 
-def two_proportion_z_test(x1, n1, x2, n2):
-    """
-    Two-sided z-test for equality of two proportions.
-    H0: p1 == p2
-    H1: p1 != p2
-
-    Returns: z, p_two_sided
-    """
-    if n1 == 0 or n2 == 0:
-        return float("nan"), float("nan")
-
-    p1 = x1 / n1
-    p2 = x2 / n2
-    p_pool = (x1 + x2) / (n1 + n2)
-
-    # standard error under H0
-    se = math.sqrt(p_pool * (1 - p_pool) * (1.0 / n1 + 1.0 / n2))
-    if se == 0:
-        # no variability: proportions are identical or degenerate
-        return float("nan"), 1.0
-
-    z = (p1 - p2) / se
-    p = 2.0 * (1.0 - norm.cdf(abs(z)))
-    return z, p
-
-
 def compute_results(file_name, attribute_type, max_n_trials=100000):
 
     attr_value_to_results = defaultdict(lambda: {
@@ -184,7 +155,9 @@ def compute_results(file_name, attribute_type, max_n_trials=100000):
             for inner_idx, attr_value in enumerate(attributes):
                 same_attr_count = attributes.count(attr_value) - 1
                 attr_value_to_results[attr_value]["same_attr_count_to_count"][same_attr_count] += 1
-                attr_value_to_results[attr_value]["same_attr_count_to_hit_count"][same_attr_count] += (1 if inner_idx == suggested_candidate_id else 0)
+                attr_value_to_results[attr_value]["same_attr_count_to_hit_count"][same_attr_count] += (
+                    1 if inner_idx == suggested_candidate_id else 0
+                )
 
     print(f"Attribute type: {attribute_type}")
     results = {}
@@ -197,16 +170,24 @@ def compute_results(file_name, attribute_type, max_n_trials=100000):
         results[attr_value] = {}
         significance[attr_value] = {}
 
-        # store raw counts for global and pairwise tests
+        # store raw counts for tests
         attr_counts = {}
 
         # sort attr_value_results["same_attr_count_to_count"]
-        same_attr_count_to_count = dict(sorted(attr_value_results["same_attr_count_to_count"].items(), key=lambda x: x[0]))
+        same_attr_count_to_count = dict(
+            sorted(
+                attr_value_results["same_attr_count_to_count"].items(),
+                key=lambda x: x[0],
+            )
+        )
         for same_attr_count, count in same_attr_count_to_count.items():
             hit_count = attr_value_results["same_attr_count_to_hit_count"][same_attr_count]
             hit_rate = hit_count / count
             ci_low, ci_high = wilson_ci(hit_count, count)
-            print(f"same_attr_count: {same_attr_count}, total: {count}, hit_rate: {hit_rate:.6f} [{ci_low:.6f}, {ci_high:.6f}]")
+            print(
+                f"same_attr_count: {same_attr_count}, total: {count}, "
+                f"hit_rate: {hit_rate:.6f} [{ci_low:.6f}, {ci_high:.6f}]"
+            )
             results[attr_value][same_attr_count] = {
                 "hit_rate": hit_rate,
                 "ci_low": ci_low,
@@ -220,39 +201,35 @@ def compute_results(file_name, attribute_type, max_n_trials=100000):
         print(f"[Global test] p-value={p_global:.6g}")
         significance[attr_value]["global_test_p_value"] = p_global
 
+        # ---------- Trend test ----------
         z, p_two, p_inc, p_dec = cochran_armitage_trend(attr_counts)
-        print(f"[Cochran-Armitage trend test] z={z:.6g}, p-value={p_two:.6g}, p-inc={p_inc:.6g}, p-dec={p_dec:.6g}")
+        print(
+            f"[Cochran-Armitage trend test] z={z:.6g}, "
+            f"p-value={p_two:.6g}, p-inc={p_inc:.6g}, p-dec={p_dec:.6g}"
+        )
         significance[attr_value]["p_value_two_sided"] = p_two
         significance[attr_value]["p_value_one_inc"] = p_inc
         significance[attr_value]["p_value_one_dec"] = p_dec
 
-        # ---------- Pairwise tests (two-proportion z-tests) ----------
-        levels = sorted(levels)
-        # print("[Pairwise tests: two-proportion z-test]")
-        for i in range(len(levels)):
-            for j in range(i + 1, len(levels)):
-                c1 = levels[i]
-                c2 = levels[j]
-                h1, n1 = attr_counts[c1]
-                h2, n2 = attr_counts[c2]
-                z, p_pair = two_proportion_z_test(h1, n1, h2, n2)
-                significance[attr_value][str((c1, c2))] = p_pair
-
-                # print(f"[Pairwise test] {c1} vs {c2}: p-value={p_pair:.6g}")
-
+        # keep counts for delta comparison
         if attr_value == "Black" or attr_value == "Female":
             attr_counts_A = attr_counts
         else:
             attr_counts_B = attr_counts
 
+    # ---------- Delta trend test ----------
     z, p_two, p_inc, p_dec = trend_test_delta_counts(attr_counts_A, attr_counts_B)
-    print(f"[Delta Trend test] z={z:.6g}, p-value={p_two:.6g}, p-inc={p_inc:.6g}, p-dec={p_dec:.6g}")
+    print(
+        f"[Delta Trend test] z={z:.6g}, p-value={p_two:.6g}, "
+        f"p-inc={p_inc:.6g}, p-dec={p_dec:.6g}"
+    )
     significance["delta"] = {
         "p_value_two_sided": p_two,
         "p_value_one_inc": p_inc,
         "p_value_one_dec": p_dec,
     }
 
+    # ---------- Delta point estimates + CIs ----------
     results["delta"] = {}
     for c in sorted(set(attr_counts_A) & set(attr_counts_B)):
         hA, nA = attr_counts_A[c]
@@ -276,6 +253,7 @@ def compute_results(file_name, attribute_type, max_n_trials=100000):
 def p_to_stars(p):
     """
     Convert p-value to significance stars.
+    (Still used for trend and delta tests, but NOT for pair-wise brackets.)
     """
     if math.isnan(p):
         return ""
@@ -308,39 +286,9 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
     delta_color = "blue"      # fixed color for Δ
 
     # -----------------------------------------------------------
-    # FIRST: collect brackets per attribute and count total rows
+    # Simple figure: only main axis (no bracket panel)
     # -----------------------------------------------------------
-    attr_to_pairs = {}
-    total_rows = 0
-    for attr_value in attribute_values:
-        res = all_results[attr_value]
-        sig_dict = significance.get(attr_value, {})
-        pairs = []
-
-        for key, p_val in sig_dict.items():
-            if "p_value" in key:
-                continue
-            stars = p_to_stars(p_val)
-            if not stars:
-                continue
-
-            s = key.strip()[1:-1]
-            c1, c2 = map(int, s.split(","))
-            if c1 > c2:
-                c1, c2 = c2, c1
-            if c1 in res and c2 in res:
-                pairs.append((c1, c2, stars))
-
-        # largest |c1-c2| first within each attribute group
-        pairs.sort(key=lambda t: (-(t[1] - t[0]), t[0]))
-        attr_to_pairs[attr_value] = pairs
-        total_rows += len(pairs)
-
-    # -----------------------------------------------------------
-    # Create figure and GridSpec, with bracket height depending
-    # on total_rows (0 height → no bracket panel at all)
-    # -----------------------------------------------------------
-    fig = plt.figure(dpi=1024)
+    fig, ax_main = plt.subplots(dpi=1024)
 
     model_name_clean = model_name.replace("msra-", "")
     fig.suptitle(
@@ -349,26 +297,6 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
         y=0.93
     )
 
-    if total_rows == 0:
-        # No brackets → single axis
-        gs = gridspec.GridSpec(1, 1, height_ratios=[1.0])
-        ax_main = fig.add_subplot(gs[0])
-        ax_brackets = None
-    else:
-        # Some brackets → allocate a small but growing panel above
-        base = 0.10    # height ratio for 1 row
-        per_row = 0.04 # extra per additional row
-        bracket_ratio = base + per_row * max(0, total_rows - 1)
-        bracket_ratio = min(bracket_ratio, 0.35)  # cap if many brackets
-
-        gs = gridspec.GridSpec(
-            2, 1,
-            height_ratios=[bracket_ratio, 1.0],
-            hspace=0.03
-        )
-        ax_brackets = fig.add_subplot(gs[0])
-        ax_main = fig.add_subplot(gs[1])
-
     # -----------------------------------------------------------
     # MAIN PLOT (per-attribute selection rates)
     # -----------------------------------------------------------
@@ -376,11 +304,9 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
     baseline_value = 0
     xticks = []
     all_barlines = []
-    attr_to_color = {}
 
     for i, attribute_value in enumerate(attribute_values):
         res = all_results[attribute_value]
-        attr_to_color[attribute_value] = palette[i]
 
         xs = sorted(res.keys())
         xticks = xs
@@ -403,11 +329,12 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
         )
         all_barlines.extend(barlines)
 
-        # Legend label with directional stars
+        # Legend label with directional stars (trend tests only)
         p_one_inc = significance.get(attribute_value, {}).get("p_value_one_inc", float("nan"))
         p_one_dec = significance.get(attribute_value, {}).get("p_value_one_dec", float("nan"))
 
         if attribute_value in ("Female", "Black"):
+            # you had downward arrow for Female/Black here
             stars = p_to_stars(p_one_dec)
             stars = f"↓{stars}" if stars else ""
         elif attribute_value in ("Male", "White"):
@@ -433,7 +360,10 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
         label=f"Random ({baseline_value:.1f})"
     )
 
-    ax_main.set_xticks(xticks, labels=[f"{(c + 1)/(len(xticks)) * 100:.0f}%" for c in xticks])
+    ax_main.set_xticks(
+        xticks,
+        labels=[f"{(c + 1)/(len(xticks)) * 100:.0f}%" for c in xticks]
+    )
     ax_main.set_xlim(-0.1, len(xticks) - 1 + 0.1)
 
     ax_main.set_xlabel("Same-attribute Ratio", fontsize=11, fontweight="bold")
@@ -457,12 +387,18 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
         ys_delta = [delta_res[c]["delta"] for c in xs_delta]
 
         # Wilson-based CIs already stored
-        lower_err_delta = [ys_delta[i] - delta_res[c]["ci_low"] for i, c in enumerate(xs_delta)]
-        upper_err_delta = [delta_res[c]["ci_high"] - ys_delta[i] for i, c in enumerate(xs_delta)]
+        lower_err_delta = [
+            ys_delta[i] - delta_res[c]["ci_low"] for i, c in enumerate(xs_delta)
+        ]
+        upper_err_delta = [
+            delta_res[c]["ci_high"] - ys_delta[i] for i, c in enumerate(xs_delta)
+        ]
         yerr_delta = [lower_err_delta, upper_err_delta]
 
-        # stars from trend_test_p_value_one_dec (delta trend)
-        delta_stars = p_to_stars(significance.get("delta", {}).get("p_value_one_dec", float("nan")))
+        # stars from delta trend test (one_dec as in your original EDU code)
+        delta_stars = p_to_stars(
+            significance.get("delta", {}).get("p_value_one_dec", float("nan"))
+        )
         delta_stars = f"↓{delta_stars}" if delta_stars else ""
         delta_label_pre = "(F. - M.)" if attribute_type == "Gender" else "(B. - W.)"
         delta_label = r"$\Delta $" + delta_label_pre
@@ -492,7 +428,12 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
             cap.set_label(None)
 
         # axis styling
-        ax_delta.set_ylabel(r"$\Delta$ in Selection Rate " + delta_label_pre, fontsize=11, fontweight="bold", color=delta_color)
+        ax_delta.set_ylabel(
+            r"$\Delta$ in Selection Rate " + delta_label_pre,
+            fontsize=11,
+            fontweight="bold",
+            color=delta_color,
+        )
         ax_delta.tick_params(axis="y", labelcolor=delta_color)
 
         # remove top spine (keep right to show twin axis)
@@ -521,47 +462,6 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
         borderpad=0.4,
     )
 
-    # -----------------------------------------------------------
-    # BRACKET PANEL (Top): ONLY if we have brackets
-    # -----------------------------------------------------------
-    if total_rows > 0 and ax_brackets is not None:
-        # Turn off all axis decorations
-        ax_brackets.set_xlim(ax_main.get_xlim())
-        ax_brackets.set_ylim(0, 1)
-        ax_brackets.axis("off")
-
-        row_step = 1.0 / (total_rows + 1)
-        bracket_height = 0.35 * row_step
-        current_row = 0
-
-        for attr_value in attribute_values:   # legend order
-            pairs = attr_to_pairs[attr_value]
-            color = attr_to_color[attr_value]
-
-            for (c1, c2, stars) in pairs:
-                y_bottom = 1 - (current_row + 1) * row_step
-                y_top = y_bottom + bracket_height
-
-                ax_brackets.plot(
-                    [c1, c1, c2, c2],
-                    [y_bottom, y_top, y_top, y_bottom],
-                    color=color,
-                    linewidth=1.2,
-                )
-
-                ax_brackets.text(
-                    (c1 + c2) / 2,
-                    y_bottom + bracket_height / 2,
-                    stars,
-                    ha="center",
-                    va="center",
-                    fontsize=11,
-                    fontweight="bold",
-                    color=color,
-                )
-
-                current_row += 1
-
     save_file = f"outputs/edu/contextual_{model_name_clean}_{attribute_type}_{resume_count}.png"
     fig.savefig(save_file, bbox_inches="tight")
     plt.close(fig)
@@ -573,9 +473,24 @@ if __name__ == "__main__":
 
     for attribute_type in ["Gender", "Race"]:
         for resume_count in [5]:
-            for model_name in ["msra-gpt-4o", "msra-gpt-4o_scholarship","msra-gpt-4.1-nano", "Qwen3-Next-80B-A3B-Instruct", "Llama-3.3-70B-Instruct", "gpt-oss-120b", "GLM-4.5-Air", "gemma-3-27b-it", "gemma-3-27b-it_scholarship"]:
-                file_name = f"outputs/edu/contextual/{attribute_type}/{model_name}_{resume_count}_{pool_count}.jsonl"
+            for model_name in [
+                "msra-gpt-4o",
+                "msra-gpt-4o_scholarship",
+                "Qwen3-Next-80B-A3B-Instruct",
+                "Qwen3-Next-80B-A3B-Instruct_scholarship",
+                "Llama-3.3-70B-Instruct",
+                "gpt-oss-120b",
+                "GLM-4.5-Air",
+                "gemma-3-27b-it",
+                "gemma-3-27b-it_scholarship",
+            ]:
+                file_name = (
+                    f"outputs/edu/contextual/{attribute_type}/"
+                    f"{model_name}_{resume_count}_{pool_count}.jsonl"
+                )
                 if os.path.exists(file_name):
                     print(f"------------------------------------\n\n{file_name}")
-                    results, significance, n_trials = compute_results(file_name, attribute_type, max_n_trials)
+                    results, significance, n_trials = compute_results(
+                        file_name, attribute_type, max_n_trials
+                    )
                     draw_results(model_name, attribute_type, resume_count, results, significance)
