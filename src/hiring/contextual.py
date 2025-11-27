@@ -30,6 +30,18 @@ def compositions_with_zeros(n, k=2):
         yield tuple(tuple_vals)
 
 
+def remove_thinking_draft(text):
+    if "</think>" in text:
+        text = text.split("</think>")[-1].strip()
+        if len(text) > 0:
+            return text
+    if "</seed:think>" in text:
+        text = text.split("</seed:think>")[-1].strip()
+        if len(text) > 0:
+            return text
+    return text
+
+
 def extract_from_tags(text, tag):
     if text is None:
         return None
@@ -225,7 +237,7 @@ if __name__ == "__main__":
                 total_failed_time += 1
                 print(f"Error in ranking resumes: None response")
                 continue
-            suggested_candidate_id = int(extract_from_tags(response, "suggested-candidate").strip()) - 1
+            suggested_candidate_id = int(extract_from_tags(remove_thinking_draft(response), "suggested-candidate").strip()) - 1
             if suggested_candidate_id < 0 or suggested_candidate_id >= len(candidate_order):
                 print(f"Error in ranking resumes: suggested_candidate_id is out of range")
                 continue
