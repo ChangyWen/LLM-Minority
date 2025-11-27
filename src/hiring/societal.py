@@ -25,6 +25,18 @@ def extract_from_tags(text, tag):
     return None
 
 
+def remove_thinking_draft(text):
+    if "</think>" in text:
+        text = text.split("</think>")[-1].strip()
+        if len(text) > 0:
+            return text
+    if "</seed:think>" in text:
+        text = text.split("</seed:think>")[-1].strip()
+        if len(text) > 0:
+            return text
+    return text
+
+
 def complete(prompt, model_name="msra-gpt-5", reasoning_effort_or_thinking_budget="high"):
     if "msra" in model_name:
         response = chat(
@@ -176,7 +188,7 @@ if __name__ == "__main__":
                     total_failed_time += 1
                     print(f"Error in ranking resumes: None response")
                     continue
-                score = int(extract_from_tags(response, "score").strip())
+                score = int(extract_from_tags(remove_thinking_draft(response), "score").strip())
                 if score < 0 or score > 10:
                     print(f"Error in ranking resumes: score is out of range")
                     continue
