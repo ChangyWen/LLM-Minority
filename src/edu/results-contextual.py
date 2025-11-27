@@ -94,13 +94,6 @@ def trend_test_delta_counts(attr_counts_A, attr_counts_B):
 
     Returns: z, p_two_sided, p_one_inc, p_one_dec
     """
-    print("A counts:", attr_counts_A)
-    print("B counts:", attr_counts_B)
-    for c in sorted(set(attr_counts_A) & set(attr_counts_B)):
-        hA, nA = attr_counts_A[c]
-        hB, nB = attr_counts_B[c]
-        print(c, " A:", hA, "/", nA, "=", hA/nA, "  B:", hB, "/", nB, "=", hB/nB)
-
     levels = sorted(set(attr_counts_A) & set(attr_counts_B))
     rows = []
 
