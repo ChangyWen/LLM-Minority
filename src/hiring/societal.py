@@ -105,7 +105,7 @@ def sample_resumes(job_file, total_count, pool_count):
 if __name__ == "__main__":
     model_name = sys.argv[1]
     attribute_type = sys.argv[2]
-    pool_count = int(sys.argv[3])
+    pool_count = 200
 
     client = None
     if "msra" not in model_name:
