@@ -3,6 +3,7 @@ set -x
 # model=Qwen/Qwen3-Next-80B-A3B-Instruct
 # model=meta-llama/Llama-3.3-70B-Instruct
 # model=openai/gpt-oss-120b
+application=$1
 model=$1
 
 ######### start vllm server #########
@@ -16,10 +17,10 @@ echo "*********** Waiting for vllm server to start ***********"
 sleep 600
 echo "*********** Done waiting ***********"
 
-python src/societal.py $model "Gender Identity" 200 &
+python src/$application/societal.py $model "Gender Identity" &
 sleep 5
-python src/societal.py $model "Sexual Orientation" 200 &
+python src/$application/societal.py $model "Sexual Orientation" &
 sleep 5
-python src/societal.py $model "Disability Status" 200 &
+python src/$application/societal.py $model "Disability Status" &
 sleep 5
-python src/societal.py $model "Chronic Health Condition Status" 200
+python src/$application/societal.py $model "Chronic Health Condition Status"
