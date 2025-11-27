@@ -513,6 +513,7 @@ def draw_results_grid(attribute_type, resume_count, model_names, pool_count, max
 
     # Save one big figure
     save_file = f"outputs/edu/contextual_grid_{attribute_type}_{resume_count}.png"
+    # save_file = f"outputs/edu/contextual_grid_{attribute_type}_{resume_count}_scholarship.png"
     print(f"Saving figure to: {save_file}")
     fig.savefig(save_file, bbox_inches="tight")
     plt.close(fig)
@@ -525,13 +526,22 @@ if __name__ == "__main__":
     # Fixed order of models in the 2x3 grid:
     # Row 1: msra-gpt-4o, gpt-oss-120b, Qwen3-Next-80B-A3B-Instruct
     # Row 2: GLM-4.5-Air, gemma-3-27b-it, Llama-3.3-70B-Instruct
+    # model_names_order = [
+    #     "msra-gpt-4o",
+    #     "gpt-oss-120b",
+    #     "Qwen3-Next-80B-A3B-Instruct",
+    #     "GLM-4.5-Air",
+    #     "gemma-3-27b-it",
+    #     "Llama-3.3-70B-Instruct",
+    # ]
+
     model_names_order = [
-        "msra-gpt-4o",
-        "gpt-oss-120b",
-        "Qwen3-Next-80B-A3B-Instruct",
-        "GLM-4.5-Air",
-        "gemma-3-27b-it",
-        "Llama-3.3-70B-Instruct",
+        "msra-gpt-4o_scholarship",
+        "gpt-oss-120b_scholarship",
+        "Qwen3-Next-80B-A3B-Instruct_scholarship",
+        "GLM-4.5-Air_scholarship",
+        "gemma-3-27b-it_scholarship",
+        "Llama-3.3-70B-Instruct_scholarship",
     ]
 
     for attribute_type in ["Gender"]:
