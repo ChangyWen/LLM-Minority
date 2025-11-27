@@ -55,6 +55,7 @@ jobs:
     # - bash run-vllm-contextual.sh zai-org/GLM-4.5-Air Race
     ####### hiring #########
     # - bash run-vllm-contextual.sh hiring nvidia/Llama-3_3-Nemotron-Super-49B-v1_5 Gender
+    # - bash run-vllm-contextual.sh hiring meta-llama/Llama-3.3-70B-Instruct Gender
     ####### loan #########
     # - bash run-vllm-contextual.sh loan openai/gpt-oss-120b Gender
     # - bash run-vllm-contextual.sh loan Qwen/Qwen3-Next-80B-A3B-Instruct Gender

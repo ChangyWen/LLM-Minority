@@ -81,6 +81,8 @@ def complete(prompt, model_name="msra-gpt-5", reasoning_effort_or_thinking_budge
             temperature = 1.0
         elif model_name == "zai-org/GLM-4.5-Air":
             temperature = 0.6
+        elif model_name == "nvidia/Llama-3_3-Nemotron-Super-49B-v1_5":
+            temperature = 0.6
         else:
             print(f"Model name {model_name} not supported")
             raise ValueError(f"Model name {model_name} not supported")
