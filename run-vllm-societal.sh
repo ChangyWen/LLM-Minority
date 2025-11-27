@@ -4,12 +4,17 @@ set -x
 # model=meta-llama/Llama-3.3-70B-Instruct
 # model=openai/gpt-oss-120b
 application=$1
-model=$1
+model=$2
+gpu_count=$3
+
+if [ "$gpu_count" == "" ]; then
+  gpu_count=8
+fi
 
 ######### start vllm server #########
 nohup vllm serve $model \
   --trust-remote-code \
-  --tensor-parallel-size 8 \
+  --tensor-parallel-size $gpu_count \
   --max-model-len 5120 \
   --port 8000 >/dev/null 2>&1 &
 
