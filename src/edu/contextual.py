@@ -157,13 +157,13 @@ if __name__ == "__main__":
     if "msra" in model_name:
         os.makedirs(f"outputs/edu/contextual/{attribute_type}", exist_ok=True)
         sub_model_name = model_name.split("/")[-1]
-        save_file = f"outputs/edu/contextual/{attribute_type}/{sub_model_name}_{total_count}_{pool_count}.jsonl"
+        save_file = f"outputs/edu/contextual/{attribute_type}/{sub_model_name}_scholarship_{total_count}_{pool_count}.jsonl"
         dataset_dir = "dataset/edu"
     else:
         os.makedirs(f"/mnt/blob_output/v-dachengwen/LLM-Minority/outputs/edu/contextual/{attribute_type}", exist_ok=True)
         sub_model_name = model_name.split("/")[-1]
         ts = int(time.time() * 1000)
-        save_file = f"/mnt/blob_output/v-dachengwen/LLM-Minority/outputs/edu/contextual/{attribute_type}/{sub_model_name}_{total_count}_{pool_count}_ts{ts}_rd{random.randint(1, 1000000)}.jsonl"
+        save_file = f"/mnt/blob_output/v-dachengwen/LLM-Minority/outputs/edu/contextual/{attribute_type}/{sub_model_name}_scholarship_{total_count}_{pool_count}_ts{ts}_rd{random.randint(1, 1000000)}.jsonl"
         dataset_dir = "/mnt/blob_output/v-dachengwen/LLM-Minority/dataset/edu"
 
     all_combos = list(compositions_with_zeros(total_count))
