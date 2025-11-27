@@ -176,7 +176,7 @@ if __name__ == "__main__":
                     total_failed_time += 1
                     print(f"Error in ranking resumes: None response")
                     continue
-                score = int(extract_from_tags(response, "score").strip()) - 1
+                score = int(extract_from_tags(response, "score").strip())
                 if score < 0 or score > 10:
                     print(f"Error in ranking resumes: score is out of range")
                     continue
