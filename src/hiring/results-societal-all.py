@@ -5,9 +5,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import os
-from scipy.stats import binomtest
 from scipy import stats
-
 
 type_to_minority_attributes = {
     "Gender Identity": ["Transgender", "Non-binary"],
@@ -64,17 +62,184 @@ def compute_results(attribute_type, file_name):
     }
 
 
+def lighten_color(color, amount=0.45):
+    """
+    Lighten a color by blending it with white.
+    color: tuple (r,g,b) in 0-1 range
+    amount: higher = lighter
+    """
+    return tuple((1 - amount) * c + amount for c in color)
+
+
+def draw_results(all_results, attribute_types, model_name):
+
+    plt.rcParams.update({
+        "font.size": 11,
+        "axes.titlesize": 13,
+        "axes.labelsize": 11,
+        "xtick.labelsize": 10,
+        "ytick.labelsize": 10,
+        "axes.edgecolor": "gray",
+        "axes.linewidth": 0.8,
+    })
+
+    xlabels = attribute_types
+    x_base = np.array([-0.3 + i * 0.3 for i in range(len(attribute_types))])
+    delta = 0.05
+
+    x_min = x_base - delta
+    x_maj = x_base + delta
+
+    # One base color per attribute
+    palette = sns.color_palette("husl", len(attribute_types))
+
+    # Markers
+    minority_marker = "o"
+    majority_marker = "s"
+
+    fig, ax = plt.subplots(dpi=1024, figsize=(6, 4))
+
+    # ---- Drawing ----
+    for i, attr in enumerate(attribute_types):
+        res_min = all_results[attr]["minority"]
+        res_maj = all_results[attr]["majority"]
+
+        base_color = palette[i]
+        minority_color = base_color
+        majority_color = base_color
+
+        # ----- Minority -----
+        m_mean = res_min["mean"]
+        m_low = res_min["ci_low"]
+        m_high = res_min["ci_high"]
+
+        line_minority, cap_minority, bar_minority = ax.errorbar(
+            x_min[i], m_mean,
+            yerr=[[m_mean - m_low], [m_high - m_mean]],
+            marker=minority_marker,
+            markersize=6,
+            capsize=6,
+            capthick=1.2,
+            linewidth=2,
+            linestyle="--",               # <<<<<<<<  ADD THIS (dashed minority)
+            dash_capstyle='round',        # optional: nicer dashed appearance
+            color=minority_color,
+            markeredgecolor=minority_color,
+            markeredgewidth=0.7,
+        )
+
+        for bar in bar_minority:
+            bar.set_linestyle("--")
+
+        # ----- Majority -----
+        g_mean = res_maj["mean"]
+        g_low = res_maj["ci_low"]
+        g_high = res_maj["ci_high"]
+
+        line_majority, cap_majority, bar_majority = ax.errorbar(
+            x_maj[i], g_mean,
+            yerr=[[g_mean - g_low], [g_high - g_mean]],
+            marker=majority_marker,
+            markersize=6,
+            capsize=6,
+            capthick=1.2,
+            linewidth=2,
+            linestyle="solid",           # solid majority
+            color=majority_color,
+            markeredgecolor=majority_color,
+            markeredgewidth=0.7,
+        )
+
+        # ---- Numeric labels (optional) ----
+        ax.text(
+            x_min[i] - 0.015, m_mean,
+            f"{m_mean:.2f}",
+            ha="right", va="center",
+            fontsize=8, fontweight="bold",
+            color=minority_color,
+        )
+        ax.text(
+            x_maj[i] + 0.015, g_mean,
+            f"{g_mean:.2f}",
+            ha="left", va="center",
+            fontsize=8, fontweight="bold",
+            color=majority_color,
+        )
+
+    # -----------------------------
+    # Axis Formatting
+    # -----------------------------
+    ax.set_xticks(x_base)
+    ax.set_xlim(x_base[0] - 0.15, x_base[-1] + 0.15)
+
+    xticks = ax.get_xticklabels()
+    for i, tick in enumerate(xticks):
+        tick.set_color(palette[i])         # color per attribute
+        tick.set_fontweight("bold")
+
+    ax.set_xticklabels(xlabels, rotation=15, ha="center")
+    ax.set_ylabel("Mean Score (±95% CI)", fontsize=11, fontweight="bold")
+
+    model_clean = model_name.replace("msra-", "")
+    ax.set_title(f"{model_clean}", pad=15, weight="bold")
+
+    ax.grid(axis="y", linestyle=":", linewidth=0.7, alpha=0.6)
+    ax.set_axisbelow(True)
+
+    # -----------------------------
+    # SINGLE LEGEND (ONLY TWO ITEMS)
+    # -----------------------------
+    from matplotlib.lines import Line2D
+    legend_elements = [
+        Line2D([0], [0],
+               marker=minority_marker, color="none",
+               markerfacecolor="black", markeredgecolor="black",
+               label="Minority", markersize=6),
+        Line2D([0], [0],
+               marker=majority_marker, color="none",
+               markerfacecolor="black", markeredgecolor="black",
+               label="Majority", markersize=6),
+    ]
+    ax.legend(handles=legend_elements, loc="best", frameon=True)
+
+    # Remove top + right spines
+    for spine in ["top", "right"]:
+        ax.spines[spine].set_visible(False)
+
+    plt.tight_layout()
+    save_file = f"outputs/hiring/societal_{model_clean}.png"
+    os.makedirs(os.path.dirname(save_file), exist_ok=True)
+    plt.savefig(save_file, bbox_inches="tight")
+    plt.close()
+
+
 if __name__ == "__main__":
 
-    attribute_types = ["Gender Identity", "Sexual Orientation", "Disability Status", "Chronic Health Condition Status"]
+    attribute_types = [
+        "Gender Identity",
+        "Sexual Orientation",
+        "Disability Status",
+        "Chronic Health Condition Status",
+    ]
 
-    for model_name in ["msra-gpt-4o", "Qwen3-Next-80B-A3B-Instruct", "Llama-3.3-70B-Instruct", "gemma-3-27b-it"]:
+    model_names = [
+        "msra-gpt-4o",
+        "Qwen3-Next-80B-A3B-Instruct",
+        "Llama-3.3-70B-Instruct",
+        "gemma-3-27b-it",
+    ]
+
+    for model_name in model_names:
         all_results = {}
         for attribute_type in attribute_types:
             file_name = f"outputs/hiring/societal/{attribute_type}/{model_name}.jsonl"
             if os.path.exists(file_name):
-                results = compute_results(attribute_type, file_name)
-                if model_name not in all_results:
-                    all_results[model_name] = {}
-                all_results[model_name][attribute_type] = results
+                all_results[attribute_type] = compute_results(attribute_type, file_name)
 
+        if not all_results:
+            print(f"No results found for model {model_name}, skip plotting.")
+            continue
+
+        # Only plot attribute types that have data
+        attribute_types_present = [a for a in attribute_types if a in all_results]
+        draw_results(all_results, attribute_types_present, model_name)
