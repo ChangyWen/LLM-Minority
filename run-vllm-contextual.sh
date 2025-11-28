@@ -34,8 +34,8 @@ echo "*********** Waiting for vllm server to start ***********"
 sleep 600
 echo "*********** Done waiting ***********"
 
-# python src/$application/contextual.py $model "$attribute_type" 5 $pool_count &
-# sleep 5
+python src/$application/contextual.py $model "$attribute_type" 5 $pool_count &
+sleep 5
 python src/$application/contextual.py $model "$attribute_type" 5 $pool_count &
 sleep 5
 python src/$application/contextual.py $model "$attribute_type" 5 $pool_count
