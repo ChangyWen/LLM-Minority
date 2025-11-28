@@ -85,8 +85,8 @@ def complete(prompt, model_name="msra-gpt-5", reasoning_effort_or_thinking_budge
             temperature = 0.6
         elif model_name == "ByteDance-Seed/Seed-OSS-36B-Instruct":
             temperature = 1.1
-        elif model_name == "Qwen/Qwen3-235B-A22B-Thinking-2507":
-            temperature = 0.6
+        elif model_name == "Qwen/Qwen3-235B-A22B-Instruct-2507":
+            temperature = 0.7
         else:
             print(f"Model name {model_name} not supported")
             raise ValueError(f"Model name {model_name} not supported")
