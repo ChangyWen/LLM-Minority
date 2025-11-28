@@ -27,22 +27,6 @@ def t_ci(scores, confidence=0.95):
     return (mean, lower, upper)
 
 
-def p_to_stars(p):
-    """
-    Convert p-value to significance stars.
-    """
-    if math.isnan(p):
-        return ""
-    if p < 0.001:
-        return "***"
-    elif p < 0.01:
-        return "**"
-    elif p < 0.05:
-        return "*"
-    else:
-        return ""
-
-
 def compute_results(attribute_type, file_name):
     minority_scores = []
     majority_scores = []
