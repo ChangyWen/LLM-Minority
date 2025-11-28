@@ -534,7 +534,7 @@ if __name__ == "__main__":
         "Llama-3.3-70B-Instruct",
     ]
 
-    for attribute_type in ["Gender", "Race"]:
+    for attribute_type in ["Gender"]:
         for resume_count in [5]:
             draw_results_grid(
                 attribute_type=attribute_type,
