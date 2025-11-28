@@ -23,8 +23,8 @@ code:
 target:
   service: sing
   # name: Feeds
-  # name: Recall
-  name: Ranking
+  name: Recall
+  # name: Ranking
   # name: msrresrchbasicvc
   # name: msrresrchvc
   workspace_name: CS-NewsAndFeeds-Singularity

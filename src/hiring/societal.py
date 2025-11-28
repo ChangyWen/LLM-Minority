@@ -53,15 +53,18 @@ def complete(prompt, model_name="msra-gpt-5", reasoning_effort_or_thinking_budge
             return None
         return response["value"]
     else:
-        if client is None:
-            print(f"Client is not initialized")
-            raise ValueError(f"Client is not initialized")
-        if model_name == "Qwen/Qwen3-Next-80B-A3B-Instruct":
+        if model_name == "Qwen/Qwen3-Next-80B-A3B-Instruct" or model_name == "Qwen3-30B-A3B-Instruct-2507":
             temperature = 0.7
         elif model_name == "meta-llama/Llama-3.3-70B-Instruct":
             temperature = 0.6
         elif model_name == "openai/gpt-oss-120b":
             temperature = 1.0
+        elif model_name == "google/gemma-3-27b-it":
+            temperature = 1.0
+        elif model_name == "zai-org/GLM-4.5-Air":
+            temperature = 0.6
+        elif model_name == "nvidia/Llama-3_3-Nemotron-Super-49B-v1_5":
+            temperature = 0.6
         else:
             print(f"Model name {model_name} not supported")
             raise ValueError(f"Model name {model_name} not supported")
