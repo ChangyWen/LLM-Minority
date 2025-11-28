@@ -6,6 +6,9 @@ import seaborn as sns
 import numpy as np
 import os
 from scipy import stats
+from matplotlib.lines import Line2D
+from matplotlib.legend_handler import HandlerBase
+
 
 type_to_minority_attributes = {
     "Gender Identity": ["Transgender", "Non-binary"],
@@ -71,6 +74,73 @@ def lighten_color(color, amount=0.45):
     return tuple((1 - amount) * c + amount for c in color)
 
 
+class HandlerVerticalErrorbar(HandlerBase):
+    """Custom legend handler: vertical error bar with caps + marker."""
+    def create_artists(
+        self, legend, orig_handle,
+        xdescent, ydescent, width, height, fontsize, trans
+    ):
+        # CENTER of legend entry
+        x = xdescent + width / 2.0
+
+        # EXTEND vertical line by a scale factor
+        scale = 1.9   # increase for longer error bar in legend
+        mid = ydescent + height / 2.0
+        half = (height / 2.0) * scale
+        y0 = mid - half
+        y1 = mid + half
+
+        # Extract styles
+        linestyle = orig_handle.get_linestyle()
+        color = orig_handle.get_color()
+        lw = orig_handle.get_linewidth()
+        marker = orig_handle.get_marker()
+        markersize = orig_handle.get_markersize()
+
+        # ------- Vertical line -------
+        vline = Line2D(
+            [x, x], [y0, y1],
+            linestyle=linestyle,
+            color=color,
+            linewidth=lw,
+        )
+
+        # ------- Caps (horizontal ticks) -------
+        cap_width = width * 0.25   # adjust cap width here
+        x0 = x - cap_width / 2
+        x1 = x + cap_width / 2
+
+        top_cap = Line2D(
+            [x0, x1], [y1, y1],     # horizontal top cap
+            color=color,
+            linewidth=lw,
+            linestyle="-",
+        )
+
+        bot_cap = Line2D(
+            [x0, x1], [y0, y0],     # horizontal bottom cap
+            color=color,
+            linewidth=lw,
+            linestyle="-",
+        )
+
+        # ------- Marker at center -------
+        marker_artist = Line2D(
+            [x], [mid],
+            marker=marker,
+            markersize=markersize,
+            markerfacecolor=orig_handle.get_markerfacecolor(),
+            markeredgecolor=orig_handle.get_markeredgecolor(),
+            linestyle="none",
+        )
+
+        # Apply transform
+        for artist in (vline, top_cap, bot_cap, marker_artist):
+            artist.set_transform(trans)
+
+        return [vline, top_cap, bot_cap, marker_artist]
+
+
 def draw_results(all_results, attribute_types, model_name):
 
     plt.rcParams.update({
@@ -121,13 +191,14 @@ def draw_results(all_results, attribute_types, model_name):
             capsize=6,
             capthick=1.2,
             linewidth=2,
-            linestyle="--",               # <<<<<<<<  ADD THIS (dashed minority)
-            dash_capstyle='round',        # optional: nicer dashed appearance
+            linestyle="--",               # dashed error bar line for minority
+            dash_capstyle='round',        # nicer dashed appearance
             color=minority_color,
             markeredgecolor=minority_color,
             markeredgewidth=0.7,
         )
 
+        # Ensure the vertical bar segments are dashed as well
         for bar in bar_minority:
             bar.set_linestyle("--")
 
@@ -144,7 +215,7 @@ def draw_results(all_results, attribute_types, model_name):
             capsize=6,
             capthick=1.2,
             linewidth=2,
-            linestyle="solid",           # solid majority
+            linestyle="solid",           # solid error bar line for majority
             color=majority_color,
             markeredgecolor=majority_color,
             markeredgewidth=0.7,
@@ -187,20 +258,42 @@ def draw_results(all_results, attribute_types, model_name):
     ax.set_axisbelow(True)
 
     # -----------------------------
-    # SINGLE LEGEND (ONLY TWO ITEMS)
+    # SINGLE LEGEND WITH VERTICAL ERROR BAR
     # -----------------------------
-    from matplotlib.lines import Line2D
-    legend_elements = [
-        Line2D([0], [0],
-               marker=minority_marker, color="none",
-               markerfacecolor="black", markeredgecolor="black",
-               label="Minority", markersize=6),
-        Line2D([0], [0],
-               marker=majority_marker, color="none",
-               markerfacecolor="black", markeredgecolor="black",
-               label="Majority", markersize=6),
-    ]
-    ax.legend(handles=legend_elements, loc="best", frameon=True)
+    # Create dummy handles with desired style; handler draws them vertically
+    minority_handle = Line2D(
+        [0], [0],
+        marker=minority_marker,
+        linestyle="--",         # dashed error bar style
+        color="black",
+        markersize=2,
+        markerfacecolor="black",
+        markeredgecolor="black",
+        linewidth=1,
+        label="Minority",
+    )
+
+    majority_handle = Line2D(
+        [0], [0],
+        marker=majority_marker,
+        linestyle="solid",      # solid error bar style
+        color="black",
+        markersize=2,
+        markerfacecolor="black",
+        markeredgecolor="black",
+        linewidth=1,
+        label="Majority",
+    )
+
+    ax.legend(
+        handles=[minority_handle, majority_handle],
+        loc="best",
+        frameon=True,
+        handler_map={
+            minority_handle: HandlerVerticalErrorbar(),
+            majority_handle: HandlerVerticalErrorbar(),
+        },
+    )
 
     # Remove top + right spines
     for spine in ["top", "right"]:
