@@ -57,13 +57,14 @@ jobs:
     # - bash run-vllm-contextual.sh hiring nvidia/Llama-3_3-Nemotron-Super-49B-v1_5 Gender
     # - bash run-vllm-contextual.sh hiring meta-llama/Llama-3.3-70B-Instruct Gender
     # - bash run-vllm-contextual.sh hiring ByteDance-Seed/Seed-OSS-36B-Instruct Gender
+    - bash run-vllm-contextual.sh hiring Qwen/Qwen3-235B-A22B-Thinking-2507 Gender
     # - bash run-vllm-societal.sh hiring Qwen/Qwen3-Next-80B-A3B-Instruct
     # - bash run-vllm-societal.sh hiring meta-llama/Llama-3.3-70B-Instruct
     ####### loan #########
     # - bash run-vllm-contextual.sh loan openai/gpt-oss-120b Gender
     # - bash run-vllm-contextual.sh loan Qwen/Qwen3-Next-80B-A3B-Instruct Gender
     # - bash run-vllm-contextual.sh loan meta-llama/Llama-3.3-70B-Instruct Gender
-    - bash run-vllm-contextual.sh loan ByteDance-Seed/Seed-OSS-36B-Instruct Gender
+    # - bash run-vllm-contextual.sh loan ByteDance-Seed/Seed-OSS-36B-Instruct Gender
     # - bash run-vllm-contextual.sh loan zai-org/GLM-4.5-Air Gender
     # - bash run-vllm-contextual.sh loan nvidia/Llama-3_3-Nemotron-Super-49B-v1_5 Gender
     ####### edu #########
