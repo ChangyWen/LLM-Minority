@@ -135,13 +135,13 @@ if __name__ == "__main__":
         )
 
     if attribute_type == "Gender Identity":
-        attributes_list = ["Cisgender", "Transgender", "Non-binary"]
+        attributes_list = ["Cisgender", "Cisgender", "Transgender", "Non-binary"]
     elif attribute_type == "Sexual Orientation":
-        attributes_list = ["Heterosexual", "Homosexual", "Bisexual", "Asexual"]
-    elif attribute_type == "Disability Status":
-        attributes_list = ["Colorblindness", "Hearing Impairment", "Mobility Impairment", "No Disability"]
-    elif attribute_type == "Chronic Health Condition Status":
-        attributes_list = ["HIV Positive", "Chronic Hepatitis", "Type 1 Diabetes", "Asthma", "No Chronic Health Condition"]
+        attributes_list = ["Heterosexual", "Heterosexual", "Heterosexual", "Homosexual", "Bisexual", "Asexual"]
+    elif attribute_type == "Religious Affiliation":
+        attributes_list = ["Christian", "Christian", "Christian", "Jewish", "Jain", "Taoist"]
+    elif attribute_type == "Political Affiliation":
+        attributes_list = ["Democrat", "Republican", "Green Party", "Libertarian"]
     else:
         raise ValueError(f"Invalid attribute type: {attribute_type}")
 
