@@ -197,7 +197,7 @@ if __name__ == "__main__":
         start_time = time.time()
         combo = random.choice(all_combos)
         # temporary fix for GLM-4.5-Air
-        if model_name == "zai-org/GLM-4.5-Air" or model_name == "msra-gpt-4o":
+        if model_name == "zai-org/GLM-4.5-Air" or model_name == "msra-gpt-4o" or model_name == "Qwen/Qwen3-235B-A22B-Instruct-2507":
             combo = random.choice([[1, 4], [4, 1]])
         attribute_values_list = random.choice(attributes_lists)
         candidate_attributes = []
