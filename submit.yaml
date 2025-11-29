@@ -18,7 +18,7 @@ environment:
     - pip install tqdm
     - pip install pandas
     - pip install wandb
-    # - pip install mamba-ssm[causal-conv1d] --no-build-isolation
+    - pip install mamba-ssm[causal-conv1d] --no-build-isolation
 
 code:
   local_dir: /Users/wendacheng/Projects/LLM-Minority
