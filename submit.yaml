@@ -65,7 +65,7 @@ jobs:
     # - bash run-vllm-contextual.sh loan Qwen/Qwen3-Next-80B-A3B-Instruct Gender
     # - bash run-vllm-contextual.sh loan meta-llama/Llama-3.3-70B-Instruct Gender
     # - bash run-vllm-contextual.sh loan ByteDance-Seed/Seed-OSS-36B-Instruct Gender
-    - bash run-vllm-contextual.sh loan Qwen/Qwen3-235B-A22B-Instruct-2507 Gender
+    # - bash run-vllm-contextual.sh loan Qwen/Qwen3-235B-A22B-Instruct-2507 Gender
     # - bash run-vllm-contextual.sh loan zai-org/GLM-4.5-Air Gender
     # - bash run-vllm-contextual.sh loan nvidia/Llama-3_3-Nemotron-Super-49B-v1_5 Gender
     ####### edu #########
