@@ -471,7 +471,7 @@ def draw_results_grid(attribute_type, resume_count, model_names, pool_count, max
     fig, axes = plt.subplots(
         2, 4,
         dpi=1024,
-        figsize=(15, 8),
+        figsize=(18, 8),
         sharex=True  # share x to make the global xlabel consistent
     )
 
@@ -483,7 +483,7 @@ def draw_results_grid(attribute_type, resume_count, model_names, pool_count, max
         right=0.92,
         bottom=0.07,
         top=0.90,
-        wspace=0.25,
+        wspace=0.28,
         hspace=0.30,
     )
 
