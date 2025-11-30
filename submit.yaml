@@ -26,8 +26,8 @@ code:
 target:
   service: sing
   # name: Feeds
-  name: Recall
-  # name: Ranking
+  # name: Recall
+  name: Ranking
   # name: msrresrchbasicvc
   # name: msrresrchvc
   workspace_name: CS-NewsAndFeeds-Singularity
@@ -70,7 +70,7 @@ jobs:
     # - bash run-vllm-contextual.sh loan Qwen/Qwen3-235B-A22B-Instruct-2507 Gender
     # - bash run-vllm-contextual.sh loan zai-org/GLM-4.5-Air Gender
     # - bash run-vllm-contextual.sh loan nvidia/Llama-3_3-Nemotron-Super-49B-v1_5 Gender
-    # - bash run-vllm-contextual.sh loan nvidia/NVIDIA-Nemotron-Nano-12B-v2 Gender
+    - bash run-vllm-contextual.sh loan nvidia/NVIDIA-Nemotron-Nano-12B-v2 Gender
     ####### edu #########
     # - bash run-vllm-contextual.sh edu openai/gpt-oss-120b Gender
     # - bash run-vllm-contextual.sh edu Qwen/Qwen3-Next-80B-A3B-Instruct Gender
