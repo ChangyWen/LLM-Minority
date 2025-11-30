@@ -445,7 +445,7 @@ def plot_model_panel(ax_main, attribute_type, resume_count, all_results, signifi
         fontsize=9,
         title_fontsize=10,
         markerscale=1,
-        loc="upper right",
+        loc="lower right",
         frameon=True,
         framealpha=0.5,
         borderpad=0.3,
