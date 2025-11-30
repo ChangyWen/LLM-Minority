@@ -479,7 +479,7 @@ def draw_results_grid(attribute_type, resume_count, model_names, pool_count, max
 
     # Adjust margins to leave space for shared labels and right ylabel
     fig.subplots_adjust(
-        left=0.07,
+        left=0.06,
         right=0.92,
         bottom=0.07,
         top=0.90,
