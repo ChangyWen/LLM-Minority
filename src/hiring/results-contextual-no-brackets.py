@@ -488,6 +488,7 @@ if __name__ == "__main__":
                 # "gemma-3-27b-it",
                 "Seed-OSS-36B-Instruct",
                 "Qwen3-235B-A22B-Instruct-2507",
+                "NVIDIA-Nemotron-Nano-12B-v2",
             ]:
                 file_name = f"outputs/hiring/contextual/{attribute_type}/{model_name}_{resume_count}_{pool_count}.jsonl"
                 if os.path.exists(file_name):
