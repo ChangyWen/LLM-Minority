@@ -135,11 +135,11 @@ if __name__ == "__main__":
         )
 
     if attribute_type == "Gender Identity":
-        # attributes_list = ["Cisgender", "Cisgender", "Transgender", "Non-binary"]
-        attributes_list = ["Cisgender"]
+        attributes_list = ["Cisgender", "Cisgender", "Transgender", "Non-binary"]
+        # attributes_list = ["Cisgender"]
     elif attribute_type == "Sexual Orientation":
-        # attributes_list = ["Heterosexual", "Heterosexual", "Heterosexual", "Homosexual", "Bisexual", "Asexual"]
-        attributes_list = ["Heterosexual"]
+        attributes_list = ["Heterosexual", "Heterosexual", "Heterosexual", "Homosexual", "Bisexual", "Asexual"]
+        # attributes_list = ["Heterosexual"]
     elif attribute_type == "Religious Affiliation":
         attributes_list = ["Christian", "Christian", "Christian", "Jewish", "Jain", "Taoist"]
     elif attribute_type == "Political Affiliation":
