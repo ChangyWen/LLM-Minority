@@ -8,6 +8,7 @@ import os
 from scipy.stats import chi2_contingency, norm
 import statsmodels.api as sm
 import numpy as np
+from matplotlib.ticker import MaxNLocator, FormatStrFormatter
 
 
 DELTA_COLOR = "blue"  # fixed color for Δ
@@ -354,7 +355,7 @@ def plot_model_panel(ax_main, attribute_type, resume_count, all_results, signifi
         color="black",
         linestyle="-",
         linewidth=1.5,
-        label=f"Random ({baseline_value:.1f})"
+        # label=f"Random ({baseline_value:.1f})"
     )
 
     ax_main.set_xticks(
@@ -415,6 +416,18 @@ def plot_model_panel(ax_main, attribute_type, resume_count, all_results, signifi
         ax_delta.tick_params(axis="y", labelcolor=delta_color)
         ax_delta.spines["top"].set_visible(False)
 
+    # ---------------------------
+    # FORMAT Y TICKS (max 2 decimals)
+    # ---------------------------
+    # Main y-axis: max 5 ticks
+    ax_main.yaxis.set_major_locator(MaxNLocator(nbins=5))
+    ax_main.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+
+    # Delta axis (if exists): max 5 ticks
+    if ax_delta is not None:
+        ax_delta.yaxis.set_major_locator(MaxNLocator(nbins=5))
+        ax_delta.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+
     # -----------------------------------------------------------
     # LEGEND (combine main + delta), top-right inside this panel
     # -----------------------------------------------------------
@@ -441,7 +454,7 @@ def plot_model_panel(ax_main, attribute_type, resume_count, all_results, signifi
 
 def draw_results_grid(attribute_type, resume_count, model_names, pool_count, max_n_trials):
     """
-    Create one big figure (2x3 grid) for given attribute_type and resume_count.
+    Create one big figure (2x4 grid) for given attribute_type and resume_count.
     Each panel is one model.
     """
 
@@ -456,9 +469,9 @@ def draw_results_grid(attribute_type, resume_count, model_names, pool_count, max
     })
 
     fig, axes = plt.subplots(
-        2, 3,
+        2, 4,
         dpi=1024,
-        figsize=(15, 8),
+        figsize=(20, 8),
         sharex=True  # share x to make the global xlabel consistent
     )
 
@@ -476,8 +489,8 @@ def draw_results_grid(attribute_type, resume_count, model_names, pool_count, max
 
     # Plot each model in the specified order
     for idx, model_name in enumerate(model_names):
-        row = idx // 3
-        col = idx % 3
+        row = idx // 4
+        col = idx % 4
         ax_main = axes[row, col]
 
         model_name_clean = model_name.replace("msra-", "")
@@ -523,15 +536,17 @@ if __name__ == "__main__":
     max_n_trials = 1000000
 
     # Fixed order of models in the 2x3 grid:
-    # Row 1: msra-gpt-4o, gpt-oss-120b, Qwen3-Next-80B-A3B-Instruct
-    # Row 2: GLM-4.5-Air, gemma-3-27b-it, Llama-3.3-70B-Instruct
+    # Row 1: msra-gpt-4o, gpt-oss-120b, Qwen3-235B-A22B-Instruct-2507, Qwen3-Next-80B-A3B-Instruct
+    # Row 2: GLM-4.5-Air, gemma-3-27b-it, Llama-3.3-70B-Instruct, NVIDIA-Nemotron-Nano-12B-v2
     model_names_order = [
         "msra-gpt-4o",
         "gpt-oss-120b",
+        "Qwen3-235B-A22B-Instruct-2507",
         "Qwen3-Next-80B-A3B-Instruct",
         "GLM-4.5-Air",
         "gemma-3-27b-it",
         "Llama-3.3-70B-Instruct",
+        "NVIDIA-Nemotron-Nano-12B-v2",
     ]
 
     for attribute_type in ["Gender"]:
