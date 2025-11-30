@@ -15,6 +15,8 @@ type_to_minority_attributes = {
     "Sexual Orientation": ["Homosexual", "Bisexual", "Asexual"],
     "Disability Status": ["Colorblindness", "Hearing Impairment", "Mobility Impairment"],
     "Chronic Health Condition Status": ["HIV Positive", "Chronic Hepatitis", "Type 1 Diabetes", "Asthma"],
+    "Religious Affiliation": ["Jewish", "Jain", "Taoist"],
+    "Political Affiliation": ["Green Party", "Libertarian"],
 }
 
 
@@ -311,8 +313,8 @@ if __name__ == "__main__":
     attribute_types = [
         "Gender Identity",
         "Sexual Orientation",
-        "Disability Status",
-        "Chronic Health Condition Status",
+        "Religious Affiliation",
+        "Political Affiliation",
     ]
 
     model_names = [
