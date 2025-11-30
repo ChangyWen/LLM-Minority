@@ -26,6 +26,6 @@ python src/$application/societal.py $model "Gender Identity" &
 sleep 5
 python src/$application/societal.py $model "Sexual Orientation" &
 sleep 5
-python src/$application/societal.py $model "Disability Status" &
+python src/$application/societal.py $model "Political Affiliation" &
 sleep 5
-python src/$application/societal.py $model "Chronic Health Condition Status"
+python src/$application/societal.py $model "Religious Affiliation"
