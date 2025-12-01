@@ -164,9 +164,6 @@ if __name__ == "__main__":
 
         for attribute in attributes_list:
             prompt = get_prompt(sampled_candidate, attribute)
-            print(prompt)
-            input()
-            continue
 
             try:
                 start_time = time.time()
