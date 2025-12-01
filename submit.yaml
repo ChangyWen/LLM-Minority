@@ -81,6 +81,7 @@ jobs:
     # - bash run-vllm-contextual.sh edu openai/gpt-oss-120b Gender
     # - bash run-vllm-contextual.sh edu Qwen/Qwen3-Next-80B-A3B-Instruct Gender
     # - bash run-vllm-contextual.sh edu meta-llama/Llama-3.3-70B-Instruct Gender
+    - bash run-vllm-contextual.sh edu nvidia/NVIDIA-Nemotron-Nano-12B-v2 Gender
   submit_args:
     env:
       {
