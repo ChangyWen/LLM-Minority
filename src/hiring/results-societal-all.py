@@ -319,9 +319,13 @@ if __name__ == "__main__":
 
     model_names = [
         "msra-gpt-4o",
+        "Qwen3-235B-A22B-Instruct-2507",
         "Qwen3-Next-80B-A3B-Instruct",
         "Llama-3.3-70B-Instruct",
+        "gpt-oss-120b",
         "gemma-3-27b-it",
+        "NVIDIA-Nemotron-Nano-12B-v2",
+        "GLM-4.5-Air",
     ]
 
     for model_name in model_names:
