@@ -215,9 +215,6 @@ if __name__ == "__main__":
         attributes = [c[1] for c in candidate_attributes]
 
         prompt = get_prompt(candidate_attributes, attribute_type)
-        print(prompt)
-        input()
-        continue
 
         try:
             if "gpt-5" in model_name:
