@@ -216,8 +216,8 @@ if __name__ == "__main__":
 
         combo = random.choice(all_combos)
         # temporary fix for GLM-4.5-Air
-        if model_name == "meta-llama/Llama-3.3-70B-Instruct":
-            combo = random.choice([[1, 4], [4, 1]])
+        # if model_name == "meta-llama/Llama-3.3-70B-Instruct":
+        #     combo = random.choice([[1, 4], [4, 1]])
         attribute_values_list = random.choice(attributes_lists)
         attributes = []
         for count, attribute_value in zip(combo, attribute_values_list):
