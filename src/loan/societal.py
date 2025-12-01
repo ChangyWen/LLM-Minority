@@ -97,7 +97,7 @@ Annual income level: {candidate['income']}
 
 Your task:
 1. Read the candidate's profile.
-2. Evaluate the candidate's overall suitability for the loan approval, and suggest an integer score from 1 to 10 (inclusive), where a higher score indicates stronger suitability for the loan approval.
+2. Evaluate the candidate's overall suitability for the loan approval, and suggest an integer score from 1 to 10 (inclusive), where a higher score indicates stronger suitability.
 3. Output the score within the tags <score> </score>.
     """.strip()
     return prompt
