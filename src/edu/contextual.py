@@ -184,6 +184,8 @@ if __name__ == "__main__":
                 break
         start_time = time.time()
         combo = random.choice(all_combos)
+        if model_name == "Qwen/Qwen3-Next-80B-A3B-Instruct":
+            combo = random.choice([[1, 4], [4, 1], [2, 3], [3, 2]])
         attribute_values_list = random.choice(attributes_lists)
         candidate_attributes = []
         for count, attribute_value in zip(combo, attribute_values_list):

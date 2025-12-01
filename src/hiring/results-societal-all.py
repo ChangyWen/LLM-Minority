@@ -20,6 +20,22 @@ type_to_minority_attributes = {
 }
 
 
+def p_to_stars(p):
+    """
+    Convert p-value to significance stars.
+    """
+    if math.isnan(p):
+        return ""
+    if p < 0.001:
+        return "***"
+    elif p < 0.01:
+        return "**"
+    elif p < 0.05:
+        return "*"
+    else:
+        return ""
+
+
 def t_ci(scores, confidence=0.95):
     mean = np.mean(scores)
     sem = stats.sem(scores)
@@ -52,6 +68,7 @@ def compute_results(attribute_type, file_name):
 
     minority_mean, minority_ci_low, minority_ci_high = t_ci(minority_scores)
     majority_mean, majority_ci_low, majority_ci_high = t_ci(majority_scores)
+    stat, p_value = stats.mannwhitneyu(minority_scores, majority_scores, alternative="two-sided")
 
     return {
         "minority": {
@@ -64,6 +81,7 @@ def compute_results(attribute_type, file_name):
             "ci_low": majority_ci_low,
             "ci_high": majority_ci_high,
         },
+        "p_value": p_value,
     }
 
 
@@ -155,7 +173,7 @@ def draw_results(all_results, attribute_types, model_name):
         "axes.linewidth": 0.8,
     })
 
-    xlabels = attribute_types
+    xlabels = []
     x_base = np.array([-0.3 + i * 0.3 for i in range(len(attribute_types))])
     delta = 0.05
 
@@ -175,6 +193,9 @@ def draw_results(all_results, attribute_types, model_name):
     for i, attr in enumerate(attribute_types):
         res_min = all_results[attr]["minority"]
         res_maj = all_results[attr]["majority"]
+        p_value = all_results[attr]["p_value"]
+        stars = p_to_stars(p_value)
+        xlabels.append(f"{attr}\n{stars}" if stars else attr)
 
         base_color = palette[i]
         minority_color = base_color
