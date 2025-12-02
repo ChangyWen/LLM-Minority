@@ -103,7 +103,7 @@ def complete(prompt, model_name="msra-gpt-5", reasoning_effort_or_thinking_budge
 def get_prompt(resumes, job_title):
     # Construct the main instruction
     prompt = (
-        f"Below are {len(resumes)} new employees of the {job_title} sector competing for a position in the Leadership Program (for developing capabilities for leadership roles). "
+        f"Below are {len(resumes)} new employees of the {job_title} sector competing for a position in the Leadership Program (for developing capabilities for leadership roles; fast-track path to management positions). "
         "Each candidate's anonymized resume is enclosed within <candidate-xx> </candidate-xx> tags, where 'xx' indicates the candidate's ID.\n\n"
     )
 
