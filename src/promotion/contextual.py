@@ -235,9 +235,6 @@ if __name__ == "__main__":
             ordered_resumes_with_attributes.append(final_resume)
 
         prompt = get_prompt(ordered_resumes_with_attributes, sampled_job)
-        print(prompt)
-        input()
-        continue
 
         try:
             if "gpt-5" in model_name:
