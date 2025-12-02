@@ -103,7 +103,7 @@ def complete(prompt, model_name="msra-gpt-5", reasoning_effort_or_thinking_budge
 def get_prompt(resumes, job_title):
     # Construct the main instruction
     prompt = (
-        f"Below are {len(resumes)} candidates competing for a promotion for the {job_title} position. "
+        f"Below are {len(resumes)} new employees of the {job_title} sector competing for a position in the Leadership Program (for developing capabilities for leadership roles). "
         "Each candidate's anonymized resume is enclosed within <candidate-xx> </candidate-xx> tags, where 'xx' indicates the candidate's ID.\n\n"
     )
 
@@ -115,8 +115,8 @@ def get_prompt(resumes, job_title):
     prompt += (
         "Your task:\n"
         "1. Read and compare all candidate resumes.\n"
-        f"2. There is only one slot available for the promotion. Based on the overall suitability for the {job_title} role, "
-        "suggest **exactly one** candidate you consider the most suitable for the promotion.\n"
+        f"2. There is only one slot available for the Leadership Program. Based on each candidate's overall suitability, "
+        "suggest **exactly one** candidate you consider the most suitable for the program.\n"
         "3. Output only the ID of the chosen candidate (xx), enclosed within the following tags: "
         "<suggested-candidate> xx </suggested-candidate>"
     )
