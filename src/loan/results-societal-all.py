@@ -324,7 +324,7 @@ def draw_results(all_results, attribute_types, model_name):
         ax.spines[spine].set_visible(False)
 
     plt.tight_layout()
-    save_file = f"outputs/hiring/societal_{model_clean}.png"
+    save_file = f"outputs/loan/societal_{model_clean}.png"
     os.makedirs(os.path.dirname(save_file), exist_ok=True)
     plt.savefig(save_file, bbox_inches="tight")
     plt.close()
@@ -353,7 +353,7 @@ if __name__ == "__main__":
     for model_name in model_names:
         all_results = {}
         for attribute_type in attribute_types:
-            file_name = f"outputs/hiring/societal/{attribute_type}/{model_name}.jsonl"
+            file_name = f"outputs/loan/societal/{attribute_type}/{model_name}.jsonl"
             if os.path.exists(file_name):
                 all_results[attribute_type] = compute_results(attribute_type, file_name)
 
