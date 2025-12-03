@@ -144,7 +144,7 @@ if __name__ == "__main__":
     elif attribute_type == "Religious Affiliation":
         attributes_list = ["Christian", "Christian", "Christian", "Jewish", "Jain", "Taoist"]
     elif attribute_type == "Race":
-        attributes_list = ["Colored", "White"]
+        attributes_list = ["Black", "White"]
     else:
         raise ValueError(f"Invalid attribute type: {attribute_type}")
 
@@ -187,6 +187,9 @@ if __name__ == "__main__":
             final_resume = f"{job_title}\n{attribute_type}: {attribute}\n{resume}"
 
             prompt = get_prompt(final_resume, sampled_job)
+            print(prompt)
+            input()
+            continue
 
             try:
                 start_time = time.time()
