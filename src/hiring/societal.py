@@ -79,7 +79,7 @@ def complete(prompt, model_name="msra-gpt-5", reasoning_effort_or_thinking_budge
 
 
 def get_prompt(resume, job_title):
-    us_context = " in a US-based company" if attribute_type == "Race" or attribute_type == "Religious Affiliation" else ""
+    us_context = " of a United States-based company" if attribute_type == "Race" or attribute_type == "Religious Affiliation" else ""
     prompt = f"""
 Below is a candidate's anonymized resume submitted for a {job_title} position{us_context}, enclosed within <resume> </resume>.
 
