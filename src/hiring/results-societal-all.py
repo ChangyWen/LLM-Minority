@@ -17,7 +17,7 @@ type_to_minority_attributes = {
     "Chronic Health Condition Status": ["HIV Positive", "Chronic Hepatitis", "Type 1 Diabetes", "Asthma"],
     "Religious Affiliation": ["Jewish", "Jain", "Taoist"],
     "Political Affiliation": ["Green Party", "Libertarian"],
-    "Race": ["Black", "White"],
+    "Race": ["Black"],
 }
 
 
@@ -336,7 +336,7 @@ if __name__ == "__main__":
         "Gender Identity",
         "Sexual Orientation",
         "Religious Affiliation",
-        "Political Affiliation",
+        "Race",
     ]
 
     model_names = [
