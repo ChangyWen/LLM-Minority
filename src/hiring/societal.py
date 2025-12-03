@@ -187,9 +187,6 @@ if __name__ == "__main__":
             final_resume = f"{job_title}\n{attribute_type}: {attribute}\n{resume}"
 
             prompt = get_prompt(final_resume, sampled_job)
-            print(prompt)
-            input()
-            continue
 
             try:
                 start_time = time.time()
