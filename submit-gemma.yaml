@@ -48,8 +48,9 @@ jobs:
     - VLLM_USE_PRECOMPILED=1 pip install --editable .
     - cd ..
     - pip install transformers
-    - bash run-vllm-societal.sh hiring google/gemma-3-27b-it 4
+    # - bash run-vllm-societal.sh hiring google/gemma-3-27b-it 4
     # - bash run-vllm-contextual.sh edu google/gemma-3-27b-it Gender 4
+    - bash run-vllm-societal.sh loan google/gemma-3-27b-it 4
   submit_args:
     env:
       {
