@@ -83,6 +83,7 @@ jobs:
     # - bash run-vllm-societal.sh loan Qwen/Qwen3-235B-A22B-Instruct-2507
     # - bash run-vllm-societal.sh loan zai-org/GLM-4.5-Air
     # - bash run-vllm-societal.sh loan nvidia/NVIDIA-Nemotron-Nano-12B-v2 4
+    - bash run-vllm-societal.sh loan google/gemma-3-27b-it 4
     ####### edu #########
     # - bash run-vllm-contextual.sh edu openai/gpt-oss-120b Gender
     # - bash run-vllm-contextual.sh edu Qwen/Qwen3-Next-80B-A3B-Instruct Gender
