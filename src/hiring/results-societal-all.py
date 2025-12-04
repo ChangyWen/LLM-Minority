@@ -182,8 +182,8 @@ def draw_results(all_results, attribute_types, model_name):
     x_maj = x_base + delta
 
     # One base color per attribute
-    palette = sns.color_palette("husl", 4)
-    palette = palette[:len(attribute_types)]
+    palette = sns.color_palette("husl", len(attribute_types))
+    # palette = palette[:len(attribute_types)]
 
     # Markers
     minority_marker = "o"
@@ -273,7 +273,7 @@ def draw_results(all_results, attribute_types, model_name):
         tick.set_color(palette[i])         # color per attribute
         tick.set_fontweight("bold")
 
-    ax.set_xticklabels(xlabels, rotation=15, ha="center")
+    ax.set_xticklabels(xlabels, rotation=0, ha="center")
     ax.set_ylabel("Mean Score (±95% CI)", fontsize=11, fontweight="bold")
 
     model_clean = model_name.replace("msra-", "")
@@ -336,8 +336,6 @@ if __name__ == "__main__":
     attribute_types = [
         "Gender Identity",
         "Sexual Orientation",
-        "Religious Affiliation",
-        "Race",
     ]
 
     model_names = [
