@@ -26,10 +26,10 @@ code:
 target:
   service: sing
   # name: Feeds
-  # name: Recall
+  name: Recall
   # name: Ranking
   # name: msrresrchbasicvc
-  name: msrresrchvc
+  # name: msrresrchvc
   workspace_name: CS-NewsAndFeeds-Singularity
 
 storage:
@@ -42,7 +42,7 @@ storage:
 jobs:
 - name: llm-minority
   # sku: G8-H100
-  sku: 80G4-A100
+  sku: 80G8-A100
   # sla_tier: Standard
   sla_tier: Premium
   command:
