@@ -336,7 +336,7 @@ if __name__ == "__main__":
         "Gender Identity",
         "Sexual Orientation",
         "Religious Affiliation",
-        "Political Affiliation",
+        "Race",
     ]
 
     model_names = [

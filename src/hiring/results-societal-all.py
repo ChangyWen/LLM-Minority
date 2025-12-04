@@ -182,7 +182,8 @@ def draw_results(all_results, attribute_types, model_name):
     x_maj = x_base + delta
 
     # One base color per attribute
-    palette = sns.color_palette("husl", len(attribute_types))
+    palette = sns.color_palette("husl", 4)
+    palette = palette[:len(attribute_types)]
 
     # Markers
     minority_marker = "o"
