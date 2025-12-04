@@ -16,6 +16,7 @@ environment:
     - pip install tqdm
     - pip install pandas
     - pip install wandb
+    - pip install numpy
 
 code:
   local_dir: /Users/wendacheng/Projects/LLM-Minority
@@ -45,7 +46,7 @@ jobs:
   command:
     - git clone https://github.com/vllm-project/vllm.git
     - cd vllm
-    - VLLM_USE_PRECOMPILED=1 pip install --editable .
+    - VLLM_USE_PRECOMPILED=0 pip install --editable .
     - cd ..
     - pip install transformers
     # - bash run-vllm-societal.sh hiring google/gemma-3-27b-it 4
