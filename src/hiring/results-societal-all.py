@@ -174,12 +174,16 @@ def plot_model_panel_societal(
     all_results,
     model_name,
     palette_dict,
+    show_legend=False,
+    is_top_row=False,
 ):
     """
     Draw one model's societal-bias panel on ax_main.
     - attribute_types_present: list of attribute types that have data for this model
     - all_results: dict[attr_type] -> result (minority/majority + p_value)
     - palette_dict: dict[attr_type] -> color
+    - show_legend: whether to draw the legend in this panel
+    - is_top_row: if True, x-labels show only stars (no attribute text)
     """
 
     # Horizontal positions per attribute
@@ -203,7 +207,16 @@ def plot_model_panel_societal(
         p_value = res["p_value"]
 
         stars = p_to_stars(p_value)
-        xlabels.append(f"{attr}\n{stars}" if stars else attr)
+
+        # --- X tick label logic ---
+        if is_top_row:
+            # First row: keep only stars (no attribute text)
+            label_text = stars
+        else:
+            # Lower row(s): attribute name + stars (if any)
+            label_text = f"{attr}\n{stars}" if stars else attr
+
+        xlabels.append(label_text)
 
         base_color = palette_dict[attr]
         minority_color = base_color
@@ -276,14 +289,12 @@ def plot_model_panel_societal(
     ax_main.set_xlim(x_base[0] - 0.6, x_base[-1] + 0.6)
     ax_main.set_xticklabels(xlabels, rotation=0, ha="center")
 
-    # Color xticklabels by attribute
+    # Color xticklabels by attribute (even if only stars)
     for i, tick in enumerate(ax_main.get_xticklabels()):
         attr = attribute_types_present[i]
         tick.set_color(palette_dict[attr])
         tick.set_fontweight("bold")
 
-    # Only leftmost column shows a y-label text; global y-label added in grid
-    # (We still keep the ticks on every panel.)
     # Title per model
     model_clean = model_name.replace("msra-", "")
     ax_main.set_title(model_clean, fontweight="bold")
@@ -291,43 +302,49 @@ def plot_model_panel_societal(
     ax_main.grid(axis="y", linestyle=":", linewidth=0.7, alpha=0.6)
     ax_main.set_axisbelow(True)
 
-    # Legend (within each panel)
-    minority_handle = Line2D(
-        [0], [0],
-        marker=minority_marker,
-        linestyle="--",
-        color="black",
-        markersize=2,
-        markerfacecolor="black",
-        markeredgecolor="black",
-        linewidth=1,
-        label="Minority",
-    )
+    # Legend (only if requested, e.g., top-left panel)
+    if show_legend:
+        minority_handle = Line2D(
+            [0], [0],
+            marker=minority_marker,
+            linestyle="--",
+            color="black",
+            markersize=2,
+            markerfacecolor="black",
+            markeredgecolor="black",
+            linewidth=1,
+            label="Minority",
+        )
 
-    majority_handle = Line2D(
-        [0], [0],
-        marker=majority_marker,
-        linestyle="solid",
-        color="black",
-        markersize=2,
-        markerfacecolor="black",
-        markeredgecolor="black",
-        linewidth=1,
-        label="Majority",
-    )
+        majority_handle = Line2D(
+            [0], [0],
+            marker=majority_marker,
+            linestyle="solid",
+            color="black",
+            markersize=2,
+            markerfacecolor="black",
+            markeredgecolor="black",
+            linewidth=1,
+            label="Majority",
+        )
 
-    ax_main.legend(
-        handles=[minority_handle, majority_handle],
-        loc="upper right",
-        frameon=True,
-        framealpha=0.5,
-        borderpad=0.3,
-        handler_map={
-            minority_handle: HandlerVerticalErrorbar(),
-            majority_handle: HandlerVerticalErrorbar(),
-        },
-        fontsize=8,
-    )
+        legend_fontsize = 18   # larger font
+        legend_markersize = 3.5  # bigger markers
+
+        ax_main.legend(
+            handles=[minority_handle, majority_handle],
+            loc="upper right",
+            frameon=True,
+            framealpha=0.55,
+            borderpad=0.4,
+            handler_map={
+                minority_handle: HandlerVerticalErrorbar(),
+                majority_handle: HandlerVerticalErrorbar(),
+            },
+            fontsize=legend_fontsize,
+            handlelength=2.2,
+            markerscale=legend_markersize,
+        )
 
     # Remove top + right spines
     for spine in ["top", "right"]:
@@ -359,7 +376,7 @@ def draw_results_grid_societal(attribute_types, model_names):
         dpi=1024,
         figsize=(18, 8),
         sharex=False,
-        sharey=True,
+        sharey=False,  # <-- each subfigure uses its own y-axis range
     )
 
     fig.suptitle("Hiring - Societal Minority vs Majority Scores", fontweight="bold", y=0.97)
@@ -398,12 +415,15 @@ def draw_results_grid_societal(attribute_types, model_names):
             continue
 
         attribute_types_present = [a for a in attribute_types if a in all_results]
+
         plot_model_panel_societal(
             ax_main=ax_main,
             attribute_types_present=attribute_types_present,
             all_results=all_results,
             model_name=model_name,
             palette_dict=palette_dict,
+            show_legend=(idx == 0),        # legend only on top-left panel
+            is_top_row=(row == 0),         # first row: x-labels = stars only
         )
 
     # Global labels
