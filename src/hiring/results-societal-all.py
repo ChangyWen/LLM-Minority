@@ -333,7 +333,7 @@ def plot_model_panel_societal(
 
         ax_main.legend(
             handles=[minority_handle, majority_handle],
-            loc="upper right",
+            loc="best",
             frameon=True,
             framealpha=0.55,
             borderpad=0.4,
