@@ -25,8 +25,8 @@ code:
 
 target:
   service: sing
-  # name: Feeds
-  name: Recall
+  name: Feeds
+  # name: Recall
   # name: Ranking
   # name: msrresrchbasicvc
   # name: msrresrchvc
@@ -43,8 +43,8 @@ jobs:
 - name: llm-minority
   # sku: G8-H100
   sku: 80G8-A100
-  # sla_tier: Standard
-  sla_tier: Premium
+  sla_tier: Standard
+  # sla_tier: Premium
   command:
     # - bash run-vllm-contextual.sh openai/gpt-oss-120b Gender
     # - bash run-vllm-contextual.sh Qwen/Qwen3-Next-80B-A3B-Instruct Race
@@ -92,7 +92,7 @@ jobs:
     # - bash run-vllm-contextual.sh edu zai-org/GLM-4.5-Air Gender
     # - bash run-vllm-contextual.sh edu Qwen/Qwen3-235B-A22B-Instruct-2507 Gender
     # - bash run-vllm-societal.sh edu google/gemma-3-27b-it
-    - bash run-vllm-societal.sh edu zai-org/GLM-4.5-Air
+    # - bash run-vllm-societal.sh edu zai-org/GLM-4.5-Air
     # - bash run-vllm-societal.sh edu nvidia/NVIDIA-Nemotron-Nano-12B-v2
     # - bash run-vllm-societal.sh edu Qwen/Qwen3-235B-A22B-Instruct-2507
     # - bash run-vllm-societal.sh edu Qwen/Qwen3-Next-80B-A3B-Instruct
