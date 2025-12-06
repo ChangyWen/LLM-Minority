@@ -447,9 +447,9 @@ if __name__ == "__main__":
         for resume_count in [5, 10]:
             for model_name in [
                 "msra-gpt-4o",
-                "Seed-OSS-36B-Instruct",
-                "Qwen3-235B-A22B-Instruct-2507",
-                "NVIDIA-Nemotron-Nano-12B-v2",
+                # "Seed-OSS-36B-Instruct",
+                # "Qwen3-235B-A22B-Instruct-2507",
+                # "NVIDIA-Nemotron-Nano-12B-v2",
                 # "msra-gpt-4.1-nano",
                 # "Qwen3-Next-80B-A3B-Instruct",
                 # "Llama-3.3-70B-Instruct",

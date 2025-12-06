@@ -471,17 +471,17 @@ if __name__ == "__main__":
     pool_count = 500
     max_n_trials = 1000000
 
-    for attribute_type in ["Gender", "Race"]:
+    for attribute_type in ["Race"]:
         for resume_count in [5]:
             for model_name in [
                 "msra-gpt-4o",
-                "Qwen3-Next-80B-A3B-Instruct",
-                "Llama-3.3-70B-Instruct",
-                "gpt-oss-120b",
-                "GLM-4.5-Air",
-                "gemma-3-27b-it",
-                "NVIDIA-Nemotron-Nano-12B-v2",
-                "Qwen3-235B-A22B-Instruct-2507",
+                # "Qwen3-Next-80B-A3B-Instruct",
+                # "Llama-3.3-70B-Instruct",
+                # "gpt-oss-120b",
+                # "GLM-4.5-Air",
+                # "gemma-3-27b-it",
+                # "NVIDIA-Nemotron-Nano-12B-v2",
+                # "Qwen3-235B-A22B-Instruct-2507",
             ]:
                 file_name = (
                     f"outputs/edu/contextual/{attribute_type}/"
