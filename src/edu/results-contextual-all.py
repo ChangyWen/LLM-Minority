@@ -549,7 +549,7 @@ if __name__ == "__main__":
         "NVIDIA-Nemotron-Nano-12B-v2",
     ]
 
-    for attribute_type in ["Gender"]:
+    for attribute_type in ["Gender", "Race"]:
         for resume_count in [5]:
             draw_results_grid(
                 attribute_type=attribute_type,

@@ -480,15 +480,15 @@ if __name__ == "__main__":
     for attribute_type in ["Gender", "Race"]:
         for resume_count in [5]:
             for model_name in [
-                # "msra-gpt-4o",
+                "msra-gpt-4o",
                 # "Qwen3-Next-80B-A3B-Instruct",
                 # "Llama-3.3-70B-Instruct",
                 # "gpt-oss-120b",
                 # "GLM-4.5-Air",
                 # "gemma-3-27b-it",
-                "Seed-OSS-36B-Instruct",
-                "Qwen3-235B-A22B-Instruct-2507",
-                "NVIDIA-Nemotron-Nano-12B-v2",
+                # "Seed-OSS-36B-Instruct",
+                # "Qwen3-235B-A22B-Instruct-2507",
+                # "NVIDIA-Nemotron-Nano-12B-v2",
             ]:
                 file_name = f"outputs/hiring/contextual/{attribute_type}/{model_name}_{resume_count}_{pool_count}.jsonl"
                 if os.path.exists(file_name):
