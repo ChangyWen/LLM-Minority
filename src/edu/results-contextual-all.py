@@ -285,7 +285,7 @@ def p_to_stars(p):
         return ""
 
 
-def plot_model_panel(ax_main, attribute_type, resume_count, all_results, significance):
+def plot_model_panel(ax_main, attribute_type, resume_count, all_results, significance, model_name):
     """
     Draw one model's panel onto ax_main (and its twin y-axis).
     No xlabel / ylabel is set here (only ticks, legend, etc.).
@@ -422,11 +422,15 @@ def plot_model_panel(ax_main, attribute_type, resume_count, all_results, signifi
     # Main y-axis: max 5 ticks
     ax_main.yaxis.set_major_locator(MaxNLocator(nbins=5))
     ax_main.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+    if model_name == "gpt-oss-120b":
+        ax_main.set_ylim(0.16, 0.24)
 
     # Delta axis (if exists): max 5 ticks
     if ax_delta is not None:
         ax_delta.yaxis.set_major_locator(MaxNLocator(nbins=5))
         ax_delta.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+    if model_name == "gpt-oss-120b":
+        ax_delta.set_ylim(-0.02, 0.02)
 
     # -----------------------------------------------------------
     # LEGEND (combine main + delta), top-right inside this panel
@@ -504,7 +508,7 @@ def draw_results_grid(attribute_type, resume_count, model_names, pool_count, max
 
         print(f"------------------------------------\n\n{file_name}")
         results, significance, n_trials = compute_results(file_name, attribute_type, max_n_trials)
-        plot_model_panel(ax_main, attribute_type, resume_count, results, significance)
+        plot_model_panel(ax_main, attribute_type, resume_count, results, significance, model_name)
 
     # Shared labels (no per-subplot xlabel / ylabel)
     fig.supxlabel("Same-attribute Ratio", fontsize=12, fontweight="bold")
