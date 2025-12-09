@@ -350,13 +350,13 @@ def plot_model_panel(ax_main, attribute_type, resume_count, all_results, signifi
         bar.set_linewidth(1.2)
 
     # baseline with legend entry
-    ax_main.axhline(
-        y=baseline_value,
-        color="black",
-        linestyle="-",
-        linewidth=1.5,
-        # label=f"Random ({baseline_value:.1f})"
-    )
+    # ax_main.axhline(
+    #     y=baseline_value,
+    #     color="black",
+    #     linestyle="-",
+    #     linewidth=1.5,
+    #     # label=f"Random ({baseline_value:.1f})"
+    # )
 
     ax_main.set_xticks(
         xticks,

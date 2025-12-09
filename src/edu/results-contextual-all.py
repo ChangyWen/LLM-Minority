@@ -350,13 +350,13 @@ def plot_model_panel(ax_main, attribute_type, resume_count, all_results, signifi
         bar.set_linewidth(1.2)
 
     # baseline with legend entry
-    ax_main.axhline(
-        y=baseline_value,
-        color="black",
-        linestyle="-",
-        linewidth=1.5,
-        # label=f"Random ({baseline_value:.1f})"
-    )
+    # ax_main.axhline(
+    #     y=baseline_value,
+    #     color="black",
+    #     linestyle=":",
+    #     linewidth=1.5,
+    #     # label=f"Random ({baseline_value:.1f})"
+    # )
 
     ax_main.set_xticks(
         xticks,
@@ -430,7 +430,7 @@ def plot_model_panel(ax_main, attribute_type, resume_count, all_results, signifi
         ax_delta.yaxis.set_major_locator(MaxNLocator(nbins=5))
         ax_delta.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
     if model_name == "gpt-oss-120b":
-        ax_delta.set_ylim(-0.02, 0.02)
+        ax_delta.set_ylim(-0.03, 0.03)
 
     # -----------------------------------------------------------
     # LEGEND (combine main + delta), top-right inside this panel
