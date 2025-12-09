@@ -60,6 +60,7 @@ jobs:
     # - bash run-vllm-contextual.sh hiring ByteDance-Seed/Seed-OSS-36B-Instruct Gender
     # - bash run-vllm-contextual.sh hiring Qwen/Qwen3-235B-A22B-Instruct-2507 Gender
     # - bash run-vllm-contextual.sh hiring nvidia/NVIDIA-Nemotron-Nano-12B-v2 Gender
+    - bash run-vllm-contextual.sh hiring google/gemma-3-27b-it Race
     # - bash run-vllm-societal.sh hiring Qwen/Qwen3-Next-80B-A3B-Instruct
     # - bash run-vllm-societal.sh hiring meta-llama/Llama-3.3-70B-Instruct
     # - bash run-vllm-societal.sh hiring openai/gpt-oss-120b
