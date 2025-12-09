@@ -367,13 +367,13 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
         bar.set_linewidth(1.2)
 
     # baseline with legend entry
-    ax_main.axhline(
-        y=baseline_value,
-        color="black",
-        linestyle="-",
-        linewidth=1.5,
-        label=f"Random ({baseline_value:.1f})"
-    )
+    # ax_main.axhline(
+    #     y=baseline_value,
+    #     color="black",
+    #     linestyle="-",
+    #     linewidth=1.5,
+    #     label=f"Random ({baseline_value:.1f})"
+    # )
 
     ax_main.set_xticks(xticks, labels=[f"{(c + 1)/(len(xticks)) * 100:.0f}%" for c in xticks])
     ax_main.set_xlim(-0.1, len(xticks) - 1 + 0.1)
