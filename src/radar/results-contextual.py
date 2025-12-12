@@ -121,7 +121,7 @@ def draw_results(application_to_model_to_delta, attribute_type):
     ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
 
     # Style grid similar to main figures
-    ax.grid(axis="y", linestyle=":", linewidth=0.7, alpha=0.6)
+    ax.grid(axis="y", linestyle="--", linewidth=0.7, alpha=0.6)
     ax.set_axisbelow(True)
 
     # Style polar spine to match axes.edgecolor / linewidth
