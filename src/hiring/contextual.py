@@ -81,10 +81,6 @@ def complete(prompt, model_name="msra-gpt-5", reasoning_effort_or_thinking_budge
             temperature = 1.0
         elif model_name == "zai-org/GLM-4.5-Air":
             temperature = 0.6
-        elif model_name == "nvidia/Llama-3_3-Nemotron-Super-49B-v1_5":
-            temperature = 0.6
-        elif model_name == "ByteDance-Seed/Seed-OSS-36B-Instruct":
-            temperature = 1.1
         elif model_name == "Qwen/Qwen3-235B-A22B-Instruct-2507":
             temperature = 0.7
         elif model_name == "nvidia/NVIDIA-Nemotron-Nano-12B-v2":
@@ -100,6 +96,7 @@ def complete(prompt, model_name="msra-gpt-5", reasoning_effort_or_thinking_budge
             if disable_thinking:
                 if model_name == "nvidia/NVIDIA-Nemotron-Nano-12B-v2":
                     messages = [{"role": "system", "content": "/no_think"}] + messages
+                    temperature = 0.0
                 elif model_name == "zai-org/GLM-4.5-Air":
                     # https://www.reddit.com/r/LocalLLaMA/comments/1mdwh31/how_can_you_turn_off_reasoning_for_certain_tasks/
                     messages = [{"role": "user", "content": prompt + " /nothink"}]
