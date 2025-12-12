@@ -46,14 +46,12 @@ jobs:
   sla_tier: Standard
   # sla_tier: Premium
   command:
-    # - bash run-vllm-contextual.sh openai/gpt-oss-120b Gender
-    # - bash run-vllm-contextual.sh Qwen/Qwen3-Next-80B-A3B-Instruct Race
-    # - bash run-vllm-contextual.sh openai/gpt-oss-120b Race
-    # - bash run-vllm-societal.sh Qwen/Qwen3-Next-80B-A3B-Instruct
-    # - bash run-vllm-societal.sh meta-llama/Llama-3.3-70B-Instruct
-    # - bash run-vllm-societal.sh openai/gpt-oss-120b
-    # - bash run-vllm-contextual.sh zai-org/GLM-4.5-Air Gender
-    # - bash run-vllm-contextual.sh zai-org/GLM-4.5-Air Race
+    - bash run-vllm-contextual.sh hiring nvidia/NVIDIA-Nemotron-Nano-12B-v2 Gender 4 True
+    - bash run-vllm-contextual.sh edu nvidia/NVIDIA-Nemotron-Nano-12B-v2 Gender 4 True
+    - bash run-vllm-contextual.sh loan nvidia/NVIDIA-Nemotron-Nano-12B-v2 Gender 4 True
+    - bash run-vllm-contextual.sh hiring zai-org/GLM-4.5-Air Gender 8 True
+    - bash run-vllm-contextual.sh edu zai-org/GLM-4.5-Air Gender 8 True
+    - bash run-vllm-contextual.sh loan zai-org/GLM-4.5-Air Gender 8 True
     ####### hiring #########
     # - bash run-vllm-contextual.sh hiring nvidia/Llama-3_3-Nemotron-Super-49B-v1_5 Gender
     # - bash run-vllm-contextual.sh hiring meta-llama/Llama-3.3-70B-Instruct Gender
