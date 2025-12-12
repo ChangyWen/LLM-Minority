@@ -34,13 +34,13 @@ def compute_results(file_name, attribute_type, max_n_trials=1000000):
                 attr_value_to_results[attr_value]["same_attr_count_to_count"][same_attr_count] += 1
                 attr_value_to_results[attr_value]["same_attr_count_to_hit_count"][same_attr_count] += (1 if inner_idx == suggested_candidate_id else 0)
 
-    print(f"Attribute type: {attribute_type}")
+    # print(f"Attribute type: {attribute_type}")
     results = {}
     attr_counts_A = None
     attr_counts_B = None
     for attr_value, attr_value_results in attr_value_to_results.items():
         # sort the attr_value_results by same_attr_count
-        print(f"attr_value: {attr_value}")
+        # print(f"attr_value: {attr_value}")
         results[attr_value] = {}
 
         # store raw counts for global and trend tests
@@ -86,7 +86,7 @@ def draw_results(application_to_model_to_delta, attribute_type):
         "axes.labelsize": 11,
         "xtick.labelsize": 10,
         "ytick.labelsize": 10,
-        "axes.edgecolor": "gray",
+        "axes.edgecolor": "black",
         "axes.linewidth": 0.8,
     })
     sns.set_theme(style="whitegrid")
@@ -121,12 +121,12 @@ def draw_results(application_to_model_to_delta, attribute_type):
     ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
 
     # Style grid similar to main figures
-    ax.grid(axis="y", linestyle="--", linewidth=0.7, alpha=0.6)
+    ax.grid(axis="y", linestyle="--", linewidth=0.7, alpha=0.8)
     ax.set_axisbelow(True)
 
     # Style polar spine to match axes.edgecolor / linewidth
     if "polar" in ax.spines:
-        ax.spines["polar"].set_edgecolor("gray")
+        ax.spines["polar"].set_edgecolor("black")
         ax.spines["polar"].set_linewidth(0.8)
 
     # Plot each application
