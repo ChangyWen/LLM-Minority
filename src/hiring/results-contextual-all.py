@@ -434,7 +434,7 @@ def plot_model_panel(ax_main, attribute_type, resume_count, all_results, signifi
         if (model_name == "gemma-3-27b-it" or model_name == "GLM-4.5-Air") and attribute_type == "Race":
             ax_delta.set_ylim(-0.03, 0.03)
         if (model_name == "NVIDIA-Nemotron-Nano-12B-v2") and attribute_type == "Race":
-            ax_delta.set_ylim(-0.02, 0.02)
+            ax_delta.set_ylim(-0.01, 0.03)
 
     # -----------------------------------------------------------
     # LEGEND (combine main + delta), top-right inside this panel
