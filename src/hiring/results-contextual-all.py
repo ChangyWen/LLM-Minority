@@ -422,15 +422,19 @@ def plot_model_panel(ax_main, attribute_type, resume_count, all_results, signifi
     # Main y-axis: max 5 ticks
     ax_main.yaxis.set_major_locator(MaxNLocator(nbins=5))
     ax_main.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
-    if model_name == "gemma-3-27b-it" and attribute_type == "Race":
+    if (model_name == "gemma-3-27b-it" or model_name == "GLM-4.5-Air") and attribute_type == "Race":
         ax_main.set_ylim(0.16, 0.24)
+    if (model_name == "NVIDIA-Nemotron-Nano-12B-v2") and attribute_type == "Race":
+        ax_main.set_ylim(0.18, 0.22)
 
     # Delta axis (if exists): max 5 ticks
     if ax_delta is not None:
         ax_delta.yaxis.set_major_locator(MaxNLocator(nbins=5))
         ax_delta.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
-        if model_name == "gemma-3-27b-it" and attribute_type == "Race":
+        if (model_name == "gemma-3-27b-it" or model_name == "GLM-4.5-Air") and attribute_type == "Race":
             ax_delta.set_ylim(-0.03, 0.03)
+        if (model_name == "NVIDIA-Nemotron-Nano-12B-v2") and attribute_type == "Race":
+            ax_delta.set_ylim(-0.02, 0.02)
 
     # -----------------------------------------------------------
     # LEGEND (combine main + delta), top-right inside this panel
