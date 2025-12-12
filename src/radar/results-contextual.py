@@ -6,7 +6,7 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from matplotlib.ticker import MaxNLocator, FormatStrFormatter
+from matplotlib.ticker import MaxNLocator, FormatStrFormatter, FuncFormatter
 
 
 def compute_results(file_name, attribute_type, max_n_trials=1000000):
@@ -118,7 +118,8 @@ def draw_results(application_to_model_to_delta, attribute_type):
 
     # Fewer radial ticks, nicely formatted (like in plot_model_panel)
     ax.yaxis.set_major_locator(MaxNLocator(nbins=4))  # <= fewer ticks
-    ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+    # ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"{v*100:.0f}%"))
 
     # Style grid similar to main figures
     ax.grid(axis="y", linestyle="--", linewidth=0.7, alpha=0.8)
@@ -145,7 +146,8 @@ def draw_results(application_to_model_to_delta, attribute_type):
 
     # Radial axis label position; we don't actually show a text label,
     # to keep it clean (like your commented-out ylabel)
-    ax.set_rlabel_position(0)
+    ax.set_rlabel_position(270)
+    ax.tick_params(axis="y", pad=30)  # Increase spacing (adjust number as needed)
 
     # Title = attribute type
     ax.set_title(
