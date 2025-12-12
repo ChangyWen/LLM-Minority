@@ -148,6 +148,10 @@ if __name__ == "__main__":
     attribute_type = sys.argv[2]
     total_count = int(sys.argv[3])
     pool_count = int(sys.argv[4])
+    if len(sys.argv) > 5:
+        disable_thinking = sys.argv[5] == "True"
+    else:
+        disable_thinking = None
 
     client = None
     if "msra" not in model_name:
@@ -179,6 +183,9 @@ if __name__ == "__main__":
         ts = int(time.time() * 1000)
         save_file = f"/mnt/blob_output/v-dachengwen/LLM-Minority/outputs/edu/contextual/{attribute_type}/{sub_model_name}_{total_count}_{pool_count}_ts{ts}_rd{random.randint(1, 1000000)}.jsonl"
         dataset_dir = "/mnt/blob_output/v-dachengwen/LLM-Minority/dataset/edu"
+
+    if disable_thinking is not None:
+        save_file = save_file.replace(".jsonl", f"_no_thinking.jsonl")
 
     all_combos = list(compositions_with_zeros(total_count))
 
@@ -213,7 +220,7 @@ if __name__ == "__main__":
             else:
                 reasoning_effort_or_thinking_budget = None
             total_query_time += 1
-            response = complete(prompt, model_name=model_name, reasoning_effort_or_thinking_budget=reasoning_effort_or_thinking_budget)
+            response = complete(prompt, model_name=model_name, reasoning_effort_or_thinking_budget=reasoning_effort_or_thinking_budget, disable_thinking=disable_thinking)
             if response is None:
                 total_failed_time += 1
                 print(f"Error in ranking candidates: None response")
