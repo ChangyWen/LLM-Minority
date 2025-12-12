@@ -88,6 +88,7 @@ def complete(prompt, model_name="msra-gpt-5", reasoning_effort_or_thinking_budge
         else:
             print(f"Model name {model_name} not supported")
             raise ValueError(f"Model name {model_name} not supported")
+        extra_body = None
         if model_name == "google/gemma-3-27b-it":
             messages = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
         else:
@@ -99,10 +100,14 @@ def complete(prompt, model_name="msra-gpt-5", reasoning_effort_or_thinking_budge
                     temperature = 0.0
                 elif model_name == "zai-org/GLM-4.5-Air":
                     # https://www.reddit.com/r/LocalLLaMA/comments/1mdwh31/how_can_you_turn_off_reasoning_for_certain_tasks/
-                    messages = [{"role": "user", "content": prompt + " /nothink"}]
+                    # messages = [{"role": "user", "content": prompt + " /nothink"}]
+                    extra_body = {"chat_template_kwargs": {"enable_thinking": False}}
                 else:
                     raise ValueError(f"Model name {model_name} not supported for disabling thinking")
-        completion = client.chat.completions.create(model=model_name, messages=messages, temperature=temperature)
+        if extra_body is not None:
+            completion = client.chat.completions.create(model=model_name, messages=messages, temperature=temperature, extra_body=extra_body)
+        else:
+            completion = client.chat.completions.create(model=model_name, messages=messages, temperature=temperature)
         return completion.choices[0].message.content
 
 
