@@ -7,10 +7,7 @@ application=$1
 model=$2
 attribute_type=$3
 gpu_count=$4
-
-if [ "$gpu_count" == "" ]; then
-  gpu_count=8
-fi
+disable_thinking=$5
 
 if [ "$application" == "hiring" ]; then
   pool_count=200
@@ -34,8 +31,8 @@ echo "*********** Waiting for vllm server to start ***********"
 sleep 600
 echo "*********** Done waiting ***********"
 
-python src/$application/contextual.py $model "$attribute_type" 5 $pool_count &
+python src/$application/contextual.py $model "$attribute_type" 5 $pool_count $disable_thinking &
 sleep 5
-python src/$application/contextual.py $model "$attribute_type" 5 $pool_count &
+python src/$application/contextual.py $model "$attribute_type" 5 $pool_count $disable_thinking &
 sleep 5
-python src/$application/contextual.py $model "$attribute_type" 5 $pool_count
+python src/$application/contextual.py $model "$attribute_type" 5 $pool_count $disable_thinking
