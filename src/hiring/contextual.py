@@ -52,7 +52,7 @@ def extract_from_tags(text, tag):
     return None
 
 
-def complete(prompt, model_name="msra-gpt-5", reasoning_effort_or_thinking_budget="high"):
+def complete(prompt, model_name="msra-gpt-5", reasoning_effort_or_thinking_budget="high", disable_thinking=None):
     if "msra" in model_name:
         response = chat(
             max_retry=1,
@@ -96,6 +96,15 @@ def complete(prompt, model_name="msra-gpt-5", reasoning_effort_or_thinking_budge
             messages = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
         else:
             messages=[{"role": "user", "content": prompt}]
+        if disable_thinking is not None:
+            if disable_thinking:
+                if model_name == "nvidia/NVIDIA-Nemotron-Nano-12B-v2":
+                    messages = [{"role": "system", "content": "/no_think"}] + messages
+                elif model_name == "zai-org/GLM-4.5-Air":
+                    # https://www.reddit.com/r/LocalLLaMA/comments/1mdwh31/how_can_you_turn_off_reasoning_for_certain_tasks/
+                    messages = [{"role": "user", "content": prompt + " /nothink"}]
+                else:
+                    raise ValueError(f"Model name {model_name} not supported for disabling thinking")
         completion = client.chat.completions.create(model=model_name, messages=messages, temperature=temperature)
         return completion.choices[0].message.content
 
