@@ -164,10 +164,10 @@ if __name__ == "__main__":
     attribute_type = sys.argv[2]
     total_count = int(sys.argv[3])
     pool_count = int(sys.argv[4])
+    disable_thinking = None
     if len(sys.argv) > 5:
-        disable_thinking = sys.argv[5] == "True"
-    else:
-        disable_thinking = None
+        if sys.argv[5] == "True":
+            disable_thinking = True
 
     client = None
     if "msra" not in model_name:
