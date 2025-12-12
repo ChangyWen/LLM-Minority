@@ -79,6 +79,16 @@ def draw_results(application_to_model_to_delta, attribute_type):
     - Radial axis: delta
     - One polygon per application (different colors)
     """
+    # Match global style with draw_results_grid
+    plt.rcParams.update({
+        "font.size": 11,
+        "axes.titlesize": 13,
+        "axes.labelsize": 11,
+        "xtick.labelsize": 10,
+        "ytick.labelsize": 10,
+        "axes.edgecolor": "gray",
+        "axes.linewidth": 0.8,
+    })
     sns.set_theme(style="whitegrid")
 
     # Applications will be polygons (areas)
@@ -93,45 +103,77 @@ def draw_results(application_to_model_to_delta, attribute_type):
     angles = np.linspace(0, 2 * np.pi, n_models, endpoint=False)
     angles = np.concatenate([angles, [angles[0]]])
 
-    # Prepare figure
+    # Prepare figure (size similar visual weight as grid panels)
     fig, ax = plt.subplots(subplot_kw={"projection": "polar"}, figsize=(8, 8))
 
     # Color palette: one color per application
     palette = sns.color_palette("Set2", n_colors=len(applications))
 
-    # Optional: consistent radial limit
+    # Consistent radial limit
     max_delta = max(
         delta for app_dict in application_to_model_to_delta.values()
         for delta in app_dict.values()
     )
     ax.set_ylim(0, max_delta * 1.05)
 
+    # Fewer radial ticks, nicely formatted (like in plot_model_panel)
+    ax.yaxis.set_major_locator(MaxNLocator(nbins=4))  # <= fewer ticks
+    ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+
+    # Style grid similar to main figures
+    ax.grid(axis="y", linestyle=":", linewidth=0.7, alpha=0.6)
+    ax.set_axisbelow(True)
+
+    # Style polar spine to match axes.edgecolor / linewidth
+    if "polar" in ax.spines:
+        ax.spines["polar"].set_edgecolor("gray")
+        ax.spines["polar"].set_linewidth(0.8)
+
+    # Plot each application
     for i, application in enumerate(applications):
         # Collect delta values across models for this application
         values = [application_to_model_to_delta[application][m] for m in models]
         # Close the loop
         values = np.concatenate([values, [values[0]]])
 
-        ax.plot(angles, values, label=application, color=palette[i], linewidth=2)
-        ax.fill(angles, values, color=palette[i], alpha=0.15)
+        ax.plot(angles, values, label=application, color=palette[i], linewidth=1.8)
+        ax.fill(angles, values, color=palette[i], alpha=0.18)
 
     # Set angular ticks to models
     ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(models, fontsize=9, rotation=30, ha="right")
+    ax.set_xticklabels(models, fontsize=10, rotation=30, ha="right")
 
-    # Radial axis label
-    # ax.set_ylabel("Delta", fontsize=12)
+    # Radial axis label position; we don't actually show a text label,
+    # to keep it clean (like your commented-out ylabel)
     ax.set_rlabel_position(0)
 
     # Title = attribute type
-    ax.set_title(f"{attribute_type} (Abs. Δ of different groups)", fontsize=16, pad=20)
+    ax.set_title(
+        f"{attribute_type} (Abs. Δ of different groups)",
+        fontsize=16,
+        fontweight="bold",
+        pad=20,
+    )
 
-    # Legend for applications
-    ax.legend(loc="upper right", bbox_to_anchor=(1.3, 1.1), fontsize=10, title="Application")
+    # Legend for applications – match style used in plot_model_panel
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(
+        handles,
+        labels,
+        fontsize=9,
+        title="Application",
+        title_fontsize=10,
+        markerscale=1,
+        loc="upper right",
+        bbox_to_anchor=(1.3, 1.1),
+        frameon=True,
+        framealpha=0.5,
+        borderpad=0.3,
+    )
 
     plt.tight_layout()
     out_path = f"outputs/radar_contextual_{attribute_type}.png"
-    plt.savefig(out_path, dpi=512)
+    plt.savefig(out_path, dpi=512, bbox_inches="tight")
     print(f"Saved radar chart to {out_path}")
     plt.close(fig)
 
