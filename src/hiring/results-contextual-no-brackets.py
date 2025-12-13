@@ -281,7 +281,7 @@ def p_to_stars(p):
         return ""
 
 
-def draw_results(model_name, attribute_type, resume_count, all_results, significance):
+def draw_results(model_name, attribute_type, resume_count, all_results, significance, subfix):
 
     plt.rcParams.update({
         "font.size": 11,
@@ -305,8 +305,9 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
     fig, ax_main = plt.subplots(dpi=1024)
 
     model_name_clean = model_name.replace("msra-", "")
+    subfix_text = f" (no reasoning)" if subfix else ""
     fig.suptitle(
-        f"Hiring - {attribute_type} ({model_name_clean})",
+        f"Hiring - {attribute_type} ({model_name_clean}){subfix_text}",
         fontweight="bold",
         y=0.93
     )
@@ -468,7 +469,7 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
         borderpad=0.4,
     )
 
-    save_file = f"outputs/hiring/contextual_{model_name_clean}_{attribute_type}_{resume_count}.png"
+    save_file = f"outputs/hiring/contextual_{model_name_clean}_{attribute_type}_{resume_count}{subfix}.png"
     fig.savefig(save_file, bbox_inches="tight")
     plt.close(fig)
 
@@ -477,21 +478,26 @@ if __name__ == "__main__":
     pool_count = 200
     max_n_trials = 1000000
 
-    for attribute_type in ["Gender", "Race"]:
+    for attribute_type in ["Gender"]:
         for resume_count in [5]:
-            for model_name in [
-                "msra-gpt-4o",
-                # "Qwen3-Next-80B-A3B-Instruct",
-                # "Llama-3.3-70B-Instruct",
-                # "gpt-oss-120b",
-                # "GLM-4.5-Air",
-                # "gemma-3-27b-it",
-                # "Seed-OSS-36B-Instruct",
-                # "Qwen3-235B-A22B-Instruct-2507",
-                # "NVIDIA-Nemotron-Nano-12B-v2",
-            ]:
-                file_name = f"outputs/hiring/contextual/{attribute_type}/{model_name}_{resume_count}_{pool_count}.jsonl"
-                if os.path.exists(file_name):
-                    print(f"------------------------------------\n\n{file_name}")
-                    results, significance, n_trials = compute_results(file_name, attribute_type, max_n_trials)
-                    draw_results(model_name, attribute_type, resume_count, results, significance)
+            for subfix in ["", "_no_thinking"]:
+                for model_name in [
+                    # "msra-gpt-4o",
+                    # "Qwen3-Next-80B-A3B-Instruct",
+                    # "Llama-3.3-70B-Instruct",
+                    # "gpt-oss-120b",
+                    "GLM-4.5-Air",
+                    # "gemma-3-27b-it",
+                    "NVIDIA-Nemotron-Nano-12B-v2",
+                    # "Qwen3-235B-A22B-Instruct-2507",
+                ]:
+                    file_name = (
+                        f"outputs/hiring/contextual/{attribute_type}/"
+                        f"{model_name}_{resume_count}_{pool_count}{subfix}.jsonl"
+                    )
+                    if os.path.exists(file_name):
+                        print(f"------------------------------------\n\n{file_name}")
+                        results, significance, n_trials = compute_results(
+                            file_name, attribute_type, max_n_trials
+                        )
+                        draw_results(model_name, attribute_type, resume_count, results, significance, subfix)
