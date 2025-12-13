@@ -37,7 +37,7 @@ def remove_thinking_draft(text):
     return text
 
 
-def complete(prompt, model_name="msra-gpt-5", reasoning_effort_or_thinking_budget="high"):
+def complete(prompt, model_name="msra-gpt-5", reasoning_effort_or_thinking_budget="high", disable_thinking=None):
     if "msra" in model_name:
         response = chat(
             max_retry=1,
@@ -53,7 +53,10 @@ def complete(prompt, model_name="msra-gpt-5", reasoning_effort_or_thinking_budge
             return None
         return response["value"]
     else:
-        if model_name == "Qwen/Qwen3-Next-80B-A3B-Instruct" or model_name == "Qwen3-30B-A3B-Instruct-2507":
+        if client is None:
+            print(f"Client is not initialized")
+            raise ValueError(f"Client is not initialized")
+        if model_name == "Qwen/Qwen3-Next-80B-A3B-Instruct":
             temperature = 0.7
         elif model_name == "meta-llama/Llama-3.3-70B-Instruct":
             temperature = 0.6
@@ -63,10 +66,6 @@ def complete(prompt, model_name="msra-gpt-5", reasoning_effort_or_thinking_budge
             temperature = 1.0
         elif model_name == "zai-org/GLM-4.5-Air":
             temperature = 0.6
-        elif model_name == "nvidia/Llama-3_3-Nemotron-Super-49B-v1_5":
-            temperature = 0.6
-        elif model_name == "ByteDance-Seed/Seed-OSS-36B-Instruct":
-            temperature = 1.1
         elif model_name == "Qwen/Qwen3-235B-A22B-Instruct-2507":
             temperature = 0.7
         elif model_name == "nvidia/NVIDIA-Nemotron-Nano-12B-v2":
@@ -74,7 +73,26 @@ def complete(prompt, model_name="msra-gpt-5", reasoning_effort_or_thinking_budge
         else:
             print(f"Model name {model_name} not supported")
             raise ValueError(f"Model name {model_name} not supported")
-        completion = client.chat.completions.create(model=model_name, messages=[{"role": "user", "content": prompt}], temperature=temperature)
+        extra_body = None
+        if model_name == "google/gemma-3-27b-it":
+            messages = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
+        else:
+            messages=[{"role": "user", "content": prompt}]
+        if disable_thinking is not None:
+            if disable_thinking:
+                if model_name == "nvidia/NVIDIA-Nemotron-Nano-12B-v2":
+                    messages = [{"role": "system", "content": "/no_think"}] + messages
+                    temperature = 0.0
+                elif model_name == "zai-org/GLM-4.5-Air":
+                    # https://www.reddit.com/r/LocalLLaMA/comments/1mdwh31/how_can_you_turn_off_reasoning_for_certain_tasks/
+                    # messages = [{"role": "user", "content": prompt + " /nothink"}]
+                    extra_body = {"chat_template_kwargs": {"enable_thinking": False}}
+                else:
+                    raise ValueError(f"Model name {model_name} not supported for disabling thinking")
+        if extra_body is not None:
+            completion = client.chat.completions.create(model=model_name, messages=messages, temperature=temperature, extra_body=extra_body)
+        else:
+            completion = client.chat.completions.create(model=model_name, messages=messages, temperature=temperature)
         return completion.choices[0].message.content
 
 
@@ -121,6 +139,10 @@ def sample_candidates(dataset_file, total_count, pool_count):
 if __name__ == "__main__":
     model_name = sys.argv[1]
     attribute_type = sys.argv[2]
+    disable_thinking = None
+    if len(sys.argv) > 3:
+        if sys.argv[3] == "True":
+            disable_thinking = True
 
     client = None
     if "msra" not in model_name:
@@ -173,7 +195,7 @@ if __name__ == "__main__":
                 else:
                     reasoning_effort_or_thinking_budget = None
                 total_query_time += 1
-                response = complete(prompt, model_name=model_name, reasoning_effort_or_thinking_budget=reasoning_effort_or_thinking_budget)
+                response = complete(prompt, model_name=model_name, reasoning_effort_or_thinking_budget=reasoning_effort_or_thinking_budget, disable_thinking=disable_thinking)
                 if response is None:
                     total_failed_time += 1
                     print(f"Error in ranking resumes: None response")
