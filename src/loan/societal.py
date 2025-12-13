@@ -177,6 +177,9 @@ if __name__ == "__main__":
         save_file = f"/mnt/blob_output/v-dachengwen/LLM-Minority/outputs/loan/societal/{attribute_type}/{sub_model_name}_ts{ts}_rd{random.randint(1, 1000000)}.jsonl"
         dataset_dir = "/mnt/blob_output/v-dachengwen/LLM-Minority/dataset/loan"
 
+    if disable_thinking is not None:
+        save_file = save_file.replace(".jsonl", f"_no_thinking.jsonl")
+
     total_query_time = 0
     total_failed_time = 0
     while True:

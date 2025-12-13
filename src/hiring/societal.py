@@ -183,6 +183,9 @@ if __name__ == "__main__":
         save_file = f"/mnt/blob_output/v-dachengwen/LLM-Minority/outputs/hiring/societal/{attribute_type}/{sub_model_name}_ts{ts}_rd{random.randint(1, 1000000)}.jsonl"
         dataset_dir = "/mnt/blob_output/v-dachengwen/LLM-Minority/dataset/hiring"
 
+    if disable_thinking is not None:
+        save_file = save_file.replace(".jsonl", f"_no_thinking.jsonl")
+
     all_job_files = [file for file in os.listdir(dataset_dir) if file.startswith("job_")]
     all_jobs = [file[4:-6] for file in all_job_files]
     all_jobs_counts = []
