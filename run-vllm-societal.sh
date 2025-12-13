@@ -6,10 +6,7 @@ set -x
 application=$1
 model=$2
 gpu_count=$3
-
-if [ "$gpu_count" == "" ]; then
-  gpu_count=8
-fi
+disable_thinking=$4
 
 ######### start vllm server #########
 nohup vllm serve $model \
@@ -22,17 +19,10 @@ echo "*********** Waiting for vllm server to start ***********"
 sleep 600
 echo "*********** Done waiting ***********"
 
-python src/$application/societal.py $model "Gender Identity" &
+python src/$application/societal.py $model "Gender Identity" $disable_thinking &
 sleep 5
-python src/$application/societal.py $model "Gender Identity" &
+python src/$application/societal.py $model "Gender Identity" $disable_thinking &
 sleep 5
-python src/$application/societal.py $model "Sexual Orientation" &
+python src/$application/societal.py $model "Sexual Orientation" $disable_thinking &
 sleep 5
-python src/$application/societal.py $model "Sexual Orientation"
-# python src/$application/societal.py $model "Race" &
-# sleep 5
-# python src/$application/societal.py $model "Race" &
-# sleep 5
-# python src/$application/societal.py $model "Religious Affiliation" &
-# sleep 5
-# python src/$application/societal.py $model "Religious Affiliation"
+python src/$application/societal.py $model "Sexual Orientation" $disable_thinking

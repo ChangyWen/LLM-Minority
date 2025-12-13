@@ -46,12 +46,19 @@ jobs:
   sla_tier: Standard
   # sla_tier: Premium
   command:
-    - bash run-vllm-contextual.sh hiring nvidia/NVIDIA-Nemotron-Nano-12B-v2 Gender 4 True
-    - bash run-vllm-contextual.sh edu nvidia/NVIDIA-Nemotron-Nano-12B-v2 Gender 4 True
-    - bash run-vllm-contextual.sh loan nvidia/NVIDIA-Nemotron-Nano-12B-v2 Gender 4 True
-    - bash run-vllm-contextual.sh hiring zai-org/GLM-4.5-Air Gender 8 True
-    - bash run-vllm-contextual.sh edu zai-org/GLM-4.5-Air Gender 8 True
-    - bash run-vllm-contextual.sh loan zai-org/GLM-4.5-Air Gender 8 True
+    # - bash run-vllm-contextual.sh hiring nvidia/NVIDIA-Nemotron-Nano-12B-v2 Gender 4 True
+    # - bash run-vllm-contextual.sh edu nvidia/NVIDIA-Nemotron-Nano-12B-v2 Gender 4 True
+    # - bash run-vllm-contextual.sh loan nvidia/NVIDIA-Nemotron-Nano-12B-v2 Gender 4 True
+    # - bash run-vllm-contextual.sh hiring zai-org/GLM-4.5-Air Gender 8 True
+    # - bash run-vllm-contextual.sh edu zai-org/GLM-4.5-Air Gender 8 True
+    # - bash run-vllm-contextual.sh loan zai-org/GLM-4.5-Air Gender 8 True
+    ####################################3
+    - bash run-vllm-societal.sh hiring nvidia/NVIDIA-Nemotron-Nano-12B-v2 4 True
+    - bash run-vllm-societal.sh edu nvidia/NVIDIA-Nemotron-Nano-12B-v2 4 True
+    - bash run-vllm-societal.sh loan nvidia/NVIDIA-Nemotron-Nano-12B-v2 4 True
+    - bash run-vllm-societal.sh hiring zai-org/GLM-4.5-Air 8 True
+    - bash run-vllm-societal.sh edu zai-org/GLM-4.5-Air 8 True
+    - bash run-vllm-societal.sh loan zai-org/GLM-4.5-Air 8 True
     ####### hiring #########
     # - bash run-vllm-contextual.sh hiring nvidia/Llama-3_3-Nemotron-Super-49B-v1_5 Gender
     # - bash run-vllm-contextual.sh hiring meta-llama/Llama-3.3-70B-Instruct Gender
