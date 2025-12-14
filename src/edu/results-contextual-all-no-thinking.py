@@ -499,6 +499,7 @@ def draw_results_grid(attribute_type, resume_count, model_names, pool_count, max
 
         model_name_clean = model_name.replace("msra-", "")
         subfix_text = " (no reasoning)" if "no_thinking" in model_name else ""
+        model_name_clean = model_name_clean.replace("_no_thinking", "")
         ax_main.set_title(model_name_clean + subfix_text, fontweight="bold")
 
         if "no_thinking" in model_name:
@@ -522,7 +523,7 @@ def draw_results_grid(attribute_type, resume_count, model_names, pool_count, max
     # Shared right ylabel for Δ
     delta_label_pre = "(F. - M.)" if attribute_type == "Gender" else "(B. - W.)"
     fig.text(
-        1.0,
+        0.98,
         0.5,
         r"$\Delta$ in Selection Rate " + delta_label_pre,
         va="center",
