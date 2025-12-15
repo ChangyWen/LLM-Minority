@@ -249,7 +249,7 @@ def draw_scatter_by_application(
         )
 
         plt.tight_layout()
-        out_path = f"outputs/societal_compute_vs_delta_{application}_{attribute_type}.png"
+        out_path = f"outputs/training-compute/societal_compute_vs_delta_{application}_{attribute_type}.png"
         plt.savefig(out_path, dpi=512, bbox_inches="tight")
         print(f"Saved scatter plot to {out_path}")
         plt.close(fig)
