@@ -218,7 +218,7 @@ def draw_scatter_by_application(
 
         # Axes
         ax.set_xlabel("Training compute (FLOP)")
-        ax.set_ylabel("Abs. Δ (w.r.t. min. contextual ratio)")
+        ax.set_ylabel("Abs. Δ of Selection Rate (w.r.t. min. contextual ratio)")
 
         ax.set_xscale("log")
         ax.xaxis.set_major_formatter(ScalarFormatter())

@@ -204,8 +204,8 @@ def draw_results_by_application(application_to_model_to_delta, attribute_type):
         ax.legend(handles=handles, loc="best", frameon=True)
 
         # Axes labels/format
-        ax.set_xlabel("")
-        ax.set_ylabel("Abs. Δ (w.r.t. min. contextual ratio)")
+        ax.set_xlabel("Model")
+        ax.set_ylabel("Abs. Δ of Selection Rate (w.r.t. min. contextual ratio)")
 
         ax.set_xticks([model_to_x[m] for m in model_order])
         ax.set_xticklabels(model_order)

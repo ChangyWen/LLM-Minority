@@ -214,7 +214,7 @@ def draw_scatter_by_application(
 
         # Axes
         ax.set_xlabel("Training compute (FLOP)")
-        ax.set_ylabel("Δ [(minority - majority) / majority]")
+        ax.set_ylabel("Relative Diff. of Scores [(minority - majority) / majority]")
 
         ax.set_xscale("log")
         ax.xaxis.set_major_formatter(ScalarFormatter())
