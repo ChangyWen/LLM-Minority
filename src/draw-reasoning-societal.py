@@ -181,7 +181,7 @@ def draw_results_by_application(application_to_model_to_delta, attribute_type):
                 [y],
                 yerr=yerr,
                 fmt=mode_to_marker[r["mode"]],
-                markersize=8.5,
+                markersize=18,
                 capsize=4.5,
                 elinewidth=1.6,
                 markeredgecolor="black",
@@ -196,10 +196,10 @@ def draw_results_by_application(application_to_model_to_delta, attribute_type):
         # Mode legend
         handles.append(Line2D([0], [0], marker=mode_to_marker["thinking"], linestyle="",
                               markeredgecolor="black", markeredgewidth=0.7,
-                              markersize=8.5, color="black", label="Thinking"))
+                              markersize=8.5, color="black", label="Reasoning"))
         handles.append(Line2D([0], [0], marker=mode_to_marker["no thinking"], linestyle="",
                               markeredgecolor="black", markeredgewidth=0.7,
-                              markersize=8.5, color="black", label="No thinking"))
+                              markersize=8.5, color="black", label="Non-reasoning"))
         ax.legend(handles=handles, loc="best", frameon=True)
 
         # Axes labels/format
