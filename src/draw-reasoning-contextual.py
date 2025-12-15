@@ -252,7 +252,7 @@ if __name__ == "__main__":
     attribute_types = ["Gender"]
 
     for attribute_type in attribute_types:
-        application_to_model_to_delta = defaultdict(lambda: defaultdict(float))
+        application_to_model_to_delta = defaultdict(lambda: defaultdict(dict))
         for application in applications:
             for model_name in model_names:
                 if "no_thinking" in model_name:
