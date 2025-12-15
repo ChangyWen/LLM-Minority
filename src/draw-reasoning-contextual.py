@@ -210,6 +210,12 @@ def draw_results_by_application(application_to_model_to_delta, attribute_type):
         ax.set_xticks([model_to_x[m] for m in model_order])
         ax.set_xticklabels(model_order)
 
+        # Color xtick labels to match model color
+        for tick_label in ax.get_xticklabels():
+            model_name = tick_label.get_text()
+            tick_label.set_color(base_to_color[model_name])
+            tick_label.set_fontweight("bold")
+
         ax.yaxis.set_major_locator(MaxNLocator(nbins=4))
         ax.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"{v*100:.0f}%"))
 
