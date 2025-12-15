@@ -7,6 +7,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib.ticker import MaxNLocator, FuncFormatter, ScalarFormatter
+from scipy.stats import pearsonr
+from scipy.stats import t
 
 
 def compute_results(file_name, attribute_type, max_n_trials=1000000):
@@ -66,6 +68,38 @@ def compute_results(file_name, attribute_type, max_n_trials=1000000):
     return abs(results["delta"][1])
 
 
+def fit_linear_with_ci(x, y, alpha=0.05):
+    """
+    Fit y = a*x + b and return:
+    - x_grid
+    - y_pred
+    - lower CI
+    - upper CI
+    """
+    x = np.asarray(x)
+    y = np.asarray(y)
+
+    # Linear fit
+    coef = np.polyfit(x, y, 1)
+    y_hat = np.polyval(coef, x)
+
+    n = len(x)
+    dof = n - 2
+    s_err = np.sqrt(np.sum((y - y_hat) ** 2) / dof)
+
+    x_mean = np.mean(x)
+    t_val = t.ppf(1 - alpha / 2, dof)
+
+    x_grid = np.linspace(x.min(), x.max(), 200)
+    y_grid = np.polyval(coef, x_grid)
+
+    ci = t_val * s_err * np.sqrt(
+        1 / n + (x_grid - x_mean) ** 2 / np.sum((x - x_mean) ** 2)
+    )
+
+    return x_grid, y_grid, y_grid - ci, y_grid + ci
+
+
 def draw_scatter_by_application(
     application_to_model_to_delta,
     model_to_training_compute,
@@ -122,6 +156,52 @@ def draw_scatter_by_application(
             zorder=3,
         )
 
+        # ---- Regression (log-space x) ----
+        x_log = np.log10(xs)
+        y_arr = np.array(ys)
+
+        # Pearson r (one-sided: positive correlation)
+        r, p_two_sided = pearsonr(x_log, y_arr)
+        p_one_sided = p_two_sided / 2 if r > 0 else 1.0
+
+        # Fit line + CI
+        xg, yg, yl, yu = fit_linear_with_ci(x_log, y_arr)
+
+        # Convert back to original x-scale for plotting
+        ax.plot(
+            10 ** xg,
+            yg,
+            color="black",
+            linewidth=2.0,
+            zorder=2,
+            label="Linear fit",
+        )
+        ax.fill_between(
+            10 ** xg,
+            yl,
+            yu,
+            color="black",
+            alpha=0.15,
+            zorder=1,
+            label="95% CI",
+        )
+        # ax.text(
+        #     0.02,
+        #     0.95,
+        #     f"Pearson r = {r:.2f}\n"
+        #     f"p (one-sided) = {p_one_sided:.3g}",
+        #     transform=ax.transAxes,
+        #     ha="left",
+        #     va="top",
+        #     fontsize=11,
+        #     bbox=dict(
+        #         boxstyle="round,pad=0.3",
+        #         facecolor="white",
+        #         edgecolor="black",
+        #         alpha=0.9,
+        #     ),
+        # )
+
         # Keep labels beside each point
         for x, y, m in zip(xs, ys, models):
             m = m.replace("msra-", "")
@@ -173,7 +253,7 @@ def draw_scatter_by_application(
         )
 
         plt.tight_layout()
-        out_path = f"outputs/scatter_compute_vs_delta_{application}_{attribute_type}.png"
+        out_path = f"outputs/contextual_compute_vs_delta_{application}_{attribute_type}.png"
         plt.savefig(out_path, dpi=512, bbox_inches="tight")
         print(f"Saved scatter plot to {out_path}")
         plt.close(fig)
