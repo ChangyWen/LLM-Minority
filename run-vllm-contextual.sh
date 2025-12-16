@@ -33,13 +33,13 @@ echo "*********** Waiting for vllm server to start ***********"
 sleep 600
 echo "*********** Done waiting ***********"
 
-if [ "$context_size" == "5" ]; then
+if [ "$context_size" == "5" ] || [ "$application" != "hiring" ]; then
   python src/$application/contextual.py $model "$attribute_type" $context_size $pool_count $disable_thinking &
   sleep 5
   python src/$application/contextual.py $model "$attribute_type" $context_size $pool_count $disable_thinking &
   sleep 5
   python src/$application/contextual.py $model "$attribute_type" $context_size $pool_count $disable_thinking
-elif [ "$context_size" == "10" ]; then
+else
   python src/$application/contextual.py $model "$attribute_type" $context_size $pool_count $disable_thinking &
   sleep 5
   python src/$application/contextual.py $model "$attribute_type" $context_size $pool_count $disable_thinking
