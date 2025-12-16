@@ -216,7 +216,7 @@ def draw_results_by_application(application_to_model_to_delta, attribute_type):
             tick_label.set_fontweight("bold")
 
         ax.yaxis.set_major_locator(MaxNLocator(nbins=4))
-        ax.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"{v*100:.0f}%"))
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"{v*100:.1f}%"))
 
         ax.grid(True, linestyle="--", linewidth=0.7, alpha=0.8)
         ax.set_axisbelow(True)
