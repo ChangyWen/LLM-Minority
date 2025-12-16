@@ -1,13 +1,11 @@
 set -x
 
-# model=Qwen/Qwen3-Next-80B-A3B-Instruct
-# model=meta-llama/Llama-3.3-70B-Instruct
-# model=openai/gpt-oss-120b
 application=$1
 model=$2
 attribute_type=$3
 gpu_count=$4
 disable_thinking=$5
+context_size=$6
 
 if [ "$application" == "hiring" ]; then
   pool_count=200
@@ -18,6 +16,10 @@ elif [ "$application" == "loan" ] || [ "$application" == "edu" ]; then
 else
   echo "Invalid application: $application"
   exit 1
+fi
+
+if [ "$context_size" == "10" ]; then
+  max_model_len=$((max_model_len * 2))
 fi
 
 ######### start vllm server #########
@@ -31,8 +33,14 @@ echo "*********** Waiting for vllm server to start ***********"
 sleep 600
 echo "*********** Done waiting ***********"
 
-python src/$application/contextual.py $model "$attribute_type" 5 $pool_count $disable_thinking &
-sleep 5
-python src/$application/contextual.py $model "$attribute_type" 5 $pool_count $disable_thinking &
-sleep 5
-python src/$application/contextual.py $model "$attribute_type" 5 $pool_count $disable_thinking
+if [ "$context_size" == "5" ]; then
+  python src/$application/contextual.py $model "$attribute_type" $context_size $pool_count $disable_thinking &
+  sleep 5
+  python src/$application/contextual.py $model "$attribute_type" $context_size $pool_count $disable_thinking &
+  sleep 5
+  python src/$application/contextual.py $model "$attribute_type" $context_size $pool_count $disable_thinking
+elif [ "$context_size" == "10" ]; then
+  python src/$application/contextual.py $model "$attribute_type" $context_size $pool_count $disable_thinking &
+  sleep 5
+  python src/$application/contextual.py $model "$attribute_type" $context_size $pool_count $disable_thinking
+fi
