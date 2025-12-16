@@ -202,8 +202,8 @@ if __name__ == "__main__":
                 break
         start_time = time.time()
         combo = random.choice(all_combos)
-        if model_name == "zai-org/GLM-4.5-Air" and disable_thinking:
-            combo = random.choice([[1, 4], [4, 1]])
+        # if model_name == "zai-org/GLM-4.5-Air" and disable_thinking:
+        #     combo = random.choice([[1, 4], [4, 1]])
         attribute_values_list = random.choice(attributes_lists)
         candidate_attributes = []
         for count, attribute_value in zip(combo, attribute_values_list):
