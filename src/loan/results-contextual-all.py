@@ -479,7 +479,7 @@ def draw_results_grid(attribute_type, resume_count, model_names, pool_count, max
         sharex=True  # share x to make the global xlabel consistent
     )
 
-    fig.suptitle(f"Loan - {attribute_type}", fontweight="bold", y=0.97)
+    fig.suptitle(f"Loan - {attribute_type} (Context Size = {resume_count})", fontweight="bold", y=0.97)
 
     # Adjust margins to leave space for shared labels and right ylabel
     fig.subplots_adjust(
@@ -554,7 +554,7 @@ if __name__ == "__main__":
     ]
 
     for attribute_type in ["Gender", "Race"]:
-        for resume_count in [5]:
+        for resume_count in [5, 10]:
             draw_results_grid(
                 attribute_type=attribute_type,
                 resume_count=resume_count,
