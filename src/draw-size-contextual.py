@@ -160,23 +160,26 @@ def draw_results_by_application(application_to_model_to_delta, attribute_type, m
             ax.errorbar(
                 xs, ys,
                 yerr=yerr,
-                fmt="o-",
+                fmt="o",
                 markersize=7.5,
                 capsize=4.0,
                 elinewidth=1.6,
                 linewidth=1.2,
                 markeredgecolor="black",
                 markeredgewidth=0.7,
-                color=model_to_color[model_name],
+                color="black",
                 zorder=3,
             )
 
-            ax.set_title(model_name, fontweight="bold", pad=8)
+            ax.set_title(model_name, fontweight="bold", pad=8, fontsize=16)
 
             ax.set_xticks(context_sizes)
             ax.set_xticklabels([str(x) for x in context_sizes])
 
+            ax.set_xlim(min(context_sizes) - 3, max(context_sizes) + 3)
+
             ax.yaxis.set_major_locator(MaxNLocator(nbins=4))
+            ax.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"{v*100:.0f}%"))
             ax.grid(True, linestyle="--", linewidth=0.7, alpha=0.8)
             ax.set_axisbelow(True)
 
@@ -192,18 +195,21 @@ def draw_results_by_application(application_to_model_to_delta, attribute_type, m
             f"{application.capitalize()} - {attribute_type}",
             fontsize=16,
             fontweight="bold",
-            y=0.98
+            y=0.95
         )
 
         fig.supylabel(
-            "Norm. Abs. Diff. (Δ / random-rate)",
-            fontsize=12,
-            x=0.005
+            "Norm. Abs. Diff. of Selection Rate at min. ctx. ratio\n(Δ / random-rate)",
+            fontweight="bold",
+            fontsize=16,
+            x=0.03,
+            ha="center"
         )
 
         fig.supxlabel(
             "Context Size",
-            fontsize=12,
+            fontweight="bold",
+            fontsize=16,
             y=0.04
         )
 
