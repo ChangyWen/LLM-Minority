@@ -46,13 +46,21 @@ jobs:
   sla_tier: Standard
   # sla_tier: Premium
   command:
-    - bash run-vllm-contextual.sh loan openai/gpt-oss-120b Gender 8 False 10
-    - bash run-vllm-contextual.sh loan Qwen/Qwen3-Next-80B-A3B-Instruct Gender 8 False 10
-    - bash run-vllm-contextual.sh loan meta-llama/Llama-3.3-70B-Instruct Gender 8 False 10
-    - bash run-vllm-contextual.sh loan Qwen/Qwen3-235B-A22B-Instruct-2507 Gender 8 False 10
-    - bash run-vllm-contextual.sh loan zai-org/GLM-4.5-Air Gender 8 False 10
-    - bash run-vllm-contextual.sh loan nvidia/NVIDIA-Nemotron-Nano-12B-v2 Gender 4 False 10
-    - bash run-vllm-contextual.sh loan google/gemma-3-27b-it Gender 4 False 10
+    - bash run-vllm-contextual.sh loan openai/gpt-oss-120b Race 8 False 10
+    - bash run-vllm-contextual.sh loan Qwen/Qwen3-Next-80B-A3B-Instruct Race 8 False 10
+    - bash run-vllm-contextual.sh loan meta-llama/Llama-3.3-70B-Instruct Race 8 False 10
+    - bash run-vllm-contextual.sh loan Qwen/Qwen3-235B-A22B-Instruct-2507 Race 8 False 10
+    - bash run-vllm-contextual.sh loan zai-org/GLM-4.5-Air Race 8 False 10
+    - bash run-vllm-contextual.sh loan nvidia/NVIDIA-Nemotron-Nano-12B-v2 Race 4 False 10
+    - bash run-vllm-contextual.sh loan google/gemma-3-27b-it Race 4 False 10
+    ####################################
+    # - bash run-vllm-contextual.sh loan openai/gpt-oss-120b Gender 8 False 10
+    # - bash run-vllm-contextual.sh loan Qwen/Qwen3-Next-80B-A3B-Instruct Gender 8 False 10
+    # - bash run-vllm-contextual.sh loan meta-llama/Llama-3.3-70B-Instruct Gender 8 False 10
+    # - bash run-vllm-contextual.sh loan Qwen/Qwen3-235B-A22B-Instruct-2507 Gender 8 False 10
+    # - bash run-vllm-contextual.sh loan zai-org/GLM-4.5-Air Gender 8 False 10
+    # - bash run-vllm-contextual.sh loan nvidia/NVIDIA-Nemotron-Nano-12B-v2 Gender 4 False 10
+    # - bash run-vllm-contextual.sh loan google/gemma-3-27b-it Gender 4 False 10
     ####################################
     # - bash run-vllm-contextual.sh hiring nvidia/NVIDIA-Nemotron-Nano-12B-v2 Gender 4 True
     # - bash run-vllm-contextual.sh edu nvidia/NVIDIA-Nemotron-Nano-12B-v2 Gender 4 True
