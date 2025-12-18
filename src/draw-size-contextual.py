@@ -131,7 +131,7 @@ def draw_results_by_application(application_to_model_to_delta, attribute_type, m
             2, 4,
             figsize=(16.5, 7.2),
             sharex=True,
-            sharey=True
+            sharey=False
         )
         axes = axes.flatten()
 
@@ -184,12 +184,6 @@ def draw_results_by_application(application_to_model_to_delta, attribute_type, m
                 spine.set_edgecolor("black")
                 spine.set_linewidth(0.8)
 
-            # Label only outer axes for cleanliness
-            if i % 4 == 0:
-                ax.set_ylabel("Norm. Abs. Diff. (Δ / random-rate)")
-            if i // 4 == 1:
-                ax.set_xlabel("Context size")
-
         # If fewer than 8 models, hide unused axes (safe)
         for j in range(len(model_names), len(axes)):
             axes[j].axis("off")
@@ -199,6 +193,18 @@ def draw_results_by_application(application_to_model_to_delta, attribute_type, m
             fontsize=16,
             fontweight="bold",
             y=0.98
+        )
+
+        fig.supylabel(
+            "Norm. Abs. Diff. (Δ / random-rate)",
+            fontsize=12,
+            x=0.005
+        )
+
+        fig.supxlabel(
+            "Context Size",
+            fontsize=12,
+            y=0.04
         )
 
         plt.tight_layout(rect=[0, 0, 1, 0.95])
