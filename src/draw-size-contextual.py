@@ -11,6 +11,22 @@ from scipy.stats import pearsonr
 from scipy.stats import t
 
 
+# -----------------------------
+# Wilson 95% CI for proportions
+# -----------------------------
+def wilson_ci(k, n, z=1.96):
+    if n == 0:
+        return (0.0, 0.0)
+
+    p = k / n
+    denominator = 1 + (z**2) / n
+    centre = p + (z**2) / (2 * n)
+    margin = z * math.sqrt((p * (1 - p) / n) + (z**2) / (4 * n**2))
+    lower = (centre - margin) / denominator
+    upper = (centre + margin) / denominator
+    return (lower, upper)
+
+
 def compute_results(file_name, attribute_type, max_n_trials=1000000):
 
     attr_value_to_results = defaultdict(lambda: {
@@ -63,56 +79,37 @@ def compute_results(file_name, attribute_type, max_n_trials=1000000):
         hB, nB = attr_counts_B[c]
         pA = hA / nA
         pB = hB / nB
-        results["delta"][c] = pA - pB
+        if pA > pB:
+            delta = pA - pB
+            ciA_low, ciA_high = wilson_ci(hA, nA)
+            ciB_low, ciB_high = wilson_ci(hB, nB)
+            ci_low = ciA_low - ciB_high
+            ci_high = ciA_high - ciB_low
+        else:
+            delta = pB - pA
+            ciA_low, ciA_high = wilson_ci(hA, nA)
+            ciB_low, ciB_high = wilson_ci(hB, nB)
+            ci_low = ciB_low - ciA_high
+            ci_high = ciB_high - ciA_low
+        results["delta"][c] = {
+            "delta": delta,
+            "ci_low": ci_low,
+            "ci_high": ci_high,
+        }
 
-    return abs(results["delta"][1])
+    return results["delta"][1]
 
 
-def fit_linear_with_ci(x, y, alpha=0.05):
+def draw_results_by_application(application_to_model_to_delta, attribute_type):
     """
-    Fit y = a*x + b and return:
-    - x_grid
-    - y_pred
-    - lower CI
-    - upper CI
-    """
-    x = np.asarray(x)
-    y = np.asarray(y)
+    For each application, draw a point plot with 2 model-pairs:
+      - GLM-4.5-Air vs GLM-4.5-Air_no_thinking
+      - NVIDIA-Nemotron-Nano-12B-v2 vs NVIDIA-Nemotron-Nano-12B-v2_no_thinking
 
-    # Linear fit
-    coef = np.polyfit(x, y, 1)
-    y_hat = np.polyval(coef, x)
-
-    n = len(x)
-    dof = n - 2
-    s_err = np.sqrt(np.sum((y - y_hat) ** 2) / dof)
-
-    x_mean = np.mean(x)
-    t_val = t.ppf(1 - alpha / 2, dof)
-
-    x_grid = np.linspace(x.min(), x.max(), 200)
-    y_grid = np.polyval(coef, x_grid)
-
-    ci = t_val * s_err * np.sqrt(
-        1 / n + (x_grid - x_mean) ** 2 / np.sum((x - x_mean) ** 2)
-    )
-
-    return x_grid, y_grid, y_grid - ci, y_grid + ci
-
-
-def draw_scatter_by_application(
-    application_to_model_to_delta,
-    model_to_training_compute,
-    attribute_type,
-):
-    """
-    For each application, draw a scatter plot:
-      x-axis: training compute
-      y-axis: delta
+    Each point: delta with vertical 95% CI error bar.
     One figure per application (per attribute_type).
     """
 
-    # Match global style with your current code
     plt.rcParams.update({
         "font.size": 11,
         "axes.titlesize": 13,
@@ -125,126 +122,109 @@ def draw_scatter_by_application(
     sns.set_theme(style="whitegrid")
 
     applications = sorted(application_to_model_to_delta.keys())
-    some_app = next(iter(application_to_model_to_delta.values()))
-    models = sorted(some_app.keys())
 
-    # One consistent color per model
-    palette = sns.color_palette("Set2", n_colors=len(models))
-    model_to_color = {m: palette[i] for i, m in enumerate(models)}
+    # Define the exact ordering and labeling you want on x-axis
+    pair_defs = [
+        ("GLM-4.5-Air", "GLM-4.5-Air_no_thinking", "GLM-4.5-Air"),
+        ("NVIDIA-Nemotron-Nano-12B-v2", "NVIDIA-Nemotron-Nano-12B-v2_no_thinking", "Nemotron-12B"),
+    ]
+    mode_order = ["thinking", "no thinking"]
+
+    # Colors: one color per base model, shared by its two modes (thinking vs no thinking)
+    base_palette = sns.color_palette("Set2", n_colors=len(pair_defs))
+    base_to_color = {pair_defs[i][2]: base_palette[i] for i in range(len(pair_defs))}
+    mode_to_marker = {"thinking": "o", "no thinking": "X"}
 
     for application in applications:
-        fig, ax = plt.subplots(figsize=(8, 6))
+        fig, ax = plt.subplots(figsize=(7.5, 5.6))
 
-        # Remove upper and right-hand side boundaries
+        # Remove upper and right spines
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
 
-        xs, ys, cs = [], [], []
-        for m in models:
-            xs.append(model_to_training_compute[m])
-            ys.append(application_to_model_to_delta[application][m])
-            cs.append(model_to_color[m])
+        # Build rows to plot
+        rows = []
+        for base_name, no_think_name, short_label in pair_defs:
+            # thinking
+            d = application_to_model_to_delta[application][base_name]
+            rows.append({
+                "model": short_label,
+                "mode": "thinking",
+                "delta": float(d["delta"]),
+                "ci_low": float(d["ci_low"]),
+                "ci_high": float(d["ci_high"]),
+            })
+            # no thinking
+            d = application_to_model_to_delta[application][no_think_name]
+            rows.append({
+                "model": short_label,
+                "mode": "no thinking",
+                "delta": float(d["delta"]),
+                "ci_low": float(d["ci_low"]),
+                "ci_high": float(d["ci_high"]),
+            })
 
-        # Scatter
-        ax.scatter(
-            xs,
-            ys,
-            s=55,
-            c=cs,
-            edgecolors="black",
-            linewidths=0.6,
-            zorder=3,
-        )
+        # X positions (two models), with small horizontal dodge for the 2 modes
+        model_order = [p[2] for p in pair_defs]
+        model_to_x = {m: i for i, m in enumerate(model_order)}
+        dodge = 0.16
+        mode_to_dx = {"thinking": -dodge, "no thinking": +dodge}
 
-        # ---- Regression (log-space x) ----
-        x_log = np.log10(xs)
-        y_arr = np.array(ys)
+        # Plot points + error bars
+        for r in rows:
+            x0 = model_to_x[r["model"]]
+            x = x0 + mode_to_dx[r["mode"]]
+            y = r["delta"]
+            yerr = np.array([[y - r["ci_low"]], [r["ci_high"] - y]])  # asymmetric error
 
-        # Pearson r (one-sided: positive correlation)
-        r, p_two_sided = pearsonr(x_log, y_arr)
-        p_one_sided = p_two_sided / 2 if r > 0 else 1.0
-
-        # Fit line + CI
-        xg, yg, yl, yu = fit_linear_with_ci(x_log, y_arr)
-
-        # Convert back to original x-scale for plotting
-        ax.plot(
-            10 ** xg,
-            yg,
-            color="black",
-            linewidth=2.0,
-            zorder=2,
-            label="Linear fit",
-        )
-        ax.fill_between(
-            10 ** xg,
-            yl,
-            yu,
-            color="black",
-            alpha=0.15,
-            zorder=1,
-            label="95% CI",
-        )
-        # ax.text(
-        #     0.02,
-        #     0.95,
-        #     f"Pearson r = {r:.2f}\n"
-        #     f"p (one-sided) = {p_one_sided:.3g}",
-        #     transform=ax.transAxes,
-        #     ha="left",
-        #     va="top",
-        #     fontsize=11,
-        #     bbox=dict(
-        #         boxstyle="round,pad=0.3",
-        #         facecolor="white",
-        #         edgecolor="black",
-        #         alpha=0.9,
-        #     ),
-        # )
-
-        # Keep labels beside each point
-        for x, y, m in zip(xs, ys, models):
-            m = m.replace("msra-", "")
-            ax.annotate(
-                m,
-                (x, y),
-                textcoords="offset points",
-                xytext=(6, 5),
-                ha="left",
-                va="bottom",
-                fontsize=9,
-                alpha=0.9,
+            ax.errorbar(
+                [x],
+                [y],
+                yerr=yerr,
+                fmt=mode_to_marker[r["mode"]],
+                markersize=18,
+                capsize=4.5,
+                elinewidth=1.6,
+                markeredgecolor="black",
+                markeredgewidth=0.7,
+                color=base_to_color[r["model"]],
+                zorder=3,
             )
 
-        # Axes
-        ax.set_xlabel("Training compute (FLOP)")
+        # Legend (custom handles)
+        from matplotlib.lines import Line2D
+        handles = []
+        # Mode legend
+        handles.append(Line2D([0], [0], marker=mode_to_marker["thinking"], linestyle="",
+                              markeredgecolor="black", markeredgewidth=0.7,
+                              markersize=8.5, color="black", label="Reasoning"))
+        handles.append(Line2D([0], [0], marker=mode_to_marker["no thinking"], linestyle="",
+                              markeredgecolor="black", markeredgewidth=0.7,
+                              markersize=8.5, color="black", label="Non-reasoning"))
+        ax.legend(handles=handles, loc="best", frameon=True)
+
+        # Axes labels/format
+        ax.set_xlabel("Model")
         ax.set_ylabel("Abs. Diff. of Selection Rate (w.r.t. min. contextual ratio)")
 
-        ax.set_xscale("log")
-        ax.xaxis.set_major_formatter(ScalarFormatter())
+        ax.set_xticks([model_to_x[m] for m in model_order])
+        ax.set_xticklabels(model_order)
+
+        # Color xtick labels to match model color
+        for tick_label in ax.get_xticklabels():
+            model_name = tick_label.get_text()
+            tick_label.set_color(base_to_color[model_name])
+            tick_label.set_fontweight("bold")
 
         ax.yaxis.set_major_locator(MaxNLocator(nbins=4))
-        ax.yaxis.set_major_formatter(
-            FuncFormatter(lambda v, pos: f"{v*100:.0f}%")
-        )
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"{v*100:.0f}%"))
 
-        # Manually add scale label on x-axis (without scientific ticks)
-        ax.text(
-            1.01, -0.03, "1e+23",
-            transform=ax.transAxes,
-            fontsize=10,
-            ha="left",
-            va="top",
-        )
-
-        # Grid & spines (same style as before)
         ax.grid(True, linestyle="--", linewidth=0.7, alpha=0.8)
         ax.set_axisbelow(True)
         for spine in ax.spines.values():
             spine.set_edgecolor("black")
             spine.set_linewidth(0.8)
 
-        # ✅ Updated title format
         ax.set_title(
             f"{application.capitalize()} - {attribute_type}",
             fontsize=16,
@@ -253,9 +233,9 @@ def draw_scatter_by_application(
         )
 
         plt.tight_layout()
-        out_path = f"outputs/training-compute/contextual_compute_vs_delta_{application}_{attribute_type}.png"
+        out_path = f"outputs/reasoning/contextual_{application}_{attribute_type}.png"
         plt.savefig(out_path, dpi=512, bbox_inches="tight")
-        print(f"Saved scatter plot to {out_path}")
+        print(f"Saved point plot to {out_path}")
         plt.close(fig)
 
 
@@ -263,44 +243,33 @@ if __name__ == "__main__":
     applications = ["edu", "hiring", "loan"]
 
     model_names = [
-        "msra-gpt-4o",
-        "gpt-oss-120b",
-        "Qwen3-235B-A22B-Instruct-2507",
-        "Qwen3-Next-80B-A3B-Instruct",
         "GLM-4.5-Air",
-        "gemma-3-27b-it",
-        "Llama-3.3-70B-Instruct",
+        "GLM-4.5-Air_no_thinking",
         "NVIDIA-Nemotron-Nano-12B-v2",
+        "NVIDIA-Nemotron-Nano-12B-v2_no_thinking",
     ]
 
-    model_to_training_compute = {
-        "msra-gpt-4o": 3.8e+2,
-        "gpt-oss-120b": 4.94e+1,
-        "Qwen3-235B-A22B-Instruct-2507": 4.752e+1,
-        "Qwen3-Next-80B-A3B-Instruct": 2.7e+0,
-        "GLM-4.5-Air": 1.656e+1,
-        "gemma-3-27b-it": 2.268e+1,
-        "Llama-3.3-70B-Instruct": 6.86498e+1,
-        "NVIDIA-Nemotron-Nano-12B-v2": 1.5192e+1,
-    }
-
-    attribute_types = ["Gender", "Race"]
+    attribute_types = ["Gender"]
 
     for attribute_type in attribute_types:
-        application_to_model_to_delta = defaultdict(lambda: defaultdict(float))
+        application_to_model_to_delta = defaultdict(lambda: defaultdict(dict))
         for application in applications:
             for model_name in model_names:
-                file_name = f"outputs/{application}/contextual/{attribute_type}/{model_name}_5_500.jsonl"
-                if not os.path.exists(file_name):
-                    file_name = f"outputs/{application}/contextual/{attribute_type}/{model_name}_5_200.jsonl"
+                if "no_thinking" in model_name:
+                    file_name = f"outputs/{application}/contextual/{attribute_type}/{model_name[:-12]}_5_500_no_thinking.jsonl"
+                    if not os.path.exists(file_name):
+                        file_name = f"outputs/{application}/contextual/{attribute_type}/{model_name[:-12]}_5_200_no_thinking.jsonl"
+                else:
+                    file_name = f"outputs/{application}/contextual/{attribute_type}/{model_name}_5_500.jsonl"
+                    if not os.path.exists(file_name):
+                        file_name = f"outputs/{application}/contextual/{attribute_type}/{model_name}_5_200.jsonl"
                 if not os.path.exists(file_name):
                     raise FileNotFoundError(f"File not found: {application} {attribute_type} {model_name}")
 
                 delta = compute_results(file_name, attribute_type)
                 application_to_model_to_delta[application][model_name] = delta
 
-        draw_scatter_by_application(
+        draw_results_by_application(
             application_to_model_to_delta=application_to_model_to_delta,
-            model_to_training_compute=model_to_training_compute,
             attribute_type=attribute_type,
         )
