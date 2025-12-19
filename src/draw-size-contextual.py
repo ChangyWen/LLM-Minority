@@ -236,7 +236,7 @@ if __name__ == "__main__":
 
     context_sizes = [5, 10]
 
-    attribute_types = ["Gender"]
+    attribute_types = ["Gender", "Race"]
 
     for attribute_type in attribute_types:
         application_to_model_to_delta = defaultdict(lambda: defaultdict(dict))
