@@ -147,6 +147,8 @@ def draw_results_by_application(application_to_model_to_delta, attribute_type, m
             # Collect points
             xs, ys, yerr_lo, yerr_hi = [], [], [], []
             for cs in context_sizes:
+                if application not in application_to_model_to_delta or model_name not in application_to_model_to_delta[application] or cs not in application_to_model_to_delta[application][model_name]:
+                    continue
                 d = application_to_model_to_delta[application][model_name][cs]
                 y = float(d["delta"])
                 lo = float(d["ci_low"])
@@ -254,7 +256,8 @@ if __name__ == "__main__":
                         if not os.path.exists(file_name):
                             file_name = f"outputs/{application}/contextual/{attribute_type}/{model_name}_{context_size}_200.jsonl"
                     if not os.path.exists(file_name):
-                        raise FileNotFoundError(f"File not found: {application} {attribute_type} {model_name}")
+                        continue
+                        # raise FileNotFoundError(f"File not found: {application} {attribute_type} {model_name}")
 
                     delta = compute_results(file_name, context_size)
                     application_to_model_to_delta[application][model_name][context_size] = delta
