@@ -221,6 +221,8 @@ if __name__ == "__main__":
         #     combo = random.choice([[1, 4], [4, 1]])
         # if model_name == "Qwen/Qwen3-Next-80B-A3B-Instruct" and total_count == 10:
         #     combo = random.choice([[1, 9], [9, 1], [2, 8], [8, 2]]) # starting from #76228
+        if total_count == 10:
+            combo = random.choice([[1, 9], [9, 1]])
         attribute_values_list = random.choice(attributes_lists)
         candidate_attributes = []
         for count, attribute_value in zip(combo, attribute_values_list):

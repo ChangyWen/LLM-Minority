@@ -204,6 +204,8 @@ if __name__ == "__main__":
         combo = random.choice(all_combos)
         # if model_name == "zai-org/GLM-4.5-Air" and disable_thinking:
         #     combo = random.choice([[1, 4], [4, 1]])
+        if total_count == 10:
+            combo = random.choice([[1, 9], [9, 1]])
         attribute_values_list = random.choice(attributes_lists)
         candidate_attributes = []
         for count, attribute_value in zip(combo, attribute_values_list):
