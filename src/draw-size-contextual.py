@@ -93,6 +93,8 @@ def compute_results(file_name, context_size, max_n_trials=1000000):
             ci_low = ciB_low - ciA_high
             ci_high = ciB_high - ciA_low
         results["delta"][c] = {
+            "raw_delta": delta,
+            "random_selection_rate": random_selection_rate,
             "delta": delta / random_selection_rate,
             "ci_low": ci_low / random_selection_rate,
             "ci_high": ci_high / random_selection_rate,
@@ -256,6 +258,9 @@ if __name__ == "__main__":
 
                     delta = compute_results(file_name, context_size)
                     application_to_model_to_delta[application][model_name][context_size] = delta
+                    print(f"attribute_type: {attribute_type}, application: {application}, model_name: {model_name}, context_size: {context_size}")
+                    print(delta)
+                    print("--------------------------------")
 
         draw_results_by_application(
             application_to_model_to_delta=application_to_model_to_delta,
