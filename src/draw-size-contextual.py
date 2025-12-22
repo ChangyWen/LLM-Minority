@@ -221,7 +221,7 @@ def draw_results_by_application(application_to_model_to_delta, attribute_type, m
 
 
 if __name__ == "__main__":
-    applications = ["loan"]
+    applications = ["loan", "edu"]
 
     model_names = [
         "msra-gpt-4o",

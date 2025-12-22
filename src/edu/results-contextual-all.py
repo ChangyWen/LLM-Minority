@@ -422,14 +422,14 @@ def plot_model_panel(ax_main, attribute_type, resume_count, all_results, signifi
     # Main y-axis: max 5 ticks
     ax_main.yaxis.set_major_locator(MaxNLocator(nbins=5))
     ax_main.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
-    if model_name == "gpt-oss-120b":
+    if model_name == "gpt-oss-120b" and resume_count == 5:
         ax_main.set_ylim(0.16, 0.24)
 
     # Delta axis (if exists): max 5 ticks
     if ax_delta is not None:
         ax_delta.yaxis.set_major_locator(MaxNLocator(nbins=5))
         ax_delta.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
-    if model_name == "gpt-oss-120b":
+    if model_name == "gpt-oss-120b" and resume_count == 5:
         ax_delta.set_ylim(-0.03, 0.03)
 
     # -----------------------------------------------------------
@@ -554,7 +554,7 @@ if __name__ == "__main__":
     ]
 
     for attribute_type in ["Gender", "Race"]:
-        for resume_count in [5]:
+        for resume_count in [5, 10]:
             draw_results_grid(
                 attribute_type=attribute_type,
                 resume_count=resume_count,
