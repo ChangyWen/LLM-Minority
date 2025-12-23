@@ -100,7 +100,8 @@ def compute_results(file_name, context_size, max_n_trials=1000000):
             "ci_high": ci_high / random_selection_rate,
         }
 
-    return results["delta"][1]
+    # print(results["delta"].keys())
+    return results["delta"][0] if context_size == 5 else results["delta"][1]
 
 
 def draw_results_by_application(application_to_model_to_delta, attribute_type, model_names, context_sizes):
