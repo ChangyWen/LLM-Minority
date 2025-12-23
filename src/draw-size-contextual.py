@@ -273,6 +273,7 @@ def draw_results_by_application(application_to_model_to_delta, application_to_mo
                     zorder=3,
                 )
 
+            model_name = model_name.replace("msra-", "")
             ax.set_title(model_name, fontweight="bold", pad=8, fontsize=16)
 
             # X-axis formatting: 20/40/60/80
