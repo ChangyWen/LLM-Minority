@@ -229,10 +229,20 @@ if __name__ == "__main__":
         #     combo = random.choice([[1, 9], [9, 1]])
         attribute_values_list = random.choice(attributes_lists)
         candidate_attributes = []
-        for count, attribute_value in zip(combo, attribute_values_list):
-            cur_attributes = [attribute_value] * count
-            sampled_file = os.path.join(dataset_dir, f"{attribute_value.lower()}.jsonl")
-            cur_candidates = sample_candidates(sampled_file, count, pool_count)
+
+        if attribute_type == "Gender" or attribute_type == "Race":
+            for count, attribute_value in zip(combo, attribute_values_list):
+                cur_attributes = [attribute_value] * count
+                sampled_file = os.path.join(dataset_dir, f"{attribute_value.lower()}.jsonl")
+                cur_candidates = sample_candidates(sampled_file, count, pool_count)
+                for c, a in zip(cur_candidates, cur_attributes):
+                    candidate_attributes.append((c, a))
+        else:
+            sampled_file = os.path.join(dataset_dir, "all.jsonl")
+            cur_candidates = sample_candidates(sampled_file, total_count, 1000)
+            cur_attributes = []
+            for count, attribute_value in zip(combo, attribute_values_list):
+                cur_attributes += [attribute_value] * count
             for c, a in zip(cur_candidates, cur_attributes):
                 candidate_attributes.append((c, a))
         random.shuffle(candidate_attributes)
