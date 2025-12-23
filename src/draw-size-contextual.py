@@ -9,6 +9,7 @@ import seaborn as sns
 from matplotlib.ticker import MaxNLocator, FuncFormatter, ScalarFormatter
 from scipy.stats import pearsonr
 from scipy.stats import t
+from scipy.stats import chi2_contingency, norm
 
 
 # -----------------------------
@@ -92,7 +93,9 @@ def compute_results(file_name, context_size, max_n_trials=1000000):
             ciB_low, ciB_high = wilson_ci(hB, nB)
             ci_low = ciB_low - ciA_high
             ci_high = ciB_high - ciA_low
-        results["delta"][c] = {
+        ratio = (c + 1) / context_size
+        ratio_str = f"{ratio * 100:.0f}%"
+        results["delta"][ratio_str] = {
             "raw_delta": delta,
             "random_selection_rate": random_selection_rate,
             "delta": delta / random_selection_rate,
@@ -100,15 +103,16 @@ def compute_results(file_name, context_size, max_n_trials=1000000):
             "ci_high": ci_high / random_selection_rate,
         }
 
-    # print(results["delta"].keys())
-    return results["delta"][0] if context_size == 5 else results["delta"][1]
+    return results["delta"]
 
 
 def draw_results_by_application(application_to_model_to_delta, attribute_type, model_names, context_sizes):
     """
     One figure per application.
     8 subplots (2x4) in the order of `model_names`.
-    Each subplot: x = context_sizes (5, 10), y = delta (with 95% CI).
+    Each subplot: x = contextual ratio (20%, 40%, 60%, 80%),
+    two lines for context sizes (e.g., 5 and 10),
+    y = delta (with 95% CI).
     """
 
     plt.rcParams.update({
@@ -125,9 +129,14 @@ def draw_results_by_application(application_to_model_to_delta, attribute_type, m
     applications = sorted(application_to_model_to_delta.keys())
     context_sizes = list(sorted(context_sizes))
 
-    # one color per model (consistent across subplots)
-    palette = sns.color_palette("Set2", n_colors=len(model_names))
-    model_to_color = {m: palette[i] for i, m in enumerate(model_names)}
+    # X-axis contextual ratios (fixed as requested)
+    ratio_strs = ["20%", "40%", "60%", "80%"]
+    ratio_x = np.array([20, 40, 60, 80], dtype=float)
+
+    # Modern colors for context sizes (2 colors)
+    # (You can swap to "colorblind" if you prefer)
+    cs_palette = sns.color_palette("tab10", n_colors=max(2, len(context_sizes)))
+    context_size_to_color = {cs: cs_palette[i] for i, cs in enumerate(context_sizes)}
 
     for application in applications:
         fig, axes = plt.subplots(
@@ -145,46 +154,63 @@ def draw_results_by_application(application_to_model_to_delta, attribute_type, m
             ax.spines["top"].set_visible(False)
             ax.spines["right"].set_visible(False)
 
-            # Collect points
-            xs, ys, yerr_lo, yerr_hi = [], [], [], []
+            # Draw one line per context size
             for cs in context_sizes:
-                if application not in application_to_model_to_delta or model_name not in application_to_model_to_delta[application] or cs not in application_to_model_to_delta[application][model_name]:
+                if (
+                    application not in application_to_model_to_delta
+                    or model_name not in application_to_model_to_delta[application]
+                    or cs not in application_to_model_to_delta[application][model_name]
+                ):
                     continue
-                d = application_to_model_to_delta[application][model_name][cs]
-                y = float(d["delta"])
-                lo = float(d["ci_low"])
-                hi = float(d["ci_high"])
 
-                xs.append(cs)
-                ys.append(y)
-                yerr_lo.append(y - lo)
-                yerr_hi.append(hi - y)
+                # This is the dict returned by compute_results: keys are "20%","40%","60%","80%"
+                delta_by_ratio = application_to_model_to_delta[application][model_name][cs]
 
-            yerr = np.vstack([yerr_lo, yerr_hi])  # (2, N) asymmetric
+                xs, ys, yerr_lo, yerr_hi = [], [], [], []
+                for rx, rstr in zip(ratio_x, ratio_strs):
+                    if rstr not in delta_by_ratio:
+                        continue
+                    d = delta_by_ratio[rstr]
+                    y = float(d["delta"])
+                    lo = float(d["ci_low"])
+                    hi = float(d["ci_high"])
 
-            ax.errorbar(
-                xs, ys,
-                yerr=yerr,
-                fmt="o",
-                markersize=7.5,
-                capsize=4.0,
-                elinewidth=1.6,
-                linewidth=1.2,
-                markeredgecolor="black",
-                markeredgewidth=0.7,
-                color="black",
-                zorder=3,
-            )
+                    xs.append(rx)
+                    ys.append(y)
+                    yerr_lo.append(y - lo)
+                    yerr_hi.append(hi - y)
+
+                if len(xs) == 0:
+                    continue
+
+                yerr = np.vstack([yerr_lo, yerr_hi])  # (2, N) asymmetric
+
+                ax.errorbar(
+                    xs, ys,
+                    yerr=yerr,
+                    fmt="-o",
+                    markersize=6.5,
+                    capsize=4.0,
+                    elinewidth=1.5,
+                    linewidth=1.6,
+                    markeredgecolor="black",
+                    markeredgewidth=0.7,
+                    color=context_size_to_color[cs],
+                    label=f"ctx={cs}",
+                    zorder=3,
+                )
 
             ax.set_title(model_name, fontweight="bold", pad=8, fontsize=16)
 
-            ax.set_xticks(context_sizes)
-            ax.set_xticklabels([str(x) for x in context_sizes])
+            # X-axis formatting: 20/40/60/80
+            ax.set_xticks(ratio_x)
+            ax.set_xticklabels(ratio_strs)
+            ax.set_xlim(10, 90)
 
-            ax.set_xlim(min(context_sizes) - 3, max(context_sizes) + 3)
-
+            # Keep your y-axis style/meaning unchanged
             ax.yaxis.set_major_locator(MaxNLocator(nbins=4))
             ax.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"{v*100:.0f}%"))
+
             ax.grid(True, linestyle="--", linewidth=0.7, alpha=0.8)
             ax.set_axisbelow(True)
 
@@ -192,7 +218,10 @@ def draw_results_by_application(application_to_model_to_delta, attribute_type, m
                 spine.set_edgecolor("black")
                 spine.set_linewidth(0.8)
 
-        # If fewer than 8 models, hide unused axes (safe)
+            # Per-subplot legend (small + unobtrusive)
+            ax.legend(frameon=False, fontsize=10, loc="best", handlelength=2.0)
+
+        # If fewer than 8 models, hide unused axes
         for j in range(len(model_names), len(axes)):
             axes[j].axis("off")
 
@@ -204,7 +233,7 @@ def draw_results_by_application(application_to_model_to_delta, attribute_type, m
         )
 
         fig.supylabel(
-            "Norm. Abs. Diff. of Selection Rate at min. ctx. ratio\n(Δ / random-rate)",
+            "Norm. Abs. Diff. of Selection Rate\n(Δ / random-rate)",
             fontweight="bold",
             fontsize=16,
             x=0.03,
@@ -212,14 +241,14 @@ def draw_results_by_application(application_to_model_to_delta, attribute_type, m
         )
 
         fig.supxlabel(
-            "Context Size",
+            "Contextual Ratio",
             fontweight="bold",
             fontsize=16,
             y=0.04
         )
 
         plt.tight_layout(rect=[0, 0, 1, 0.95])
-        out_path = f"outputs/size/{application}_{attribute_type}.png"
+        out_path = f"outputs/size/{application}_{attribute_type}-v2.png"
         plt.savefig(out_path, dpi=512, bbox_inches="tight")
         print(f"Saved subplot grid to {out_path}")
         plt.close(fig)
