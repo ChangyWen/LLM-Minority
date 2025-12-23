@@ -187,6 +187,10 @@ if __name__ == "__main__":
     elif attribute_type == "Gender":
         # Male or Female
         attributes_lists = [["Male", "Female"]]
+    elif attribute_type == "Gender Identity":
+        attributes_lists = [["Cisgender", "Transgender"], ["Cisgender", "Non-binary"]]
+    elif attribute_type == "Sexual Orientation":
+        attributes_lists = [["Heterosexual", "Homosexual"], ["Heterosexual", "Bisexual"], ["Heterosexual", "Asexual"]]
     else:
         raise ValueError(f"Invalid attribute type: {attribute_type}")
 
@@ -221,8 +225,8 @@ if __name__ == "__main__":
         #     combo = random.choice([[1, 4], [4, 1]])
         # if model_name == "Qwen/Qwen3-Next-80B-A3B-Instruct" and total_count == 10:
         #     combo = random.choice([[1, 9], [9, 1], [2, 8], [8, 2]]) # starting from #76228
-        if total_count == 10:
-            combo = random.choice([[1, 9], [9, 1]])
+        # if total_count == 10:
+        #     combo = random.choice([[1, 9], [9, 1]])
         attribute_values_list = random.choice(attributes_lists)
         candidate_attributes = []
         for count, attribute_value in zip(combo, attribute_values_list):
@@ -265,6 +269,7 @@ if __name__ == "__main__":
                     "response": response,
                 }) + "\n")
                 print(f"{attribute_type} -> {suggested_candidate_id} -> {hit_candidate_id}; [Time taken: {time.time() - start_time:.2f} seconds]")
+                f.flush()
         except Exception as e:
             total_failed_time += 1
             print(f"Error in ranking candidates: {e}")
