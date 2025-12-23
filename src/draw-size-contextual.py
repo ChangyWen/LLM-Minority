@@ -11,6 +11,7 @@ from scipy.stats import pearsonr
 from scipy.stats import t
 from scipy.stats import chi2_contingency, norm
 from statistics import NormalDist
+from matplotlib.lines import Line2D
 
 
 # -----------------------------
@@ -179,13 +180,21 @@ def compute_results(file_name, context_size, max_n_trials=1000000):
     return results["delta"]
 
 
-def draw_results_by_application(application_to_model_to_delta, application_to_model_to_pvalue, attribute_type, model_names, context_sizes):
+def draw_results_by_application(
+    application_to_model_to_delta,
+    application_to_model_to_pvalue,
+    attribute_type,
+    model_names,
+    context_sizes,
+):
     """
     One figure per application.
     8 subplots (2x4) in the order of `model_names`.
     Each subplot: x = contextual ratio (20%, 40%, 60%, 80%),
     two lines for context sizes (e.g., 5 and 10),
     y = delta (with 95% CI).
+    Stars on xticks reflect per-ratio p-values.
+    Shared legend between suptitle and subplots.
     """
 
     plt.rcParams.update({
@@ -202,12 +211,10 @@ def draw_results_by_application(application_to_model_to_delta, application_to_mo
     applications = sorted(application_to_model_to_delta.keys())
     context_sizes = list(sorted(context_sizes))
 
-    # X-axis contextual ratios (fixed as requested)
     ratio_strs = ["20%", "40%", "60%", "80%"]
     ratio_x = np.array([20, 40, 60, 80], dtype=float)
 
-    # Modern colors for context sizes (2 colors)
-    # (You can swap to "colorblind" if you prefer)
+    # Modern colors for context sizes
     cs_palette = sns.color_palette("tab10", n_colors=max(2, len(context_sizes)))
     context_size_to_color = {cs: cs_palette[i] for i, cs in enumerate(context_sizes)}
 
@@ -220,7 +227,24 @@ def draw_results_by_application(application_to_model_to_delta, application_to_mo
         )
         axes = axes.flatten()
 
-        for i, model_name in enumerate(model_names):
+        # We'll collect legend handles from the first subplot that actually draws both/any lines
+        # --- Shared legend (proxy handles; robust even if some subplots have missing data) ---
+        legend_handles = [
+            Line2D(
+                [0], [0],
+                color=context_size_to_color[cs],
+                marker="o",
+                linestyle="-",
+                linewidth=1.6,
+                markersize=6.5,
+                markeredgecolor="black",
+                markeredgewidth=0.7,
+            )
+            for cs in context_sizes
+        ]
+        legend_labels = [f"Contextual Size={cs}" for cs in context_sizes]
+
+        for i, model_key in enumerate(model_names):
             ax = axes[i]
 
             # Remove upper and right spines
@@ -231,13 +255,12 @@ def draw_results_by_application(application_to_model_to_delta, application_to_mo
             for cs in context_sizes:
                 if (
                     application not in application_to_model_to_delta
-                    or model_name not in application_to_model_to_delta[application]
-                    or cs not in application_to_model_to_delta[application][model_name]
+                    or model_key not in application_to_model_to_delta[application]
+                    or cs not in application_to_model_to_delta[application][model_key]
                 ):
                     continue
 
-                # This is the dict returned by compute_results: keys are "20%","40%","60%","80%"
-                delta_by_ratio = application_to_model_to_delta[application][model_name][cs]
+                delta_by_ratio = application_to_model_to_delta[application][model_key][cs]
 
                 xs, ys, yerr_lo, yerr_hi = [], [], [], []
                 for rx, rstr in zip(ratio_x, ratio_strs):
@@ -258,7 +281,7 @@ def draw_results_by_application(application_to_model_to_delta, application_to_mo
 
                 yerr = np.vstack([yerr_lo, yerr_hi])  # (2, N) asymmetric
 
-                ax.errorbar(
+                cont = ax.errorbar(
                     xs, ys,
                     yerr=yerr,
                     fmt="-o",
@@ -269,37 +292,37 @@ def draw_results_by_application(application_to_model_to_delta, application_to_mo
                     markeredgecolor="black",
                     markeredgewidth=0.7,
                     color=context_size_to_color[cs],
-                    label=f"ctx={cs}",
                     zorder=3,
                 )
 
-            model_name = model_name.replace("msra-", "")
-            ax.set_title(model_name, fontweight="bold", pad=8, fontsize=16)
+            # Display name only (DO NOT overwrite the key used for dict lookup)
+            display_model_name = model_key.replace("msra-", "")
+            ax.set_title(display_model_name, fontweight="bold", pad=8, fontsize=16)
 
-            # X-axis formatting: 20/40/60/80
-            # ----- add stars on xticks based on per-ratio p-values -----
+            # ----- stars on xticks based on per-ratio p-values -----
             per_ratio_p = {}
             if (
                 application_to_model_to_pvalue is not None
                 and application in application_to_model_to_pvalue
-                and model_name in application_to_model_to_pvalue[application]
-                and isinstance(application_to_model_to_pvalue[application][model_name], dict)
+                and model_key in application_to_model_to_pvalue[application]
+                and isinstance(application_to_model_to_pvalue[application][model_key], dict)
             ):
-                per_ratio_p = application_to_model_to_pvalue[application][model_name]
+                per_ratio_p = application_to_model_to_pvalue[application][model_key]
 
             tick_labels = []
             for r in ratio_strs:
                 p = per_ratio_p.get(r, float("nan"))
+                stars = p_to_stars(p)
+                # top row: only stars; bottom row: stars + ratio
                 if i <= 3:
-                    tick_labels.append(f"{p_to_stars(p)}")
+                    tick_labels.append(f"{stars}")
                 else:
-                    tick_labels.append(f"{p_to_stars(p)}\n{r}")
+                    tick_labels.append(f"{stars}\n{r}")
 
             ax.set_xticks(ratio_x)
             ax.set_xticklabels(tick_labels)
             ax.set_xlim(10, 90)
 
-            # Keep your y-axis style/meaning unchanged
             ax.yaxis.set_major_locator(MaxNLocator(nbins=4))
             ax.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"{v*100:.0f}%"))
 
@@ -310,18 +333,32 @@ def draw_results_by_application(application_to_model_to_delta, application_to_mo
                 spine.set_edgecolor("black")
                 spine.set_linewidth(0.8)
 
-            # Per-subplot legend (small + unobtrusive)
-            ax.legend(frameon=False, fontsize=10, loc="best", handlelength=2.0)
+            # IMPORTANT: no per-subplot legends
+            # ax.legend(...): removed
 
-        # If fewer than 8 models, hide unused axes
+        # Hide unused axes if any
         for j in range(len(model_names), len(axes)):
             axes[j].axis("off")
 
+        # Title
         fig.suptitle(
             f"{application.capitalize()} - {attribute_type}",
             fontsize=16,
             fontweight="bold",
-            y=0.95
+            y=0.98
+        )
+
+        fig.legend(
+            legend_handles,
+            legend_labels,
+            loc="upper center",
+            bbox_to_anchor=(0.5, 0.915),  # tune this number if needed
+            ncol=max(1, len(context_sizes)),
+            frameon=False,
+            fontsize=12,
+            handlelength=2.4,
+            columnspacing=1.6,
+            handletextpad=0.6,
         )
 
         fig.supylabel(
@@ -339,7 +376,9 @@ def draw_results_by_application(application_to_model_to_delta, application_to_mo
             y=0.04
         )
 
-        plt.tight_layout(rect=[0, 0, 1, 0.95])
+        # Leave room at the top for legend + title
+        plt.tight_layout(rect=[0, 0, 1, 0.90])
+
         out_path = f"outputs/size/{application}_{attribute_type}-v2.png"
         plt.savefig(out_path, dpi=512, bbox_inches="tight")
         print(f"Saved subplot grid to {out_path}")
