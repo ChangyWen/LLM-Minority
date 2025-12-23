@@ -10,6 +10,7 @@ from matplotlib.ticker import MaxNLocator, FuncFormatter, ScalarFormatter
 from scipy.stats import pearsonr
 from scipy.stats import t
 from scipy.stats import chi2_contingency, norm
+from statistics import NormalDist
 
 
 # -----------------------------
@@ -26,6 +27,74 @@ def wilson_ci(k, n, z=1.96):
     lower = (centre - margin) / denominator
     upper = (centre + margin) / denominator
     return (lower, upper)
+
+
+def p_to_stars(p):
+    """
+    Convert p-value to significance stars.
+    """
+    if math.isnan(p):
+        return ""
+    if p < 0.001:
+        return "***"
+    elif p < 0.01:
+        return "**"
+    elif p < 0.05:
+        return "*"
+    else:
+        return ""
+
+
+def se_diff_of_props(hA, nA, hB, nB):
+    pA = hA / nA
+    pB = hB / nB
+    return math.sqrt(pA*(1-pA)/nA + pB*(1-pB)/nB)
+
+
+def abs_diff(h1, n1, h2, n2):
+    return abs((h1 / n1) - (h2 / n2))
+
+
+def norm_delta_and_se(raw_data, context_size):
+    """
+    raw_data = (hA, nA, hB, nB) for the two groups at a fixed ratio.
+    Returns:
+      d_norm = context_size * |pA - pB|
+      se_norm = context_size * SE(|pA - pB|)  (same SE as signed diff)
+    """
+    hA, nA, hB, nB = raw_data
+    d = abs_diff(hA, nA, hB, nB)
+    se = se_diff_of_props(hA, nA, hB, nB)
+    return context_size * d, context_size * se
+
+
+def one_sided_p(delta10, se10, delta5, se5):
+    d = delta10 - delta5
+    se = math.sqrt(se10**2 + se5**2)
+    if se == 0:
+        # Degenerate: if d>0 then p ~ 0 else p ~ 1
+        return 0.0 if d > 0 else 1.0
+    z = d / se
+    return 1.0 - NormalDist().cdf(z)
+
+
+def iut_pvalue_by_ratio(counts_size5, counts_size10, ratios=("20%","40%","60%","80%")):
+    per_ratio_p = {}
+
+    for r in ratios:
+        if r not in counts_size5 or r not in counts_size10:
+            continue  # or raise if you expect all ratios
+
+        d5,  se5  = norm_delta_and_se(counts_size5[r],  context_size=5)
+        d10, se10 = norm_delta_and_se(counts_size10[r], context_size=10)
+
+        p = one_sided_p(d10, se10, d5, se5)  # tests d10 > d5
+        per_ratio_p[r] = p
+
+    if len(per_ratio_p) == 0:
+        return {}, float("nan")
+
+    return per_ratio_p
 
 
 def compute_results(file_name, context_size, max_n_trials=1000000):
@@ -87,26 +156,30 @@ def compute_results(file_name, context_size, max_n_trials=1000000):
             ciB_low, ciB_high = wilson_ci(hB, nB)
             ci_low = ciA_low - ciB_high
             ci_high = ciA_high - ciB_low
+            raw_data = (hA, nA, hB, nB)
         else:
             delta = pB - pA
             ciA_low, ciA_high = wilson_ci(hA, nA)
             ciB_low, ciB_high = wilson_ci(hB, nB)
             ci_low = ciB_low - ciA_high
             ci_high = ciB_high - ciA_low
+            raw_data = (hB, nB, hA, nA)
         ratio = (c + 1) / context_size
         ratio_str = f"{ratio * 100:.0f}%"
-        results["delta"][ratio_str] = {
-            "raw_delta": delta,
-            "random_selection_rate": random_selection_rate,
-            "delta": delta / random_selection_rate,
-            "ci_low": ci_low / random_selection_rate,
-            "ci_high": ci_high / random_selection_rate,
-        }
+        if ratio_str in ["20%", "40%", "60%", "80%"]:
+            results["delta"][ratio_str] = {
+                "raw_delta": delta,
+                "random_selection_rate": random_selection_rate,
+                "delta": delta / random_selection_rate,
+                "ci_low": ci_low / random_selection_rate,
+                "ci_high": ci_high / random_selection_rate,
+                "raw_data": raw_data,
+            }
 
     return results["delta"]
 
 
-def draw_results_by_application(application_to_model_to_delta, attribute_type, model_names, context_sizes):
+def draw_results_by_application(application_to_model_to_delta, application_to_model_to_pvalue, attribute_type, model_names, context_sizes):
     """
     One figure per application.
     8 subplots (2x4) in the order of `model_names`.
@@ -142,7 +215,7 @@ def draw_results_by_application(application_to_model_to_delta, attribute_type, m
         fig, axes = plt.subplots(
             2, 4,
             figsize=(16.5, 7.2),
-            sharex=True,
+            sharex=False,
             sharey=False
         )
         axes = axes.flatten()
@@ -203,8 +276,26 @@ def draw_results_by_application(application_to_model_to_delta, attribute_type, m
             ax.set_title(model_name, fontweight="bold", pad=8, fontsize=16)
 
             # X-axis formatting: 20/40/60/80
+            # ----- add stars on xticks based on per-ratio p-values -----
+            per_ratio_p = {}
+            if (
+                application_to_model_to_pvalue is not None
+                and application in application_to_model_to_pvalue
+                and model_name in application_to_model_to_pvalue[application]
+                and isinstance(application_to_model_to_pvalue[application][model_name], dict)
+            ):
+                per_ratio_p = application_to_model_to_pvalue[application][model_name]
+
+            tick_labels = []
+            for r in ratio_strs:
+                p = per_ratio_p.get(r, float("nan"))
+                if i <= 3:
+                    tick_labels.append(f"{p_to_stars(p)}")
+                else:
+                    tick_labels.append(f"{p_to_stars(p)}\n{r}")
+
             ax.set_xticks(ratio_x)
-            ax.set_xticklabels(ratio_strs)
+            ax.set_xticklabels(tick_labels)
             ax.set_xlim(10, 90)
 
             # Keep your y-axis style/meaning unchanged
@@ -255,7 +346,7 @@ def draw_results_by_application(application_to_model_to_delta, attribute_type, m
 
 
 if __name__ == "__main__":
-    applications = ["loan", "edu"]
+    applications = ["loan"]
 
     model_names = [
         "msra-gpt-4o",
@@ -274,8 +365,11 @@ if __name__ == "__main__":
 
     for attribute_type in attribute_types:
         application_to_model_to_delta = defaultdict(lambda: defaultdict(dict))
+        application_to_model_to_pvalue = defaultdict(lambda: defaultdict(dict))
         for application in applications:
             for model_name in model_names:
+                counts_size5 = None
+                counts_size10 = None
                 for context_size in context_sizes:
                     if "no_thinking" in model_name:
                         file_name = f"outputs/{application}/contextual/{attribute_type}/{model_name[:-12]}_{context_size}_500_no_thinking.jsonl"
@@ -290,13 +384,19 @@ if __name__ == "__main__":
                         # raise FileNotFoundError(f"File not found: {application} {attribute_type} {model_name}")
 
                     delta = compute_results(file_name, context_size)
+                    raw_data = dict([(k, v["raw_data"]) for k, v in delta.items()])
+                    if context_size == 5:
+                        counts_size5 = raw_data
+                    else:
+                        counts_size10 = raw_data
                     application_to_model_to_delta[application][model_name][context_size] = delta
-                    print(f"attribute_type: {attribute_type}, application: {application}, model_name: {model_name}, context_size: {context_size}")
-                    print(delta)
-                    print("--------------------------------")
+                per_ratio_p = iut_pvalue_by_ratio(counts_size5, counts_size10)
+                application_to_model_to_pvalue[application][model_name] = per_ratio_p
+                print(f"attribute_type: {attribute_type}, application: {application}, model_name: {model_name}, per_ratio_p: {per_ratio_p}")
 
         draw_results_by_application(
             application_to_model_to_delta=application_to_model_to_delta,
+            application_to_model_to_pvalue=application_to_model_to_pvalue,
             attribute_type=attribute_type,
             model_names=model_names,
             context_sizes=context_sizes,
