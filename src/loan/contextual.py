@@ -220,6 +220,8 @@ if __name__ == "__main__":
                 break
         start_time = time.time()
         combo = random.choice(all_combos)
+        if total_count in [2, 4, 6, 8, 10]:
+            combo = [total_count // 2] * 2
         # temporary fix for GLM-4.5-Air
         # if model_name == "zai-org/GLM-4.5-Air" or model_name == "msra-gpt-4o" or model_name == "Qwen/Qwen3-235B-A22B-Instruct-2507" or model_name == "nvidia/NVIDIA-Nemotron-Nano-12B-v2":
         #     combo = random.choice([[1, 4], [4, 1]])
@@ -251,6 +253,9 @@ if __name__ == "__main__":
         attributes = [c[1] for c in candidate_attributes]
 
         prompt = get_prompt(candidate_attributes, attribute_type)
+        print(prompt)
+        input()
+        continue
 
         try:
             if "gpt-5" in model_name:
