@@ -305,8 +305,6 @@ def plot_model_panel(ax_main, attribute_type, resume_count, all_results, signifi
 
     non_delta_values = set(all_results.keys()) - {"delta"}
     attribute_values = sorted(list(non_delta_values))
-    if attribute_type in type_to_minority_attributes:
-        attribute_values = ["Minority", "Majority"]
     palette = sns.color_palette("husl", len(attribute_values))
 
     delta_color = DELTA_COLOR
@@ -402,7 +400,13 @@ def plot_model_panel(ax_main, attribute_type, resume_count, all_results, signifi
         # stars from trend_test_p_value_one_dec (delta trend)
         delta_stars = p_to_stars(significance.get("delta", {}).get("p_value_one_inc", float("nan")))
         delta_stars = f"↑{delta_stars}" if delta_stars else ""
-        delta_label_pre = "(F. - M.)" if attribute_type == "Gender" else "(B. - W.)"
+        # delta_label_pre = "(F. - M.)" if attribute_type == "Gender" else "(B. - W.)"
+        if attribute_type == "Gender":
+            delta_label_pre = "(F. - M.)"
+        elif attribute_type == "Race":
+            delta_label_pre = "(B. - W.)"
+        else:
+            delta_label_pre = "(Min. - Maj.)"
         delta_label = r"$\Delta $" + delta_label_pre
         if delta_stars:
             delta_label += f" {delta_stars}"
