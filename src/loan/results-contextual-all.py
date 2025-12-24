@@ -14,6 +14,12 @@ from matplotlib.ticker import MaxNLocator, FormatStrFormatter
 DELTA_COLOR = "blue"  # fixed color for Δ
 
 
+type_to_minority_attributes = {
+    "Gender Identity": ["Transgender", "Non-binary"],
+    "Sexual Orientation": ["Homosexual", "Bisexual", "Asexual"],
+}
+
+
 # -----------------------------
 # Wilson 95% CI for proportions
 # -----------------------------
@@ -191,6 +197,12 @@ def compute_results(file_name, attribute_type, max_n_trials=100000):
 
             for inner_idx, attr_value in enumerate(attributes):
                 same_attr_count = attributes.count(attr_value) - 1
+                if attribute_type in type_to_minority_attributes:
+                    minority_attr_values = type_to_minority_attributes[attribute_type]
+                    if attr_value in minority_attr_values:
+                        attr_value = "Minority"
+                    else:
+                        attr_value = "Majority"
                 attr_value_to_results[attr_value]["same_attr_count_to_count"][same_attr_count] += 1
                 attr_value_to_results[attr_value]["same_attr_count_to_hit_count"][same_attr_count] += (1 if inner_idx == suggested_candidate_id else 0)
 
@@ -236,7 +248,7 @@ def compute_results(file_name, attribute_type, max_n_trials=100000):
         significance[attr_value]["p_value_one_dec"] = p_dec
 
         # attr_counts_A/B for delta trend test
-        if attr_value == "Black" or attr_value == "Female":
+        if attr_value == "Black" or attr_value == "Female" or attr_value == "Minority":
             attr_counts_A = attr_counts
         else:
             attr_counts_B = attr_counts
@@ -293,6 +305,8 @@ def plot_model_panel(ax_main, attribute_type, resume_count, all_results, signifi
 
     non_delta_values = set(all_results.keys()) - {"delta"}
     attribute_values = sorted(list(non_delta_values))
+    if attribute_type in type_to_minority_attributes:
+        attribute_values = ["Minority", "Majority"]
     palette = sns.color_palette("husl", len(attribute_values))
 
     delta_color = DELTA_COLOR
@@ -332,10 +346,10 @@ def plot_model_panel(ax_main, attribute_type, resume_count, all_results, signifi
         p_one_inc = significance.get(attribute_value, {}).get("p_value_one_inc", float("nan"))
         p_one_dec = significance.get(attribute_value, {}).get("p_value_one_dec", float("nan"))
 
-        if attribute_value in ("Male", "White"):
+        if attribute_value in ("Male", "White", "Majority"):
             stars = p_to_stars(p_one_dec)
             stars = f"↓{stars}" if stars else ""
-        elif attribute_value in ("Female", "Black"):
+        elif attribute_value in ("Female", "Black", "Minority"):
             stars = p_to_stars(p_one_inc)
             stars = f"↑{stars}" if stars else ""
         else:
@@ -553,8 +567,8 @@ if __name__ == "__main__":
         "NVIDIA-Nemotron-Nano-12B-v2",
     ]
 
-    for attribute_type in ["Gender", "Race"]:
-        for resume_count in [5, 10]:
+    for attribute_type in ["Gender", "Race", "Gender Identity"]:
+        for resume_count in [5]:
             draw_results_grid(
                 attribute_type=attribute_type,
                 resume_count=resume_count,
