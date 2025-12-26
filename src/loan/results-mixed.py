@@ -217,7 +217,11 @@ if __name__ == "__main__":
 
     model_names_order = [
         "msra-gpt-4o",
-        "gemma-3-27b-it"
+        "gemma-3-27b-it",
+        "Qwen3-Next-80B-A3B-Instruct",
+        "gpt-oss-120b",
+        "NVIDIA-Nemotron-Nano-12B-v2",
+        "Qwen3-235B-A22B-Instruct-2507",
     ]
 
     for attribute_type in ["Gender Identity"]:
