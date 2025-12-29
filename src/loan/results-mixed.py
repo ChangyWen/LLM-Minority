@@ -222,9 +222,11 @@ if __name__ == "__main__":
         "gpt-oss-120b",
         "NVIDIA-Nemotron-Nano-12B-v2",
         "Qwen3-235B-A22B-Instruct-2507",
+        "Llama-3.3-70B-Instruct",
+        "GLM-4.5-Air",
     ]
 
-    for attribute_type in ["Gender Identity"]:
+    for attribute_type in ["Gender Identity", "Sexual Orientation"]:
         draw_results_grid(
             attribute_type=attribute_type,
             resume_counts=[2, 4, 6, 8, 10],
