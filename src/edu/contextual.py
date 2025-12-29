@@ -173,6 +173,10 @@ if __name__ == "__main__":
     elif attribute_type == "Gender":
         # Male or Female
         attributes_lists = [["Male", "Female"]]
+    elif attribute_type == "Gender Identity":
+        attributes_lists = [["Cisgender", "Transgender"], ["Cisgender", "Non-binary"]]
+    elif attribute_type == "Sexual Orientation":
+        attributes_lists = [["Heterosexual", "Homosexual"], ["Heterosexual", "Bisexual"], ["Heterosexual", "Asexual"]]
     else:
         raise ValueError(f"Invalid attribute type: {attribute_type}")
 
@@ -204,8 +208,10 @@ if __name__ == "__main__":
         combo = random.choice(all_combos)
         # if model_name == "zai-org/GLM-4.5-Air" and disable_thinking:
         #     combo = random.choice([[1, 4], [4, 1]])
-        if total_count == 10:
-            combo = random.choice([[1, 9], [9, 1]])
+        # if total_count == 10:
+        #     combo = random.choice([[1, 9], [9, 1]])
+        if total_count in [2, 4, 6, 8, 10]:
+            combo = [total_count // 2] * 2
         attribute_values_list = random.choice(attributes_lists)
         candidate_attributes = []
         for count, attribute_value in zip(combo, attribute_values_list):

@@ -47,12 +47,12 @@ jobs:
   sla_tier: Standard
   # sla_tier: Premium
   command:
-    - pip install accelerate
-    - pip install nltk
-    - python -c "import nltk; nltk.download('punkt')"
-    - python -c "import nltk; nltk.download('punkt_tab')"
-    - pip install savis
-    - python src/loan/atten.py google/gemma-3-27b-it Gender 5 500
+    # - pip install accelerate
+    # - pip install nltk
+    # - python -c "import nltk; nltk.download('punkt')"
+    # - python -c "import nltk; nltk.download('punkt_tab')"
+    # - pip install savis
+    # - python src/loan/atten.py google/gemma-3-27b-it Gender 5 500
     ####################################
     # - bash run-vllm-contextual.sh loan openai/gpt-oss-120b "Gender Identity" 8 False 10
     # - bash run-vllm-contextual.sh loan Qwen/Qwen3-Next-80B-A3B-Instruct "Gender Identity" 8 False 10
