@@ -216,7 +216,7 @@ if __name__ == "__main__":
     max_n_trials = 1000000
 
     model_names_order = [
-        "msra-gpt-4o",
+        # "msra-gpt-4o",
         "gemma-3-27b-it",
         "Qwen3-Next-80B-A3B-Instruct",
         "gpt-oss-120b",
