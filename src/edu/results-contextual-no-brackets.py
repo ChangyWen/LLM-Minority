@@ -472,7 +472,7 @@ if __name__ == "__main__":
     pool_count = 500
     max_n_trials = 1000000
 
-    for attribute_type in ["Gender"]:
+    for attribute_type in ["Gender", "Race"]:
         for resume_count in [5]:
             for subfix in ["", "_no_thinking"]:
                 for model_name in [
