@@ -18,10 +18,10 @@ echo "*********** Waiting for vllm server to start ***********"
 sleep 300
 echo "*********** Done waiting ***********"
 
-python src/$application/societal-base.py $model "Gender Identity" &
+python src/$application/societal-llama.py $model "Gender Identity" &
 sleep 5
-python src/$application/societal-base.py $model "Gender Identity" &
+python src/$application/societal-llama.py $model "Gender Identity" &
 sleep 5
-python src/$application/societal-base.py $model "Sexual Orientation" &
+python src/$application/societal-llama.py $model "Sexual Orientation" &
 sleep 5
-python src/$application/societal-base.py $model "Sexual Orientation"
+python src/$application/societal-llama.py $model "Sexual Orientation"
