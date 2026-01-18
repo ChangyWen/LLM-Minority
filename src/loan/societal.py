@@ -58,7 +58,7 @@ def complete(prompt, model_name="msra-gpt-5", reasoning_effort_or_thinking_budge
             raise ValueError(f"Client is not initialized")
         if model_name == "Qwen/Qwen3-Next-80B-A3B-Instruct":
             temperature = 0.7
-        elif model_name == "meta-llama/Llama-3.3-70B-Instruct":
+        elif model_name == "meta-llama/Llama-3.3-70B-Instruct" or model_name == "meta-llama/Llama-3.1-8B-Instruct":
             temperature = 0.6
         elif model_name == "openai/gpt-oss-120b":
             temperature = 1.0
