@@ -7,10 +7,8 @@ gpu_count=$4
 
 
 if [ "$application" == "hiring" ]; then
-  pool_count=200
   max_model_len=12288
 elif [ "$application" == "loan" ] || [ "$application" == "edu" ]; then
-  pool_count=500
   max_model_len=5120
 else
   echo "Invalid application: $application"
@@ -30,8 +28,8 @@ sleep 300
 echo "*********** Done waiting ***********"
 
 
-python src/$application/contextual.py $model "$attribute_type" $context_size $pool_count $disable_thinking &
+python src/$application/contextual-llama.py $model "$attribute_type" &
 sleep 5
-python src/$application/contextual.py $model "$attribute_type" $context_size $pool_count $disable_thinking &
+python src/$application/contextual-llama.py $model "$attribute_type" &
 sleep 5
-python src/$application/contextual.py $model "$attribute_type" $context_size $pool_count $disable_thinking
+python src/$application/contextual-llama.py $model "$attribute_type"
