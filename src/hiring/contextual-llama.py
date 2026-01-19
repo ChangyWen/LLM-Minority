@@ -235,6 +235,7 @@ if __name__ == "__main__":
                     "response": response,
                 }) + "\n")
                 print(f"{attribute_type} {sampled_job} -> {suggested_candidate_id} -> {hit_candidate_id}; [Time taken: {time.time() - start_time:.2f} seconds]")
+                f.flush()
         except Exception as e:
             total_failed_time += 1
             print(f"Error in ranking resumes: {e}")
