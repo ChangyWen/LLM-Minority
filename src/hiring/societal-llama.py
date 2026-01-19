@@ -119,10 +119,8 @@ def sample_resumes(job_file, total_count, pool_count):
 if __name__ == "__main__":
     model_name = sys.argv[1]
     attribute_type = sys.argv[2]
-    disable_thinking = None
-    if len(sys.argv) > 3:
-        if sys.argv[3] == "True":
-            disable_thinking = True
+
+    assert model_name == "meta-llama/Llama-3.1-8B" or model_name == "meta-llama/Llama-3.1-8B-Instruct"
 
     client = None
     if "msra" not in model_name:
@@ -157,9 +155,6 @@ if __name__ == "__main__":
         save_file = f"/mnt/blob_output/v-dachengwen/LLM-Minority/outputs/hiring/societal/{attribute_type}/{sub_model_name}_ts{ts}_rd{random.randint(1, 1000000)}.jsonl"
         dataset_dir = "/mnt/blob_output/v-dachengwen/LLM-Minority/dataset/hiring"
 
-    if disable_thinking is not None:
-        save_file = save_file.replace(".jsonl", f"_no_thinking.jsonl")
-
     all_job_files = [file for file in os.listdir(dataset_dir) if file.startswith("job_")]
     all_jobs = [file[4:-6] for file in all_job_files]
     all_jobs_counts = []
@@ -185,22 +180,21 @@ if __name__ == "__main__":
             job_title = resume_data["job_title"]
             final_resume = f"{job_title}\n{attribute_type}: {attribute}\n{resume}"
 
-            prompt = get_prompt(final_resume, sampled_job)
+            prompt = get_prompt(final_resume, sampled_job, model_name)
+            print(prompt)
+            input()
+            continue
 
             try:
                 start_time = time.time()
-                if "gpt-5" in model_name:
-                    reasoning_effort_or_thinking_budget = "low"
-                else:
-                    reasoning_effort_or_thinking_budget = None
                 total_query_time += 1
-                response = complete(prompt, model_name=model_name, reasoning_effort_or_thinking_budget=reasoning_effort_or_thinking_budget, disable_thinking=disable_thinking)
+                response = complete(prompt, model_name=model_name)
                 if response is None:
                     total_failed_time += 1
                     print(f"Error in ranking resumes: None response")
                     continue
-                score = int(extract_from_tags(remove_thinking_draft(response), "score").strip())
-                if score < 0 or score > 10:
+                score = extract_number(response)
+                if score is None or score < 0 or score > 10:
                     print(f"Error in ranking resumes: score is out of range")
                     continue
                 with open(save_file, "a") as f:
@@ -212,6 +206,7 @@ if __name__ == "__main__":
                         "response": response,
                     }) + "\n")
                     print(f"{attribute_type} {sampled_job} -> {resume_data['idx']} -> {score}; [Time taken: {time.time() - start_time:.2f} seconds]")
+                    f.flush()
             except Exception as e:
                 total_failed_time += 1
                 print(f"Error in ranking resumes: {e}")
