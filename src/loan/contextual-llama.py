@@ -30,18 +30,6 @@ def compositions_with_zeros(n, k=2):
         yield tuple(tuple_vals)
 
 
-def remove_thinking_draft(text):
-    if "</think>" in text:
-        text = text.split("</think>")[-1].strip()
-        if len(text) > 0:
-            return text
-    if "</seed:think>" in text:
-        text = text.split("</seed:think>")[-1].strip()
-        if len(text) > 0:
-            return text
-    return text
-
-
 def extract_number(text: str) -> int:
     """
     Parses the first integer found in a text string.
