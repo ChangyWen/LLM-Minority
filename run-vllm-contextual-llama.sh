@@ -2,7 +2,7 @@ set -x
 
 application=$1
 model=$2
-gpu_count=$4
+gpu_count=$3
 
 
 if [ "$application" == "hiring" ]; then
