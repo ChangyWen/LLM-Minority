@@ -2,7 +2,6 @@ set -x
 
 application=$1
 model=$2
-attribute_type=$3
 gpu_count=$4
 
 
@@ -28,8 +27,10 @@ sleep 300
 echo "*********** Done waiting ***********"
 
 
-python src/$application/contextual-llama.py $model "$attribute_type" &
+python src/$application/contextual-llama.py $model Gender &
 sleep 5
-python src/$application/contextual-llama.py $model "$attribute_type" &
+python src/$application/contextual-llama.py $model Gender &
 sleep 5
-python src/$application/contextual-llama.py $model "$attribute_type"
+python src/$application/contextual-llama.py $model Race &
+sleep 5
+python src/$application/contextual-llama.py $model Race
