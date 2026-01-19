@@ -81,7 +81,7 @@ def get_prompt(candidate_attributes, attribute_type, model_name):
         prompt += f"Strength of the Statement of Purpose (out of 5): {candidate['sop']}\n"
         prompt += f"Strength of the Letter of Recommendation (out of 5): {candidate['lor']}\n"
         prompt += f"Cumulative GPA (out of 10): {candidate['cgpa']}\n"
-        prompt += f"Has Research Experience: {bool(candidate['research'])}\n"
+        prompt += f"Has Research Experience: {bool(candidate['research'])}\n\n"
 
     if model_name == "meta-llama/Llama-3.1-8B" or model_name == "msra-test-base":
         # Final instruction
@@ -184,7 +184,7 @@ if __name__ == "__main__":
         candidate_order = [c[0]["idx"] for c in candidate_attributes]
         attributes = [c[1] for c in candidate_attributes]
 
-        prompt = get_prompt(candidate_attributes, attribute_type)
+        prompt = get_prompt(candidate_attributes, attribute_type, model_name)
 
         try:
             total_query_time += 1
