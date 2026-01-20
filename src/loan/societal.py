@@ -190,6 +190,7 @@ if __name__ == "__main__":
 
         for attribute in attributes_list:
             prompt = get_prompt(sampled_candidate, attribute)
+            response = None
 
             try:
                 start_time = time.time()
@@ -218,5 +219,6 @@ if __name__ == "__main__":
             except Exception as e:
                 total_failed_time += 1
                 print(f"Error in ranking resumes: {e}")
+                print(f"Response: {response}")
                 continue
             time.sleep(1)
