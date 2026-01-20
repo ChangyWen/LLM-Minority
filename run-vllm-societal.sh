@@ -7,6 +7,7 @@ application=$1
 model=$2
 gpu_count=$3
 disable_thinking=$4
+total_count=$5
 
 ######### start vllm server #########
 nohup vllm serve $model \
@@ -19,8 +20,8 @@ echo "*********** Waiting for vllm server to start ***********"
 sleep 300
 echo "*********** Done waiting ***********"
 
-python src/$application/societal.py $model "Religious Affiliation" $disable_thinking &
-sleep 5
-python src/$application/societal.py $model "Religious Affiliation" $disable_thinking &
-sleep 5
+for ((i=0; i<total_count; i++)); do
+    python src/$application/societal.py $model "Religious Affiliation" $disable_thinking &
+    sleep 10
+done
 python src/$application/societal.py $model "Religious Affiliation" $disable_thinking
