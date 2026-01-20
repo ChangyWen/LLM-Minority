@@ -204,7 +204,12 @@ if __name__ == "__main__":
                     total_failed_time += 1
                     print(f"Error in ranking resumes: None response")
                     continue
-                score = int(extract_from_tags(remove_thinking_draft(response), "score").strip())
+                score = extract_from_tags(remove_thinking_draft(response), "score").strip()
+                if score is None:
+                    print(f"Error in ranking resumes: extract score is None")
+                    print(f"Response to {attribute}: {response}")
+                    continue
+                score = int(score)
                 if score < 0 or score > 10:
                     print(f"Error in ranking resumes: score is out of range")
                     continue
@@ -219,6 +224,5 @@ if __name__ == "__main__":
             except Exception as e:
                 total_failed_time += 1
                 print(f"Error in ranking resumes: {e}")
-                print(f"Response to {attribute}: {response}")
                 continue
             time.sleep(1)
