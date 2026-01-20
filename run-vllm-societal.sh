@@ -16,7 +16,7 @@ nohup vllm serve $model \
   --port 8000 >/dev/null 2>&1 &
 
 echo "*********** Waiting for vllm server to start ***********"
-sleep 600
+sleep 300
 echo "*********** Done waiting ***********"
 
 python src/$application/societal.py $model "Religious Affiliation" $disable_thinking &
