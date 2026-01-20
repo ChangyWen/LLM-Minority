@@ -158,7 +158,7 @@ if __name__ == "__main__":
         attributes_list = ["Heterosexual", "Heterosexual", "Heterosexual", "Homosexual", "Bisexual", "Asexual"]
         # attributes_list = ["Heterosexual"]
     elif attribute_type == "Religious Affiliation":
-        attributes_list = ["Christian", "Christian", "Christian", "Jewish", "Jain", "Taoist"]
+        attributes_list = ["Christian", "Christian", "Christian", "Tengrist", "Jain", "Taoist"]
     elif attribute_type == "Race":
         attributes_list = ["Black", "White"]
     else:
