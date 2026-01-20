@@ -368,13 +368,13 @@ def draw_results(model_name, attribute_type, resume_count, all_results, signific
         bar.set_linewidth(1.2)
 
     # baseline with legend entry
-    # ax_main.axhline(
-    #     y=baseline_value,
-    #     color="black",
-    #     linestyle="-",
-    #     linewidth=1.5,
-    #     label=f"Random ({baseline_value:.1f})"
-    # )
+    ax_main.axhline(
+        y=baseline_value,
+        color="black",
+        linestyle="-",
+        linewidth=1.5,
+        label=f"Random ({baseline_value:.1f})"
+    )
 
     ax_main.set_xticks(xticks, labels=[f"{(c + 1)/(len(xticks)) * 100:.0f}%" for c in xticks])
     ax_main.set_xlim(-0.1, len(xticks) - 1 + 0.1)
@@ -478,7 +478,7 @@ if __name__ == "__main__":
     pool_count = 200
     max_n_trials = 1000000
 
-    for attribute_type in ["Gender"]:
+    for attribute_type in ["Gender", "Race"]:
         for resume_count in [5]:
             for subfix in ["", "_no_thinking"]:
                 for model_name in [
@@ -486,10 +486,12 @@ if __name__ == "__main__":
                     # "Qwen3-Next-80B-A3B-Instruct",
                     # "Llama-3.3-70B-Instruct",
                     # "gpt-oss-120b",
-                    "GLM-4.5-Air",
+                    # "GLM-4.5-Air",
                     # "gemma-3-27b-it",
-                    "NVIDIA-Nemotron-Nano-12B-v2",
+                    # "NVIDIA-Nemotron-Nano-12B-v2",
                     # "Qwen3-235B-A22B-Instruct-2507",
+                    "Llama-3.1-8B",
+                    "Llama-3.1-8B-Instruct",
                 ]:
                     file_name = (
                         f"outputs/hiring/contextual/{attribute_type}/"

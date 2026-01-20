@@ -444,18 +444,20 @@ if __name__ == "__main__":
     pool_count = 500
     max_n_trials = 1000000
 
-    for attribute_type in ["Gender"]:
-        for resume_count in [10]:
+    for attribute_type in ["Gender", "Race"]:
+        for resume_count in [5]:
             for subfix in [""]:
                 for model_name in [
-                    "msra-gpt-4o",
-                    "Qwen3-Next-80B-A3B-Instruct",
-                    "Llama-3.3-70B-Instruct",
-                    "gpt-oss-120b",
-                    "GLM-4.5-Air",
-                    "gemma-3-27b-it",
-                    "NVIDIA-Nemotron-Nano-12B-v2",
-                    "Qwen3-235B-A22B-Instruct-2507",
+                    # "msra-gpt-4o",
+                    # "Qwen3-Next-80B-A3B-Instruct",
+                    # "Llama-3.3-70B-Instruct",
+                    # "gpt-oss-120b",
+                    # "GLM-4.5-Air",
+                    # "gemma-3-27b-it",
+                    # "NVIDIA-Nemotron-Nano-12B-v2",
+                    # "Qwen3-235B-A22B-Instruct-2507",
+                    "Llama-3.1-8B",
+                    "Llama-3.1-8B-Instruct",
                 ]:
                     file_name = (
                         f"outputs/loan/contextual/{attribute_type}/"

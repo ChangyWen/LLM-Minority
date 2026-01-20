@@ -480,10 +480,12 @@ if __name__ == "__main__":
                     # "Qwen3-Next-80B-A3B-Instruct",
                     # "Llama-3.3-70B-Instruct",
                     # "gpt-oss-120b",
-                    "GLM-4.5-Air",
+                    # "GLM-4.5-Air",
                     # "gemma-3-27b-it",
-                    "NVIDIA-Nemotron-Nano-12B-v2",
+                    # "NVIDIA-Nemotron-Nano-12B-v2",
                     # "Qwen3-235B-A22B-Instruct-2507",
+                    "Llama-3.1-8B",
+                    "Llama-3.1-8B-Instruct",
                 ]:
                     file_name = (
                         f"outputs/edu/contextual/{attribute_type}/"
