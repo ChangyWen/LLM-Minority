@@ -102,7 +102,7 @@ def fit_linear_with_ci(x, y, alpha=0.05):
 
 def draw_scatter_by_application(
     application_to_model_to_delta,
-    model_to_training_compute,
+    model_to_parameter_count,
     attribute_type,
 ):
     """
@@ -141,7 +141,7 @@ def draw_scatter_by_application(
 
         xs, ys, cs = [], [], []
         for m in models:
-            xs.append(model_to_training_compute[m])
+            xs.append(model_to_parameter_count[m])
             ys.append(application_to_model_to_delta[application][m])
             cs.append(model_to_color[m])
 
@@ -230,7 +230,7 @@ def draw_scatter_by_application(
 
         # Manually add scale label on x-axis (without scientific ticks)
         ax.text(
-            1.01, -0.02, r"($\times 10^{23}$)",
+            1.01, -0.02, r"($\times 10^9$)",
             transform=ax.transAxes,
             fontsize=10,
             ha="left",
@@ -253,7 +253,9 @@ def draw_scatter_by_application(
         )
 
         plt.tight_layout()
-        out_path = f"outputs/training-compute/contextual_compute_vs_delta_{application}_{attribute_type}.png"
+        out_dir = f"outputs/parameter/"
+        os.makedirs(out_dir, exist_ok=True)
+        out_path = f"outputs/parameter/contextual_parameter_vs_delta_{application}_{attribute_type}.png"
         plt.savefig(out_path, dpi=512, bbox_inches="tight")
         print(f"Saved scatter plot to {out_path}")
         plt.close(fig)
@@ -273,15 +275,16 @@ if __name__ == "__main__":
         "NVIDIA-Nemotron-Nano-12B-v2",
     ]
 
-    model_to_training_compute = {
-        "msra-gpt-4o": 3.8e+2,
-        "gpt-oss-120b": 4.94e+1,
-        "Qwen3-235B-A22B-Instruct-2507": 4.752e+1,
-        "Qwen3-Next-80B-A3B-Instruct": 2.7e+0,
-        "GLM-4.5-Air": 1.656e+1,
-        "gemma-3-27b-it": 2.268e+1,
-        "Llama-3.3-70B-Instruct": 6.86498e+1,
-        "NVIDIA-Nemotron-Nano-12B-v2": 1.5192e+1,
+    # * 1B
+    model_to_parameter_count = {
+        "msra-gpt-4o": 250,
+        "gpt-oss-120b": 120,
+        "Qwen3-235B-A22B-Instruct-2507": 235,
+        "Qwen3-Next-80B-A3B-Instruct": 80,
+        "GLM-4.5-Air": 110,
+        "gemma-3-27b-it": 27,
+        "Llama-3.3-70B-Instruct": 70,
+        "NVIDIA-Nemotron-Nano-12B-v2": 12,
     }
 
     attribute_types = ["Gender", "Race"]
@@ -301,6 +304,6 @@ if __name__ == "__main__":
 
         draw_scatter_by_application(
             application_to_model_to_delta=application_to_model_to_delta,
-            model_to_training_compute=model_to_training_compute,
+            model_to_parameter_count=model_to_parameter_count,
             attribute_type=attribute_type,
         )

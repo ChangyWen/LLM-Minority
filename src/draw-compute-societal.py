@@ -226,7 +226,7 @@ def draw_scatter_by_application(
 
         # Manually add scale label on x-axis (without scientific ticks)
         ax.text(
-            1.01, -0.03, "1e+23",
+            1.01, -0.02, r"($\times 10^{23}$)",
             transform=ax.transAxes,
             fontsize=10,
             ha="left",
