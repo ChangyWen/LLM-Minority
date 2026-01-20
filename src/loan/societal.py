@@ -204,7 +204,7 @@ if __name__ == "__main__":
                     total_failed_time += 1
                     print(f"Error in ranking resumes: None response")
                     continue
-                score = extract_from_tags(remove_thinking_draft(response), "score").strip()
+                score = extract_from_tags(remove_thinking_draft(response), "score")
                 if score is None:
                     print(f"Error in ranking resumes: extract score is None")
                     print(f"Response to {attribute}: {response}")
