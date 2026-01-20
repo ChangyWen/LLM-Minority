@@ -23,6 +23,4 @@ python src/$application/societal.py $model "Religious Affiliation" $disable_thin
 sleep 5
 python src/$application/societal.py $model "Religious Affiliation" $disable_thinking &
 sleep 5
-python src/$application/societal.py $model "Religious Affiliation" $disable_thinking &
-sleep 5
 python src/$application/societal.py $model "Religious Affiliation" $disable_thinking
