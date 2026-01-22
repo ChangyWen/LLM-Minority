@@ -443,6 +443,7 @@ if __name__ == "__main__":
     attribute_types = [
         "Gender Identity",
         "Sexual Orientation",
+        # "Religious Affiliation",
         # add more if needed
     ]
 
