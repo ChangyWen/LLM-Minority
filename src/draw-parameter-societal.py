@@ -213,7 +213,7 @@ def draw_scatter_by_application(
             )
 
         # Axes
-        ax.set_xlabel("# of Parameters")
+        ax.set_xlabel("Model Parameters")
         ax.set_ylabel("Relative Diff. of Scores [(minority - majority) / majority]")
 
         ax.set_xscale("log")
@@ -261,7 +261,7 @@ if __name__ == "__main__":
     applications = ["edu", "hiring", "loan"]
 
     model_names = [
-        "msra-gpt-4o",
+        # "msra-gpt-4o",
         "gpt-oss-120b",
         "Qwen3-235B-A22B-Instruct-2507",
         "Qwen3-Next-80B-A3B-Instruct",

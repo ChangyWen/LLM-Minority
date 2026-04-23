@@ -217,7 +217,7 @@ def draw_scatter_by_application(
             )
 
         # Axes
-        ax.set_xlabel("Training compute (FLOP)")
+        ax.set_xlabel("Model Parameters")
         ax.set_ylabel("Abs. Diff. of Selection Rate (w.r.t. min. contextual ratio)")
 
         ax.set_xscale("log")
@@ -265,7 +265,7 @@ if __name__ == "__main__":
     applications = ["edu", "hiring", "loan"]
 
     model_names = [
-        "msra-gpt-4o",
+        # "msra-gpt-4o",
         "gpt-oss-120b",
         "Qwen3-235B-A22B-Instruct-2507",
         "Qwen3-Next-80B-A3B-Instruct",
