@@ -391,13 +391,6 @@ def draw_combined_gender_race_by_application(
 
                 ymin = 0.0
 
-                # ax.grid(
-                #     axis="y",
-                #     color="0.88",
-                #     linewidth=0.6,
-                #     linestyle="-",
-                #     zorder=0,
-                # )
                 ax.axhline(0, color="0.30", linewidth=0.7, zorder=1)
 
                 panel_upper_by_ratio = {r: 0.0 for r in ratio_strs}
