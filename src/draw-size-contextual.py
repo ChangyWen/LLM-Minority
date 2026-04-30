@@ -353,7 +353,7 @@ def draw_combined_gender_race_by_application(
             right=0.995,
             bottom=0.105,
             top=0.935,
-            hspace=0.25,   # larger gap between Gender and Race blocks
+            hspace=0.28,   # larger gap between Gender and Race blocks
         )
 
         gender_gs = outer_gs[0].subgridspec(
@@ -583,10 +583,9 @@ def draw_combined_gender_race_by_application(
             row_offset = attr_idx * 2
 
             pos_top_left = axes[row_offset, 0].get_position()
-            pos_top_right = axes[row_offset, 3].get_position()
 
-            x_center = (pos_top_left.x0 + pos_top_right.x1) / 2
-            y_text = pos_top_left.y1 + 0.025
+            x_center = 0.5   # center with respect to the whole figure
+            y_text = pos_top_left.y1 + 0.03
 
             fig.text(
                 x_center,
