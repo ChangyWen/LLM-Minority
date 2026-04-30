@@ -512,13 +512,13 @@ def draw_results_by_application(
         fig.supxlabel(
             "Proportion of focal group in candidate pool (%)",
             fontsize=9.2,
-            y=0.045,
+            y=0.1,
         )
 
         fig.supylabel(
             "Normalized absolute selection-rate difference (%)",
             fontsize=9.2,
-            x=0.025,
+            x=0.030,
         )
 
         # Legend
@@ -539,26 +539,26 @@ def draw_results_by_application(
 
         fig.legend(
             handles=legend_handles,
-            loc="upper center",
-            bbox_to_anchor=(0.53, 0.985),
+            loc="lower center",
+            bbox_to_anchor=(0.5, 0.01),
             ncol=len(context_sizes),
             frameon=False,
             handlelength=1.8,
             columnspacing=1.4,
         )
 
-        fig.suptitle(
-            f"{application.capitalize()}: contextual {attribute_type.lower()} disparity",
-            fontsize=10.5,
-            fontweight="bold",
-            y=1.045,
-        )
+        # fig.suptitle(
+        #     f"{application.capitalize()}: contextual {attribute_type.lower()} disparity",
+        #     fontsize=10.5,
+        #     fontweight="bold",
+        #     y=1.045,
+        # )
 
         fig.subplots_adjust(
             left=0.095,
             right=0.995,
-            bottom=0.135,
-            top=0.875,
+            bottom=0.20,
+            top=0.90,
             wspace=0.28,
             hspace=0.38,
         )
@@ -566,13 +566,13 @@ def draw_results_by_application(
         base = f"{safe_slug(application)}_{safe_slug(attribute_type)}_nature_style_free_y"
 
         pdf_path = os.path.join(output_dir, base + ".pdf")
-        png_path = os.path.join(output_dir, base + ".png")
+        # png_path = os.path.join(output_dir, base + ".png")
 
         fig.savefig(pdf_path, bbox_inches="tight")
-        fig.savefig(png_path, dpi=600, bbox_inches="tight")
+        # fig.savefig(png_path, dpi=600, bbox_inches="tight")
 
         print(f"Saved: {pdf_path}")
-        print(f"Saved: {png_path}")
+        # print(f"Saved: {png_path}")
 
         plt.close(fig)
 
