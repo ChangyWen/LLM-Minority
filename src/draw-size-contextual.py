@@ -345,7 +345,7 @@ def draw_results_by_application(
             2, 4,
             figsize=(7.45, 4.35),   # close to Nature double-column width
             sharex=True,
-            sharey=True,
+            sharey=False,
         )
 
         axes = axes.flatten()
@@ -447,28 +447,16 @@ def draw_results_by_application(
                         zorder=4,
                     )
 
-            # Panel letter
-            ax.text(
-                -0.18,
-                1.10,
-                string.ascii_lowercase[i],
-                transform=ax.transAxes,
-                fontsize=9.5,
-                fontweight="bold",
-                va="top",
-                ha="left",
-            )
-
             ax.set_title(
                 pretty_model_name(model_key),
-                loc="left",
+                loc="center",
                 pad=4,
                 fontsize=8.5,
                 fontweight="bold",
             )
 
             ax.set_xlim(12, 88)
-            ax.set_ylim(ymin, ymax)
+            # ax.set_ylim(ymin, ymax)
 
             ax.set_xticks(ratio_x)
             ax.set_xticklabels(["20", "40", "60", "80"])
