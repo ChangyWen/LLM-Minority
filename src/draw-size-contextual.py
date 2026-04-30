@@ -353,7 +353,7 @@ def draw_combined_gender_race_by_application(
             right=0.995,
             bottom=0.105,
             top=0.935,
-            hspace=0.3,   # larger gap between Gender and Race blocks
+            hspace=0.25,   # larger gap between Gender and Race blocks
         )
 
         gender_gs = outer_gs[0].subgridspec(
@@ -391,13 +391,13 @@ def draw_combined_gender_race_by_application(
 
                 ymin = 0.0
 
-                ax.grid(
-                    axis="y",
-                    color="0.88",
-                    linewidth=0.6,
-                    linestyle="-",
-                    zorder=0,
-                )
+                # ax.grid(
+                #     axis="y",
+                #     color="0.88",
+                #     linewidth=0.6,
+                #     linestyle="-",
+                #     zorder=0,
+                # )
                 ax.axhline(0, color="0.30", linewidth=0.7, zorder=1)
 
                 panel_upper_by_ratio = {r: 0.0 for r in ratio_strs}
@@ -515,7 +515,7 @@ def draw_combined_gender_race_by_application(
                     loc="center",
                     pad=4,
                     fontsize=8.0,
-                    fontweight="bold",
+                    # fontweight="bold",
                 )
 
                 ax.set_xlim(12, 88)
@@ -542,13 +542,13 @@ def draw_combined_gender_race_by_application(
         fig.supxlabel(
             "Proportion of focal group in candidate pool (%)",
             fontsize=9.2,
-            y=0.055,
+            y=0.05,
         )
 
         fig.supylabel(
             "Normalized absolute selection-rate difference (%)",
             fontsize=9.2,
-            x=0.018,
+            x=0.02,
         )
 
         legend_handles = [
@@ -598,7 +598,7 @@ def draw_combined_gender_race_by_application(
                 fontweight="bold",
             )
 
-        base = f"{safe_slug(application)}_Gender_Race_combined_nature_style_free_y"
+        base = f"{safe_slug(application)}_Gender_Race_size_contextual"
         pdf_path = os.path.join(output_dir, base + ".pdf")
 
         fig.savefig(pdf_path, bbox_inches="tight")
