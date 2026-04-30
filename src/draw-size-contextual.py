@@ -552,7 +552,7 @@ def draw_combined_gender_race_by_application(
             left=0.095,
             right=0.995,
             bottom=0.115,
-            top=0.965,
+            top=0.95,
             wspace=0.30,
             hspace=0.48,
         )
@@ -562,19 +562,20 @@ def draw_combined_gender_race_by_application(
         for attr_idx, attribute_type in enumerate(attribute_types):
             row_offset = attr_idx * 2
 
-            pos_top = axes[row_offset, 0].get_position()
-            pos_bottom = axes[row_offset + 1, 0].get_position()
+            # Top edge of the first row in this block
+            pos_top_left = axes[row_offset, 0].get_position()
+            pos_top_right = axes[row_offset, 3].get_position()
 
-            y_mid = (pos_top.y1 + pos_bottom.y0) / 2
+            x_center = (pos_top_left.x0 + pos_top_right.x1) / 2
+            y_text = pos_top_left.y1 + 0.015
 
             fig.text(
-                0.052,
-                y_mid,
+                x_center,
+                y_text,
                 attribute_type,
-                rotation=90,
-                va="center",
                 ha="center",
-                fontsize=9.5,
+                va="bottom",
+                fontsize=10.0,
                 fontweight="bold",
             )
 
