@@ -158,11 +158,11 @@ def pretty_model_name(model_key):
         "msra-gpt-4o": "GPT-4o",
         "gpt-oss-120b": "GPT-OSS-120B",
         "Qwen3-235B-A22B-Instruct-2507": "Qwen3-235B-A22B",
-        "Qwen3-Next-80B-A3B-Instruct": "Qwen3-Next-80B",
+        "Qwen3-Next-80B-A3B-Instruct": "Qwen3-Next-80B-A3B",
         "GLM-4.5-Air": "GLM-4.5-Air",
-        "gemma-3-27b-it": "Gemma-3-27B",
-        "Llama-3.3-70B-Instruct": "Llama-3.3-70B",
-        "NVIDIA-Nemotron-Nano-12B-v2": "Nemotron-Nano-12B",
+        "gemma-3-27b-it": "Gemma-3-27B-IT",
+        "Llama-3.3-70B-Instruct": "Llama-3.3-70B-Instruct",
+        "NVIDIA-Nemotron-Nano-12B-v2": "Nemotron-Nano-12B-v2",
     }
     return mapping.get(model_key, model_key.replace("msra-", ""))
 
@@ -291,12 +291,18 @@ def draw_results_by_application(
     output_dir="outputs/size",
 ):
     """
-    Nature-style multi-panel figure.
+    Nature-style multi-panel figure with panel-specific y-axis limits.
 
     One figure per application.
     Each figure has 8 panels, one per model.
     Each panel shows normalized absolute selection-rate disparity
     across contextual ratios for different candidate-pool sizes.
+
+    Note:
+    Each subplot uses its own y-axis upper limit:
+        ax.set_ylim(ymin, ymax_i)
+    where ymax_i is based on that panel's maximum CI upper bound plus
+    additional margin for significance stars.
     """
 
     set_nature_style()
@@ -334,13 +340,6 @@ def draw_results_by_application(
             }
 
     for application in applications:
-        ymin, ymax = get_global_ylim(
-            application=application,
-            application_to_model_to_delta=application_to_model_to_delta,
-            model_names=model_names,
-            context_sizes=context_sizes,
-        )
-
         fig, axes = plt.subplots(
             2, 4,
             figsize=(7.45, 4.35),   # close to Nature double-column width
@@ -353,6 +352,8 @@ def draw_results_by_application(
         for i, model_key in enumerate(model_names):
             ax = axes[i]
 
+            ymin = 0.0
+
             # Light horizontal grid only
             ax.grid(
                 axis="y",
@@ -363,7 +364,11 @@ def draw_results_by_application(
             )
             ax.axhline(0, color="0.30", linewidth=0.7, zorder=1)
 
+            # Store the highest CI upper bound at each ratio for star placement
             panel_upper_by_ratio = {r: 0.0 for r in ratio_strs}
+
+            # Store the overall highest CI upper bound in this panel
+            panel_ci_upper_values = []
 
             for cs in context_sizes:
                 delta_by_ratio = (
@@ -396,12 +401,12 @@ def draw_results_by_application(
                     yerr_high.append(max(0.0, hi - y))
 
                     panel_upper_by_ratio[rstr] = max(panel_upper_by_ratio[rstr], hi)
+                    panel_ci_upper_values.append(hi)
 
                 if len(xs) == 0:
                     continue
 
                 yerr = np.vstack([yerr_low, yerr_high])
-
                 style = context_style[cs]
 
                 ax.errorbar(
@@ -421,23 +426,55 @@ def draw_results_by_application(
                     zorder=3,
                 )
 
-            # Significance stars, placed inside each panel
+            # ---------------------------------------------------------
+            # Panel-specific y-axis upper limit
+            # ---------------------------------------------------------
+            if len(panel_ci_upper_values) == 0:
+                ymax_i = 1.0
+                panel_data_top = 1.0
+            else:
+                panel_data_top = max(panel_ci_upper_values)
+                panel_data_top = max(panel_data_top, 0.05)
+
+            # Get p-values for this model
             per_ratio_p = (
                 application_to_model_to_pvalue
                 .get(application, {})
                 .get(model_key, {})
             )
 
-            yspan = ymax - ymin
+            # First compute star positions, then choose ymax_i large enough
+            # to contain both error bars and stars.
+            star_positions = {}
+
+            # Offset is based on this panel's own scale
+            star_offset = 0.075 * panel_data_top
+
             for rx, rstr in zip(ratio_x, ratio_strs):
                 stars = p_to_stars(per_ratio_p.get(rstr, float("nan")))
-                if stars:
-                    y_star = panel_upper_by_ratio.get(rstr, 0.0) + 0.045 * yspan
-                    y_star = min(y_star, ymax - 0.08 * yspan)
 
+                if stars:
+                    y_star = panel_upper_by_ratio.get(rstr, 0.0) + star_offset
+                    star_positions[rstr] = y_star
+
+            if star_positions:
+                ymax_i = max(
+                    panel_data_top * 1.2,
+                    max(star_positions.values()) + 0.15 * panel_data_top,
+                )
+            else:
+                ymax_i = panel_data_top * 1.2
+
+            ax.set_ylim(ymin, ymax_i)
+
+            # Now draw significance stars using the panel-specific scale
+            for rx, rstr in zip(ratio_x, ratio_strs):
+                stars = p_to_stars(per_ratio_p.get(rstr, float("nan")))
+
+                if stars:
                     ax.text(
                         rx,
-                        y_star,
+                        star_positions[rstr],
                         stars,
                         ha="center",
                         va="bottom",
@@ -456,7 +493,6 @@ def draw_results_by_application(
             )
 
             ax.set_xlim(12, 88)
-            # ax.set_ylim(ymin, ymax)
 
             ax.set_xticks(ratio_x)
             ax.set_xticklabels(["20", "40", "60", "80"])
@@ -511,7 +547,6 @@ def draw_results_by_application(
             columnspacing=1.4,
         )
 
-        # Compact figure title
         fig.suptitle(
             f"{application.capitalize()}: contextual {attribute_type.lower()} disparity",
             fontsize=10.5,
@@ -524,11 +559,11 @@ def draw_results_by_application(
             right=0.995,
             bottom=0.135,
             top=0.875,
-            wspace=0.22,
+            wspace=0.28,
             hspace=0.38,
         )
 
-        base = f"{safe_slug(application)}_{safe_slug(attribute_type)}_nature_style"
+        base = f"{safe_slug(application)}_{safe_slug(attribute_type)}_nature_style_free_y"
 
         pdf_path = os.path.join(output_dir, base + ".pdf")
         png_path = os.path.join(output_dir, base + ".png")
