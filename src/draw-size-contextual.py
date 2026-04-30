@@ -294,12 +294,12 @@ def draw_combined_gender_race_by_application(
     Nature-style combined multi-panel figure.
 
     For each application, draw one large figure:
-        - Top two rows: Gender
-        - Bottom two rows: Race
+        - Top block: Gender, arranged as 2 x 4 panels
+        - Bottom block: Race, arranged as 2 x 4 panels
 
-    Each attribute block contains 8 model panels arranged as 2 x 4.
-    Each subplot uses its own y-axis upper limit based on its own CI upper bound,
-    with additional margin for significance stars.
+    This version uses nested GridSpec:
+        - outer_hspace controls the gap between Gender and Race
+        - inner_hspace controls the row spacing within each block
     """
 
     set_nature_style()
@@ -334,7 +334,6 @@ def draw_combined_gender_race_by_application(
                 "label": f"Pool size {cs}",
             }
 
-    # Collect all applications across attribute types
     applications = sorted({
         application
         for attribute_type in attribute_types
@@ -343,14 +342,42 @@ def draw_combined_gender_race_by_application(
 
     for application in applications:
 
-        # 4 rows = 2 rows for Gender + 2 rows for Race
-        fig, axes = plt.subplots(
-            4, 4,
-            figsize=(7.45, 8.25),
-            sharex=True,
-            sharey=False,
+        # ------------------------------------------------------------------
+        # Nested GridSpec layout
+        # ------------------------------------------------------------------
+        fig = plt.figure(figsize=(7.45, 8.25))
+
+        outer_gs = fig.add_gridspec(
+            2, 1,
+            left=0.095,
+            right=0.995,
+            bottom=0.105,
+            top=0.935,
+            hspace=0.3,   # larger gap between Gender and Race blocks
         )
 
+        gender_gs = outer_gs[0].subgridspec(
+            2, 4,
+            wspace=0.30,
+            hspace=0.35,   # smaller row spacing within Gender block
+        )
+
+        race_gs = outer_gs[1].subgridspec(
+            2, 4,
+            wspace=0.30,
+            hspace=0.35,   # smaller row spacing within Race block
+        )
+
+        axes = np.empty((4, 4), dtype=object)
+
+        for r in range(2):
+            for c in range(4):
+                axes[r, c] = fig.add_subplot(gender_gs[r, c])
+                axes[r + 2, c] = fig.add_subplot(race_gs[r, c])
+
+        # ------------------------------------------------------------------
+        # Draw panels
+        # ------------------------------------------------------------------
         for attr_idx, attribute_type in enumerate(attribute_types):
             row_offset = attr_idx * 2
 
@@ -364,7 +391,6 @@ def draw_combined_gender_race_by_application(
 
                 ymin = 0.0
 
-                # Light horizontal grid only
                 ax.grid(
                     axis="y",
                     color="0.88",
@@ -434,9 +460,9 @@ def draw_combined_gender_race_by_application(
                         zorder=3,
                     )
 
-                # -----------------------------------------------------
+                # ----------------------------------------------------------
                 # Panel-specific y-axis upper limit
-                # -----------------------------------------------------
+                # ----------------------------------------------------------
                 if len(panel_ci_upper_values) == 0:
                     panel_data_top = 1.0
                 else:
@@ -468,7 +494,6 @@ def draw_combined_gender_race_by_application(
 
                 ax.set_ylim(ymin, ymax_i)
 
-                # Significance stars
                 for rx, rstr in zip(ratio_x, ratio_strs):
                     stars = p_to_stars(per_ratio_p.get(rstr, float("nan")))
 
@@ -509,7 +534,11 @@ def draw_combined_gender_race_by_application(
                     width=0.7,
                 )
 
-        # Shared labels
+        # ------------------------------------------------------------------
+        # Shared label and legend
+        # ------------------------------------------------------------------
+
+        # Keep this removed if you do not want the shared x-label.
         fig.supxlabel(
             "Proportion of focal group in candidate pool (%)",
             fontsize=9.2,
@@ -522,7 +551,6 @@ def draw_combined_gender_race_by_application(
             x=0.018,
         )
 
-        # Legend
         legend_handles = [
             Line2D(
                 [0], [0],
@@ -548,26 +576,17 @@ def draw_combined_gender_race_by_application(
             columnspacing=1.4,
         )
 
-        fig.subplots_adjust(
-            left=0.095,
-            right=0.995,
-            bottom=0.115,
-            top=0.95,
-            wspace=0.30,
-            hspace=0.48,
-        )
-
-        # Row-block labels: Gender and Race
-        # Need positions after subplots_adjust.
+        # ------------------------------------------------------------------
+        # Block subtitles: Gender and Race
+        # ------------------------------------------------------------------
         for attr_idx, attribute_type in enumerate(attribute_types):
             row_offset = attr_idx * 2
 
-            # Top edge of the first row in this block
             pos_top_left = axes[row_offset, 0].get_position()
             pos_top_right = axes[row_offset, 3].get_position()
 
             x_center = (pos_top_left.x0 + pos_top_right.x1) / 2
-            y_text = pos_top_left.y1 + 0.03
+            y_text = pos_top_left.y1 + 0.025
 
             fig.text(
                 x_center,
