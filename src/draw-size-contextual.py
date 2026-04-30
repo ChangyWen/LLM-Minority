@@ -282,33 +282,29 @@ def get_global_ylim(application, application_to_model_to_delta, model_names, con
     return 0.0, ymax * 1.25
 
 
-def draw_results_by_application(
-    application_to_model_to_delta,
-    application_to_model_to_pvalue,
-    attribute_type,
+def draw_combined_gender_race_by_application(
+    attribute_type_to_application_to_model_to_delta,
+    attribute_type_to_application_to_model_to_pvalue,
+    attribute_types,
     model_names,
     context_sizes,
     output_dir="outputs/size",
 ):
     """
-    Nature-style multi-panel figure with panel-specific y-axis limits.
+    Nature-style combined multi-panel figure.
 
-    One figure per application.
-    Each figure has 8 panels, one per model.
-    Each panel shows normalized absolute selection-rate disparity
-    across contextual ratios for different candidate-pool sizes.
+    For each application, draw one large figure:
+        - Top two rows: Gender
+        - Bottom two rows: Race
 
-    Note:
-    Each subplot uses its own y-axis upper limit:
-        ax.set_ylim(ymin, ymax_i)
-    where ymax_i is based on that panel's maximum CI upper bound plus
-    additional margin for significance stars.
+    Each attribute block contains 8 model panels arranged as 2 x 4.
+    Each subplot uses its own y-axis upper limit based on its own CI upper bound,
+    with additional margin for significance stars.
     """
 
     set_nature_style()
     os.makedirs(output_dir, exist_ok=True)
 
-    applications = sorted(application_to_model_to_delta.keys())
     context_sizes = list(sorted(context_sizes))
 
     ratio_strs = ["20%", "40%", "60%", "80%"]
@@ -328,7 +324,6 @@ def draw_results_by_application(
         },
     }
 
-    # Fallback style if more context sizes are added later
     fallback_colors = ["#009E73", "#CC79A7", "#56B4E9", "#E69F00"]
 
     for idx, cs in enumerate(context_sizes):
@@ -339,186 +334,192 @@ def draw_results_by_application(
                 "label": f"Pool size {cs}",
             }
 
+    # Collect all applications across attribute types
+    applications = sorted({
+        application
+        for attribute_type in attribute_types
+        for application in attribute_type_to_application_to_model_to_delta[attribute_type].keys()
+    })
+
     for application in applications:
+
+        # 4 rows = 2 rows for Gender + 2 rows for Race
         fig, axes = plt.subplots(
-            2, 4,
-            figsize=(7.45, 4.35),   # close to Nature double-column width
+            4, 4,
+            figsize=(7.45, 8.25),
             sharex=True,
             sharey=False,
         )
 
-        axes = axes.flatten()
+        for attr_idx, attribute_type in enumerate(attribute_types):
+            row_offset = attr_idx * 2
 
-        for i, model_key in enumerate(model_names):
-            ax = axes[i]
+            application_to_model_to_delta = attribute_type_to_application_to_model_to_delta[attribute_type]
+            application_to_model_to_pvalue = attribute_type_to_application_to_model_to_pvalue[attribute_type]
 
-            ymin = 0.0
+            for i, model_key in enumerate(model_names):
+                row = row_offset + (i // 4)
+                col = i % 4
+                ax = axes[row, col]
 
-            # Light horizontal grid only
-            ax.grid(
-                axis="y",
-                color="0.88",
-                linewidth=0.6,
-                linestyle="-",
-                zorder=0,
-            )
-            ax.axhline(0, color="0.30", linewidth=0.7, zorder=1)
+                ymin = 0.0
 
-            # Store the highest CI upper bound at each ratio for star placement
-            panel_upper_by_ratio = {r: 0.0 for r in ratio_strs}
-
-            # Store the overall highest CI upper bound in this panel
-            panel_ci_upper_values = []
-
-            for cs in context_sizes:
-                delta_by_ratio = (
-                    application_to_model_to_delta
-                    .get(application, {})
-                    .get(model_key, {})
-                    .get(cs, {})
+                # Light horizontal grid only
+                ax.grid(
+                    axis="y",
+                    color="0.88",
+                    linewidth=0.6,
+                    linestyle="-",
+                    zorder=0,
                 )
+                ax.axhline(0, color="0.30", linewidth=0.7, zorder=1)
 
-                if not delta_by_ratio:
-                    continue
+                panel_upper_by_ratio = {r: 0.0 for r in ratio_strs}
+                panel_ci_upper_values = []
 
-                xs, ys, yerr_low, yerr_high = [], [], [], []
-
-                for rx, rstr in zip(ratio_x, ratio_strs):
-                    if rstr not in delta_by_ratio:
-                        continue
-
-                    d = delta_by_ratio[rstr]
-
-                    y = float(d["delta"])
-
-                    # The quantity is non-negative, so the display CI is clipped at 0.
-                    lo = max(0.0, float(d["ci_low"]))
-                    hi = max(0.0, float(d["ci_high"]))
-
-                    xs.append(rx)
-                    ys.append(y)
-                    yerr_low.append(max(0.0, y - lo))
-                    yerr_high.append(max(0.0, hi - y))
-
-                    panel_upper_by_ratio[rstr] = max(panel_upper_by_ratio[rstr], hi)
-                    panel_ci_upper_values.append(hi)
-
-                if len(xs) == 0:
-                    continue
-
-                yerr = np.vstack([yerr_low, yerr_high])
-                style = context_style[cs]
-
-                ax.errorbar(
-                    xs,
-                    ys,
-                    yerr=yerr,
-                    fmt=style["marker"] + "-",
-                    color=style["color"],
-                    markerfacecolor="white",
-                    markeredgecolor=style["color"],
-                    markeredgewidth=1.0,
-                    markersize=4.2,
-                    linewidth=1.25,
-                    elinewidth=0.85,
-                    capsize=2.2,
-                    capthick=0.85,
-                    zorder=3,
-                )
-
-            # ---------------------------------------------------------
-            # Panel-specific y-axis upper limit
-            # ---------------------------------------------------------
-            if len(panel_ci_upper_values) == 0:
-                ymax_i = 1.0
-                panel_data_top = 1.0
-            else:
-                panel_data_top = max(panel_ci_upper_values)
-                panel_data_top = max(panel_data_top, 0.05)
-
-            # Get p-values for this model
-            per_ratio_p = (
-                application_to_model_to_pvalue
-                .get(application, {})
-                .get(model_key, {})
-            )
-
-            # First compute star positions, then choose ymax_i large enough
-            # to contain both error bars and stars.
-            star_positions = {}
-
-            # Offset is based on this panel's own scale
-            star_offset = 0.075 * panel_data_top
-
-            for rx, rstr in zip(ratio_x, ratio_strs):
-                stars = p_to_stars(per_ratio_p.get(rstr, float("nan")))
-
-                if stars:
-                    y_star = panel_upper_by_ratio.get(rstr, 0.0) + star_offset
-                    star_positions[rstr] = y_star
-
-            if star_positions:
-                ymax_i = max(
-                    panel_data_top * 1.2,
-                    max(star_positions.values()) + 0.15 * panel_data_top,
-                )
-            else:
-                ymax_i = panel_data_top * 1.2
-
-            ax.set_ylim(ymin, ymax_i)
-
-            # Now draw significance stars using the panel-specific scale
-            for rx, rstr in zip(ratio_x, ratio_strs):
-                stars = p_to_stars(per_ratio_p.get(rstr, float("nan")))
-
-                if stars:
-                    ax.text(
-                        rx,
-                        star_positions[rstr],
-                        stars,
-                        ha="center",
-                        va="bottom",
-                        fontsize=7.5,
-                        fontweight="bold",
-                        color="0.10",
-                        zorder=4,
+                for cs in context_sizes:
+                    delta_by_ratio = (
+                        application_to_model_to_delta
+                        .get(application, {})
+                        .get(model_key, {})
+                        .get(cs, {})
                     )
 
-            ax.set_title(
-                pretty_model_name(model_key),
-                loc="center",
-                pad=4,
-                fontsize=8.5,
-                fontweight="bold",
-            )
+                    if not delta_by_ratio:
+                        continue
 
-            ax.set_xlim(12, 88)
+                    xs, ys, yerr_low, yerr_high = [], [], [], []
 
-            ax.set_xticks(ratio_x)
-            ax.set_xticklabels(["20", "40", "60", "80"])
+                    for rx, rstr in zip(ratio_x, ratio_strs):
+                        if rstr not in delta_by_ratio:
+                            continue
 
-            ax.yaxis.set_major_locator(MaxNLocator(nbins=4))
-            ax.yaxis.set_major_formatter(
-                FuncFormatter(lambda v, pos: f"{v * 100:.0f}")
-            )
+                        d = delta_by_ratio[rstr]
 
-            ax.tick_params(axis="both", direction="out", length=3.0, width=0.7)
+                        y = float(d["delta"])
 
-        # Hide unused panels, if any
-        for j in range(len(model_names), len(axes)):
-            axes[j].axis("off")
+                        # Keep the non-negative display convention.
+                        # If you want to show CIs crossing below 0, remove max(0.0, ...).
+                        lo = max(0.0, float(d["ci_low"]))
+                        hi = max(0.0, float(d["ci_high"]))
+
+                        xs.append(rx)
+                        ys.append(y)
+                        yerr_low.append(max(0.0, y - lo))
+                        yerr_high.append(max(0.0, hi - y))
+
+                        panel_upper_by_ratio[rstr] = max(panel_upper_by_ratio[rstr], hi)
+                        panel_ci_upper_values.append(hi)
+
+                    if len(xs) == 0:
+                        continue
+
+                    yerr = np.vstack([yerr_low, yerr_high])
+                    style = context_style[cs]
+
+                    ax.errorbar(
+                        xs,
+                        ys,
+                        yerr=yerr,
+                        fmt=style["marker"] + "-",
+                        color=style["color"],
+                        markerfacecolor="white",
+                        markeredgecolor=style["color"],
+                        markeredgewidth=1.0,
+                        markersize=4.0,
+                        linewidth=1.20,
+                        elinewidth=0.80,
+                        capsize=2.0,
+                        capthick=0.80,
+                        zorder=3,
+                    )
+
+                # -----------------------------------------------------
+                # Panel-specific y-axis upper limit
+                # -----------------------------------------------------
+                if len(panel_ci_upper_values) == 0:
+                    panel_data_top = 1.0
+                else:
+                    panel_data_top = max(panel_ci_upper_values)
+                    panel_data_top = max(panel_data_top, 0.05)
+
+                per_ratio_p = (
+                    application_to_model_to_pvalue
+                    .get(application, {})
+                    .get(model_key, {})
+                )
+
+                star_positions = {}
+                star_offset = 0.075 * panel_data_top
+
+                for rx, rstr in zip(ratio_x, ratio_strs):
+                    stars = p_to_stars(per_ratio_p.get(rstr, float("nan")))
+                    if stars:
+                        y_star = panel_upper_by_ratio.get(rstr, 0.0) + star_offset
+                        star_positions[rstr] = y_star
+
+                if star_positions:
+                    ymax_i = max(
+                        panel_data_top * 1.20,
+                        max(star_positions.values()) + 0.15 * panel_data_top,
+                    )
+                else:
+                    ymax_i = panel_data_top * 1.20
+
+                ax.set_ylim(ymin, ymax_i)
+
+                # Significance stars
+                for rx, rstr in zip(ratio_x, ratio_strs):
+                    stars = p_to_stars(per_ratio_p.get(rstr, float("nan")))
+
+                    if stars:
+                        ax.text(
+                            rx,
+                            star_positions[rstr],
+                            stars,
+                            ha="center",
+                            va="bottom",
+                            fontsize=7.0,
+                            fontweight="bold",
+                            color="0.10",
+                            zorder=4,
+                        )
+
+                ax.set_title(
+                    pretty_model_name(model_key),
+                    loc="center",
+                    pad=4,
+                    fontsize=8.0,
+                    fontweight="bold",
+                )
+
+                ax.set_xlim(12, 88)
+                ax.set_xticks(ratio_x)
+                ax.set_xticklabels(["20", "40", "60", "80"])
+
+                ax.yaxis.set_major_locator(MaxNLocator(nbins=4))
+                ax.yaxis.set_major_formatter(
+                    FuncFormatter(lambda v, pos: f"{v * 100:.0f}")
+                )
+
+                ax.tick_params(
+                    axis="both",
+                    direction="out",
+                    length=3.0,
+                    width=0.7,
+                )
 
         # Shared labels
         fig.supxlabel(
             "Proportion of focal group in candidate pool (%)",
             fontsize=9.2,
-            y=0.1,
+            y=0.055,
         )
 
         fig.supylabel(
             "Normalized absolute selection-rate difference (%)",
             fontsize=9.2,
-            x=0.030,
+            x=0.018,
         )
 
         # Legend
@@ -540,39 +541,48 @@ def draw_results_by_application(
         fig.legend(
             handles=legend_handles,
             loc="lower center",
-            bbox_to_anchor=(0.5, 0.01),
+            bbox_to_anchor=(0.5, 0.010),
             ncol=len(context_sizes),
             frameon=False,
             handlelength=1.8,
             columnspacing=1.4,
         )
 
-        # fig.suptitle(
-        #     f"{application.capitalize()}: contextual {attribute_type.lower()} disparity",
-        #     fontsize=10.5,
-        #     fontweight="bold",
-        #     y=1.045,
-        # )
-
         fig.subplots_adjust(
             left=0.095,
             right=0.995,
-            bottom=0.20,
-            top=0.90,
-            wspace=0.28,
-            hspace=0.38,
+            bottom=0.115,
+            top=0.965,
+            wspace=0.30,
+            hspace=0.48,
         )
 
-        base = f"{safe_slug(application)}_{safe_slug(attribute_type)}_nature_style_free_y"
+        # Row-block labels: Gender and Race
+        # Need positions after subplots_adjust.
+        for attr_idx, attribute_type in enumerate(attribute_types):
+            row_offset = attr_idx * 2
 
+            pos_top = axes[row_offset, 0].get_position()
+            pos_bottom = axes[row_offset + 1, 0].get_position()
+
+            y_mid = (pos_top.y1 + pos_bottom.y0) / 2
+
+            fig.text(
+                0.052,
+                y_mid,
+                attribute_type,
+                rotation=90,
+                va="center",
+                ha="center",
+                fontsize=9.5,
+                fontweight="bold",
+            )
+
+        base = f"{safe_slug(application)}_Gender_Race_combined_nature_style_free_y"
         pdf_path = os.path.join(output_dir, base + ".pdf")
-        # png_path = os.path.join(output_dir, base + ".png")
 
         fig.savefig(pdf_path, bbox_inches="tight")
-        # fig.savefig(png_path, dpi=600, bbox_inches="tight")
-
         print(f"Saved: {pdf_path}")
-        # print(f"Saved: {png_path}")
 
         plt.close(fig)
 
@@ -595,41 +605,73 @@ if __name__ == "__main__":
 
     attribute_types = ["Gender", "Race"]
 
+    attribute_type_to_application_to_model_to_delta = {}
+    attribute_type_to_application_to_model_to_pvalue = {}
+
     for attribute_type in attribute_types:
         application_to_model_to_delta = defaultdict(lambda: defaultdict(dict))
         application_to_model_to_pvalue = defaultdict(lambda: defaultdict(dict))
+
         for application in applications:
             for model_name in model_names:
                 counts_size5 = None
                 counts_size10 = None
+
                 for context_size in context_sizes:
                     if "no_thinking" in model_name:
-                        file_name = f"outputs/{application}/contextual/{attribute_type}/{model_name[:-12]}_{context_size}_500_no_thinking.jsonl"
+                        file_name = (
+                            f"outputs/{application}/contextual/{attribute_type}/"
+                            f"{model_name[:-12]}_{context_size}_500_no_thinking.jsonl"
+                        )
                         if not os.path.exists(file_name):
-                            file_name = f"outputs/{application}/contextual/{attribute_type}/{model_name[:-12]}_{context_size}_200_no_thinking.jsonl"
+                            file_name = (
+                                f"outputs/{application}/contextual/{attribute_type}/"
+                                f"{model_name[:-12]}_{context_size}_200_no_thinking.jsonl"
+                            )
                     else:
-                        file_name = f"outputs/{application}/contextual/{attribute_type}/{model_name}_{context_size}_500.jsonl"
+                        file_name = (
+                            f"outputs/{application}/contextual/{attribute_type}/"
+                            f"{model_name}_{context_size}_500.jsonl"
+                        )
                         if not os.path.exists(file_name):
-                            file_name = f"outputs/{application}/contextual/{attribute_type}/{model_name}_{context_size}_200.jsonl"
+                            file_name = (
+                                f"outputs/{application}/contextual/{attribute_type}/"
+                                f"{model_name}_{context_size}_200.jsonl"
+                            )
+
                     if not os.path.exists(file_name):
                         continue
-                        # raise FileNotFoundError(f"File not found: {application} {attribute_type} {model_name}")
 
                     delta = compute_results(file_name, context_size)
-                    raw_data = dict([(k, v["raw_data"]) for k, v in delta.items()])
+                    raw_data = {
+                        k: v["raw_data"]
+                        for k, v in delta.items()
+                    }
+
                     if context_size == 5:
                         counts_size5 = raw_data
                     else:
                         counts_size10 = raw_data
+
                     application_to_model_to_delta[application][model_name][context_size] = delta
+
                 per_ratio_p = iut_pvalue_by_ratio(counts_size5, counts_size10)
                 application_to_model_to_pvalue[application][model_name] = per_ratio_p
-                print(f"attribute_type: {attribute_type}, application: {application}, model_name: {model_name}, per_ratio_p: {per_ratio_p}")
 
-        draw_results_by_application(
-            application_to_model_to_delta=application_to_model_to_delta,
-            application_to_model_to_pvalue=application_to_model_to_pvalue,
-            attribute_type=attribute_type,
-            model_names=model_names,
-            context_sizes=context_sizes,
-        )
+                print(
+                    f"attribute_type: {attribute_type}, "
+                    f"application: {application}, "
+                    f"model_name: {model_name}, "
+                    f"per_ratio_p: {per_ratio_p}"
+                )
+
+        attribute_type_to_application_to_model_to_delta[attribute_type] = application_to_model_to_delta
+        attribute_type_to_application_to_model_to_pvalue[attribute_type] = application_to_model_to_pvalue
+
+    draw_combined_gender_race_by_application(
+        attribute_type_to_application_to_model_to_delta=attribute_type_to_application_to_model_to_delta,
+        attribute_type_to_application_to_model_to_pvalue=attribute_type_to_application_to_model_to_pvalue,
+        attribute_types=attribute_types,
+        model_names=model_names,
+        context_sizes=context_sizes,
+    )
