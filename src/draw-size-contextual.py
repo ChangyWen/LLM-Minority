@@ -567,7 +567,7 @@ def draw_combined_gender_race_by_application(
             pos_top_right = axes[row_offset, 3].get_position()
 
             x_center = (pos_top_left.x0 + pos_top_right.x1) / 2
-            y_text = pos_top_left.y1 + 0.015
+            y_text = pos_top_left.y1 + 0.03
 
             fig.text(
                 x_center,
