@@ -12,6 +12,8 @@ from scipy.stats import t
 from scipy.stats import chi2_contingency, norm
 from statistics import NormalDist
 from matplotlib.lines import Line2D
+import re
+import string
 
 
 # -----------------------------
@@ -79,23 +81,94 @@ def one_sided_p(delta10, se10, delta5, se5):
     return 1.0 - NormalDist().cdf(z)
 
 
-def iut_pvalue_by_ratio(counts_size5, counts_size10, ratios=("20%","40%","60%","80%")):
+# ---------------------------------------------------------------------
+# Robust p-value computation
+# ---------------------------------------------------------------------
+def iut_pvalue_by_ratio(counts_size5, counts_size10, ratios=("20%", "40%", "60%", "80%")):
+    """
+    Per-ratio one-sided tests for whether the normalized disparity
+    is larger under context size 10 than under context size 5.
+
+    Returns a dictionary:
+        {"20%": p, "40%": p, ...}
+
+    If either context size is missing, returns an empty dictionary.
+    """
+    if counts_size5 is None or counts_size10 is None:
+        return {}
+
     per_ratio_p = {}
 
     for r in ratios:
         if r not in counts_size5 or r not in counts_size10:
-            continue  # or raise if you expect all ratios
+            continue
 
-        d5,  se5  = norm_delta_and_se(counts_size5[r],  context_size=5)
+        d5, se5 = norm_delta_and_se(counts_size5[r], context_size=5)
         d10, se10 = norm_delta_and_se(counts_size10[r], context_size=10)
 
-        p = one_sided_p(d10, se10, d5, se5)  # tests d10 > d5
+        p = one_sided_p(d10, se10, d5, se5)
         per_ratio_p[r] = p
 
-    if len(per_ratio_p) == 0:
-        return {}, float("nan")
-
     return per_ratio_p
+
+
+# ---------------------------------------------------------------------
+# Nature-style plotting helpers
+# ---------------------------------------------------------------------
+def set_nature_style():
+    """
+    Compact, clean plotting style suitable for Nature-style multi-panel figures.
+    """
+    plt.rcParams.update({
+        "font.family": "sans-serif",
+        "font.sans-serif": ["Arial", "Helvetica", "DejaVu Sans"],
+
+        # Keep text editable in Illustrator / Inkscape
+        "pdf.fonttype": 42,
+        "ps.fonttype": 42,
+
+        "figure.dpi": 150,
+        "savefig.dpi": 600,
+
+        "axes.linewidth": 0.7,
+        "axes.edgecolor": "0.15",
+        "axes.spines.top": False,
+        "axes.spines.right": False,
+
+        "axes.titlesize": 8.5,
+        "axes.labelsize": 9.0,
+        "xtick.labelsize": 8.0,
+        "ytick.labelsize": 8.0,
+        "legend.fontsize": 8.5,
+
+        "xtick.major.width": 0.7,
+        "ytick.major.width": 0.7,
+        "xtick.major.size": 3.0,
+        "ytick.major.size": 3.0,
+
+        "lines.linewidth": 1.25,
+    })
+
+
+def pretty_model_name(model_key):
+    """
+    Shorter display names for compact multi-panel figures.
+    """
+    mapping = {
+        "msra-gpt-4o": "GPT-4o",
+        "gpt-oss-120b": "GPT-OSS-120B",
+        "Qwen3-235B-A22B-Instruct-2507": "Qwen3-235B-A22B",
+        "Qwen3-Next-80B-A3B-Instruct": "Qwen3-Next-80B",
+        "GLM-4.5-Air": "GLM-4.5-Air",
+        "gemma-3-27b-it": "Gemma-3-27B",
+        "Llama-3.3-70B-Instruct": "Llama-3.3-70B",
+        "NVIDIA-Nemotron-Nano-12B-v2": "Nemotron-Nano-12B",
+    }
+    return mapping.get(model_key, model_key.replace("msra-", ""))
+
+
+def safe_slug(text):
+    return re.sub(r"[^A-Za-z0-9_.-]+", "_", str(text)).strip("_")
 
 
 def compute_results(file_name, context_size, max_n_trials=1000000):
@@ -180,33 +253,54 @@ def compute_results(file_name, context_size, max_n_trials=1000000):
     return results["delta"]
 
 
+def get_global_ylim(application, application_to_model_to_delta, model_names, context_sizes):
+    """
+    Compute a common y-axis limit across all model panels within one figure.
+    This improves comparability across subplots.
+    """
+    upper_values = []
+
+    for model_key in model_names:
+        for cs in context_sizes:
+            delta_by_ratio = (
+                application_to_model_to_delta
+                .get(application, {})
+                .get(model_key, {})
+                .get(cs, {})
+            )
+
+            for _, d in delta_by_ratio.items():
+                upper_values.append(max(0.0, float(d["ci_high"])))
+
+    if not upper_values:
+        return 0.0, 1.0
+
+    ymax = max(upper_values)
+    ymax = max(ymax, 0.05)
+
+    # Add headroom for significance stars
+    return 0.0, ymax * 1.25
+
+
 def draw_results_by_application(
     application_to_model_to_delta,
     application_to_model_to_pvalue,
     attribute_type,
     model_names,
     context_sizes,
+    output_dir="outputs/size",
 ):
     """
+    Nature-style multi-panel figure.
+
     One figure per application.
-    8 subplots (2x4) in the order of `model_names`.
-    Each subplot: x = contextual ratio (20%, 40%, 60%, 80%),
-    two lines for context sizes (e.g., 5 and 10),
-    y = delta (with 95% CI).
-    Stars on xticks reflect per-ratio p-values.
-    Shared legend between suptitle and subplots.
+    Each figure has 8 panels, one per model.
+    Each panel shows normalized absolute selection-rate disparity
+    across contextual ratios for different candidate-pool sizes.
     """
 
-    plt.rcParams.update({
-        "font.size": 11,
-        "axes.titlesize": 12,
-        "axes.labelsize": 11,
-        "xtick.labelsize": 10,
-        "ytick.labelsize": 10,
-        "axes.edgecolor": "black",
-        "axes.linewidth": 0.8,
-    })
-    sns.set_theme(style="whitegrid")
+    set_nature_style()
+    os.makedirs(output_dir, exist_ok=True)
 
     applications = sorted(application_to_model_to_delta.keys())
     context_sizes = list(sorted(context_sizes))
@@ -214,174 +308,249 @@ def draw_results_by_application(
     ratio_strs = ["20%", "40%", "60%", "80%"]
     ratio_x = np.array([20, 40, 60, 80], dtype=float)
 
-    # Modern colors for context sizes
-    cs_palette = sns.color_palette("tab10", n_colors=max(2, len(context_sizes)))
-    context_size_to_color = {cs: cs_palette[i] for i, cs in enumerate(context_sizes)}
+    # Colorblind-safe Okabe-Ito palette
+    context_style = {
+        5: {
+            "color": "#0072B2",
+            "marker": "o",
+            "label": "Pool size 5",
+        },
+        10: {
+            "color": "#D55E00",
+            "marker": "s",
+            "label": "Pool size 10",
+        },
+    }
+
+    # Fallback style if more context sizes are added later
+    fallback_colors = ["#009E73", "#CC79A7", "#56B4E9", "#E69F00"]
+
+    for idx, cs in enumerate(context_sizes):
+        if cs not in context_style:
+            context_style[cs] = {
+                "color": fallback_colors[idx % len(fallback_colors)],
+                "marker": "o",
+                "label": f"Pool size {cs}",
+            }
 
     for application in applications:
+        ymin, ymax = get_global_ylim(
+            application=application,
+            application_to_model_to_delta=application_to_model_to_delta,
+            model_names=model_names,
+            context_sizes=context_sizes,
+        )
+
         fig, axes = plt.subplots(
             2, 4,
-            figsize=(16.5, 7.2),
-            sharex=False,
-            sharey=False
+            figsize=(7.45, 4.35),   # close to Nature double-column width
+            sharex=True,
+            sharey=True,
         )
-        axes = axes.flatten()
 
-        # We'll collect legend handles from the first subplot that actually draws both/any lines
-        # --- Shared legend (proxy handles; robust even if some subplots have missing data) ---
-        legend_handles = [
-            Line2D(
-                [0], [0],
-                color=context_size_to_color[cs],
-                marker="o",
-                linestyle="-",
-                linewidth=1.6,
-                markersize=6.5,
-                markeredgecolor="black",
-                markeredgewidth=0.7,
-            )
-            for cs in context_sizes
-        ]
-        legend_labels = [f"Contextual Size={cs}" for cs in context_sizes]
+        axes = axes.flatten()
 
         for i, model_key in enumerate(model_names):
             ax = axes[i]
 
-            # Remove upper and right spines
-            ax.spines["top"].set_visible(False)
-            ax.spines["right"].set_visible(False)
+            # Light horizontal grid only
+            ax.grid(
+                axis="y",
+                color="0.88",
+                linewidth=0.6,
+                linestyle="-",
+                zorder=0,
+            )
+            ax.axhline(0, color="0.30", linewidth=0.7, zorder=1)
 
-            # Draw one line per context size
+            panel_upper_by_ratio = {r: 0.0 for r in ratio_strs}
+
             for cs in context_sizes:
-                if (
-                    application not in application_to_model_to_delta
-                    or model_key not in application_to_model_to_delta[application]
-                    or cs not in application_to_model_to_delta[application][model_key]
-                ):
+                delta_by_ratio = (
+                    application_to_model_to_delta
+                    .get(application, {})
+                    .get(model_key, {})
+                    .get(cs, {})
+                )
+
+                if not delta_by_ratio:
                     continue
 
-                delta_by_ratio = application_to_model_to_delta[application][model_key][cs]
+                xs, ys, yerr_low, yerr_high = [], [], [], []
 
-                xs, ys, yerr_lo, yerr_hi = [], [], [], []
                 for rx, rstr in zip(ratio_x, ratio_strs):
                     if rstr not in delta_by_ratio:
                         continue
+
                     d = delta_by_ratio[rstr]
+
                     y = float(d["delta"])
-                    lo = float(d["ci_low"])
-                    hi = float(d["ci_high"])
+
+                    # The quantity is non-negative, so the display CI is clipped at 0.
+                    lo = max(0.0, float(d["ci_low"]))
+                    hi = max(0.0, float(d["ci_high"]))
 
                     xs.append(rx)
                     ys.append(y)
-                    yerr_lo.append(y - lo)
-                    yerr_hi.append(hi - y)
+                    yerr_low.append(max(0.0, y - lo))
+                    yerr_high.append(max(0.0, hi - y))
+
+                    panel_upper_by_ratio[rstr] = max(panel_upper_by_ratio[rstr], hi)
 
                 if len(xs) == 0:
                     continue
 
-                yerr = np.vstack([yerr_lo, yerr_hi])  # (2, N) asymmetric
+                yerr = np.vstack([yerr_low, yerr_high])
 
-                cont = ax.errorbar(
-                    xs, ys,
+                style = context_style[cs]
+
+                ax.errorbar(
+                    xs,
+                    ys,
                     yerr=yerr,
-                    fmt="-o",
-                    markersize=6.5,
-                    capsize=4.0,
-                    elinewidth=1.5,
-                    linewidth=1.6,
-                    markeredgecolor="black",
-                    markeredgewidth=0.7,
-                    color=context_size_to_color[cs],
+                    fmt=style["marker"] + "-",
+                    color=style["color"],
+                    markerfacecolor="white",
+                    markeredgecolor=style["color"],
+                    markeredgewidth=1.0,
+                    markersize=4.2,
+                    linewidth=1.25,
+                    elinewidth=0.85,
+                    capsize=2.2,
+                    capthick=0.85,
                     zorder=3,
                 )
 
-            # Display name only (DO NOT overwrite the key used for dict lookup)
-            display_model_name = model_key.replace("msra-", "")
-            ax.set_title(display_model_name, fontweight="bold", pad=8, fontsize=16)
+            # Significance stars, placed inside each panel
+            per_ratio_p = (
+                application_to_model_to_pvalue
+                .get(application, {})
+                .get(model_key, {})
+            )
 
-            # ----- stars on xticks based on per-ratio p-values -----
-            per_ratio_p = {}
-            if (
-                application_to_model_to_pvalue is not None
-                and application in application_to_model_to_pvalue
-                and model_key in application_to_model_to_pvalue[application]
-                and isinstance(application_to_model_to_pvalue[application][model_key], dict)
-            ):
-                per_ratio_p = application_to_model_to_pvalue[application][model_key]
+            yspan = ymax - ymin
+            for rx, rstr in zip(ratio_x, ratio_strs):
+                stars = p_to_stars(per_ratio_p.get(rstr, float("nan")))
+                if stars:
+                    y_star = panel_upper_by_ratio.get(rstr, 0.0) + 0.045 * yspan
+                    y_star = min(y_star, ymax - 0.08 * yspan)
 
-            tick_labels = []
-            for r in ratio_strs:
-                p = per_ratio_p.get(r, float("nan"))
-                stars = p_to_stars(p)
-                # top row: only stars; bottom row: stars + ratio
-                if i <= 3:
-                    tick_labels.append(f"{stars}")
-                else:
-                    tick_labels.append(f"{stars}\n{r}")
+                    ax.text(
+                        rx,
+                        y_star,
+                        stars,
+                        ha="center",
+                        va="bottom",
+                        fontsize=7.5,
+                        fontweight="bold",
+                        color="0.10",
+                        zorder=4,
+                    )
+
+            # Panel letter
+            ax.text(
+                -0.18,
+                1.10,
+                string.ascii_lowercase[i],
+                transform=ax.transAxes,
+                fontsize=9.5,
+                fontweight="bold",
+                va="top",
+                ha="left",
+            )
+
+            ax.set_title(
+                pretty_model_name(model_key),
+                loc="left",
+                pad=4,
+                fontsize=8.5,
+                fontweight="bold",
+            )
+
+            ax.set_xlim(12, 88)
+            ax.set_ylim(ymin, ymax)
 
             ax.set_xticks(ratio_x)
-            ax.set_xticklabels(tick_labels)
-            ax.set_xlim(10, 90)
+            ax.set_xticklabels(["20", "40", "60", "80"])
 
             ax.yaxis.set_major_locator(MaxNLocator(nbins=4))
-            ax.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"{v*100:.0f}%"))
+            ax.yaxis.set_major_formatter(
+                FuncFormatter(lambda v, pos: f"{v * 100:.0f}")
+            )
 
-            ax.grid(True, linestyle="--", linewidth=0.7, alpha=0.8)
-            ax.set_axisbelow(True)
+            ax.tick_params(axis="both", direction="out", length=3.0, width=0.7)
 
-            for spine in ax.spines.values():
-                spine.set_edgecolor("black")
-                spine.set_linewidth(0.8)
-
-            # IMPORTANT: no per-subplot legends
-            # ax.legend(...): removed
-
-        # Hide unused axes if any
+        # Hide unused panels, if any
         for j in range(len(model_names), len(axes)):
             axes[j].axis("off")
 
-        # Title
-        fig.suptitle(
-            f"{application.capitalize()} - {attribute_type}",
-            fontsize=16,
-            fontweight="bold",
-            y=0.98
-        )
-
-        fig.legend(
-            legend_handles,
-            legend_labels,
-            loc="upper center",
-            bbox_to_anchor=(0.5, 0.915),  # tune this number if needed
-            ncol=max(1, len(context_sizes)),
-            frameon=False,
-            fontsize=12,
-            handlelength=2.4,
-            columnspacing=1.6,
-            handletextpad=0.6,
+        # Shared labels
+        fig.supxlabel(
+            "Proportion of focal group in candidate pool (%)",
+            fontsize=9.2,
+            y=0.045,
         )
 
         fig.supylabel(
-            "Norm. Abs. Diff. of Selection Rate\n(Δ / random-rate)",
-            fontweight="bold",
-            fontsize=16,
-            x=0.03,
-            ha="center"
+            "Normalized absolute selection-rate difference (%)",
+            fontsize=9.2,
+            x=0.025,
         )
 
-        fig.supxlabel(
-            "Contextual Ratio",
-            fontweight="bold",
-            fontsize=16,
-            y=0.04
+        # Legend
+        legend_handles = [
+            Line2D(
+                [0], [0],
+                color=context_style[cs]["color"],
+                marker=context_style[cs]["marker"],
+                markerfacecolor="white",
+                markeredgecolor=context_style[cs]["color"],
+                markeredgewidth=1.0,
+                linewidth=1.25,
+                markersize=4.5,
+                label=context_style[cs]["label"],
+            )
+            for cs in context_sizes
+        ]
+
+        fig.legend(
+            handles=legend_handles,
+            loc="upper center",
+            bbox_to_anchor=(0.53, 0.985),
+            ncol=len(context_sizes),
+            frameon=False,
+            handlelength=1.8,
+            columnspacing=1.4,
         )
 
-        # Leave room at the top for legend + title
-        plt.tight_layout(rect=[0, 0, 1, 0.90])
+        # Compact figure title
+        fig.suptitle(
+            f"{application.capitalize()}: contextual {attribute_type.lower()} disparity",
+            fontsize=10.5,
+            fontweight="bold",
+            y=1.045,
+        )
 
-        out_path = f"outputs/size/{application}_{attribute_type}-v2.png"
-        plt.savefig(out_path, dpi=512, bbox_inches="tight")
-        print(f"Saved subplot grid to {out_path}")
+        fig.subplots_adjust(
+            left=0.095,
+            right=0.995,
+            bottom=0.135,
+            top=0.875,
+            wspace=0.22,
+            hspace=0.38,
+        )
+
+        base = f"{safe_slug(application)}_{safe_slug(attribute_type)}_nature_style"
+
+        pdf_path = os.path.join(output_dir, base + ".pdf")
+        png_path = os.path.join(output_dir, base + ".png")
+
+        fig.savefig(pdf_path, bbox_inches="tight")
+        fig.savefig(png_path, dpi=600, bbox_inches="tight")
+
+        print(f"Saved: {pdf_path}")
+        print(f"Saved: {png_path}")
+
         plt.close(fig)
 
 
