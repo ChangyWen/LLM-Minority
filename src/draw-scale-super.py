@@ -426,7 +426,7 @@ def draw_scale_block(
     )
 
     fig.text(
-        block_x0 + 0.015,
+        block_x0 + 0.005,
         block_y1 + 0.060,
         block_title,
         ha="left",
@@ -588,7 +588,7 @@ def draw_super_scale_figure(
             linestyle="",
             markerfacecolor=model_to_color[m],
             markeredgecolor="none",
-            markersize=7.0,
+            markersize=8.0,
             label=pretty_model_name(m),
         )
         for m in model_names
