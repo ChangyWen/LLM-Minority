@@ -15,11 +15,6 @@ from scipy import stats
 type_to_minority_attributes = {
     "Gender Identity": ["Transgender", "Non-binary"],
     "Sexual Orientation": ["Homosexual", "Bisexual", "Asexual"],
-    "Disability Status": ["Colorblindness", "Hearing Impairment", "Mobility Impairment"],
-    "Chronic Health Condition Status": ["HIV Positive", "Chronic Hepatitis", "Type 1 Diabetes", "Asthma"],
-    "Religious Affiliation": ["Jewish", "Jain", "Taoist"],
-    "Political Affiliation": ["Green Party", "Libertarian"],
-    "Race": ["Black"],
 }
 
 
@@ -181,22 +176,6 @@ def draw_scatter_by_application(
             zorder=1,
             label="95% CI",
         )
-        # ax.text(
-        #     0.02,
-        #     0.95,
-        #     f"Pearson r = {r:.2f}\n"
-        #     f"p (one-sided) = {p_one_sided:.3g}",
-        #     transform=ax.transAxes,
-        #     ha="left",
-        #     va="top",
-        #     fontsize=11,
-        #     bbox=dict(
-        #         boxstyle="round,pad=0.3",
-        #         facecolor="white",
-        #         edgecolor="black",
-        #         alpha=0.9,
-        #     ),
-        # )
 
         # Keep labels beside each point
         for x, y, m in zip(xs, ys, models):
