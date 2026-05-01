@@ -294,12 +294,12 @@ def draw_combined_scatter_panels(
     fig.supxlabel(
         "Model parameters (billions)",
         fontsize=9.2,
-        y=0.10,
+        y=0.15,
     )
     fig.supylabel(
         "Absolute difference in selection rate (%)\nat the minimum contextual ratio",
         fontsize=9.2,
-        x=0.02,
+        x=0.015,
     )
 
     # Shared legend for models
