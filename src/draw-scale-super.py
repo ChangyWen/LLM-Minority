@@ -352,7 +352,7 @@ def draw_scale_block(
                 ax.set_title(
                     panel_titles[application],
                     pad=5,
-                    fontsize=10.5,
+                    fontsize=14,
                 )
 
             ax.text(
@@ -362,7 +362,7 @@ def draw_scale_block(
                 transform=ax.transAxes,
                 ha="left",
                 va="top",
-                fontsize=10,
+                fontsize=14,
                 color="0.15",
             )
 
@@ -451,7 +451,7 @@ def draw_scale_block(
             attribute_type,
             ha="center",
             va="bottom",
-            fontsize=10.5,
+            fontsize=14,
             fontweight="bold",
         )
 
@@ -462,7 +462,7 @@ def draw_scale_block(
         xlabel,
         ha="center",
         va="top",
-        fontsize=10.5,
+        fontsize=14,
     )
 
     # Optional block-level y-axis label.
@@ -474,7 +474,7 @@ def draw_scale_block(
             ha="center",
             va="center",
             rotation=90,
-            fontsize=10.5,
+            fontsize=14,
         )
 
     return axes
@@ -600,7 +600,7 @@ def draw_super_scale_figure(
         bbox_to_anchor=(0.5, 0.045),
         ncol=4,
         frameon=False,
-        fontsize=10,
+        fontsize=14,
         handletextpad=0.45,
         columnspacing=1.35,
     )
