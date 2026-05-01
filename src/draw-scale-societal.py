@@ -146,9 +146,11 @@ def format_param_ticks(val, pos):
 
 def draw_combined_societal_scatter_panels(
     attribute_type_to_application_to_model_to_delta,
-    model_to_parameter_count,
+    model_to_x_value,
     attribute_types,
     model_names,
+    xlabel,
+    output_basename,
     output_dir="outputs/parameter",
 ):
     """
@@ -157,7 +159,7 @@ def draw_combined_societal_scatter_panels(
         Bottom row: Sexual Orientation
         Columns: Hiring, Loan, Scholarship
 
-    This follows the same visual style as the contextual-result figure.
+    The x-axis can represent model parameters or effective training compute.
     """
 
     set_nature_style()
@@ -185,7 +187,7 @@ def draw_combined_societal_scatter_panels(
     model_to_color = {m: palette[i % len(palette)] for i, m in enumerate(model_names)}
 
     # Global x-range across all panels
-    all_x = [model_to_parameter_count[m] for m in model_names]
+    all_x = [model_to_x_value[m] for m in model_names]
     x_min = min(all_x) * 0.85
     x_max = max(all_x) * 1.20
 
@@ -207,7 +209,7 @@ def draw_combined_societal_scatter_panels(
             ax.spines["right"].set_visible(False)
 
             xs = np.array(
-                [model_to_parameter_count[m] for m in model_names],
+                [model_to_x_value[m] for m in model_names],
                 dtype=float,
             )
             ys = np.array(
@@ -237,9 +239,9 @@ def draw_combined_societal_scatter_panels(
                 )
 
             # Regression in log-x space
-            x_log = np.log10(xs_valid)
-
             if len(xs_valid) >= 3 and np.std(ys_valid) > 0:
+                x_log = np.log10(xs_valid)
+
                 r, p_two_sided = pearsonr(x_log, ys_valid)
                 p_one_sided = p_two_sided / 2 if r > 0 else 1.0
 
@@ -286,7 +288,6 @@ def draw_combined_societal_scatter_panels(
             # Axes and styling
             ax.set_xscale("log")
             ax.set_xlim(x_min, x_max)
-
             ax.set_axisbelow(True)
 
             ax.tick_params(
@@ -302,6 +303,18 @@ def draw_combined_societal_scatter_panels(
                 top=False,
                 right=False,
             )
+
+            ax.tick_params(
+                axis="x",
+                which="minor",
+                direction="out",
+                length=2.0,
+                width=0.6,
+                color="black",
+                bottom=True,
+                top=False,
+            )
+
             ax.yaxis.set_major_formatter(
                 FuncFormatter(lambda v, pos: f"{v * 100:.0f}")
             )
@@ -311,7 +324,7 @@ def draw_combined_societal_scatter_panels(
 
     # Shared labels
     fig.supxlabel(
-        r"Model parameters ($\times 1$B, log scale)",
+        xlabel,
         fontsize=12,
         y=0.060,
     )
@@ -352,8 +365,7 @@ def draw_combined_societal_scatter_panels(
             fontweight="bold",
         )
 
-    base = "societal_parameter_vs_delta_GenderIdentity_SexualOrientation_combined_nature_style"
-    pdf_path = os.path.join(output_dir, base + ".pdf")
+    pdf_path = os.path.join(output_dir, output_basename + ".pdf")
 
     fig.savefig(pdf_path, bbox_inches="tight")
     print(f"Saved: {pdf_path}")
@@ -387,6 +399,17 @@ if __name__ == "__main__":
         "NVIDIA-Nemotron-Nano-12B-v2": 12,
     }
 
+    model_to_training_compute = {
+        "msra-gpt-4o": 3.8e+2,
+        "gpt-oss-120b": 4.94e+1,
+        "Qwen3-235B-A22B-Instruct-2507": 4.752e+1,
+        "Qwen3-Next-80B-A3B-Instruct": 2.7e+0,
+        "GLM-4.5-Air": 1.656e+1,
+        "gemma-3-27b-it": 2.268e+1,
+        "Llama-3.3-70B-Instruct": 6.86498e+1,
+        "NVIDIA-Nemotron-Nano-12B-v2": 1.5192e+1,
+    }
+
     attribute_types = ["Gender Identity", "Sexual Orientation"]
 
     attribute_type_to_application_to_model_to_delta = {}
@@ -415,9 +438,22 @@ if __name__ == "__main__":
 
         attribute_type_to_application_to_model_to_delta[attribute_type] = application_to_model_to_delta
 
+    # Figure 1: x-axis = model parameters
     draw_combined_societal_scatter_panels(
         attribute_type_to_application_to_model_to_delta=attribute_type_to_application_to_model_to_delta,
-        model_to_parameter_count=model_to_parameter_count,
+        model_to_x_value=model_to_parameter_count,
         attribute_types=attribute_types,
         model_names=model_names,
+        xlabel=r"Model parameters ($\times 1$B, log scale)",
+        output_basename="societal_parameter_vs_delta_GenderIdentity_SexualOrientation_combined_nature_style",
+    )
+
+    # Figure 2: x-axis = effective training compute
+    draw_combined_societal_scatter_panels(
+        attribute_type_to_application_to_model_to_delta=attribute_type_to_application_to_model_to_delta,
+        model_to_x_value=model_to_training_compute,
+        attribute_types=attribute_types,
+        model_names=model_names,
+        xlabel=r"Training compute in FLOPs ($\times 10^{23}$, log scale)",
+        output_basename="societal_training_compute_vs_delta_GenderIdentity_SexualOrientation_combined_nature_style",
     )
