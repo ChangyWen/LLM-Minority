@@ -10,7 +10,7 @@ from matplotlib.lines import Line2D
 from scipy.stats import pearsonr, t
 
 
-def compute_results(file_name, attribute_type, max_n_trials=1000000):
+def compute_contextual_results(file_name, attribute_type, max_n_trials=1000000):
 
     attr_value_to_results = defaultdict(lambda: {
         "same_attr_count_to_count": defaultdict(int),
@@ -417,7 +417,7 @@ if __name__ == "__main__":
                         f"File not found: {application} {attribute_type} {model_name}"
                     )
 
-                delta = compute_results(file_name, attribute_type)
+                delta = compute_contextual_results(file_name, attribute_type)
                 application_to_model_to_delta[application][model_name] = delta
 
         attribute_type_to_application_to_model_to_delta[attribute_type] = application_to_model_to_delta
