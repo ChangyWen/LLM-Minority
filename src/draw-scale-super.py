@@ -531,7 +531,7 @@ def draw_super_scale_figure(
         panel_letter="a",
         block_title="Bias towards contextual minority vs. model parameters",
         xlabel=r"Model parameters ($\times 1$B, log scale)",
-        ylabel="Absolute difference in selection rate (%)",
+        ylabel="Absolute selection-rate difference (%)",
     )
 
     # b. Contextual results vs training compute
