@@ -151,22 +151,24 @@ def format_param_ticks(val, pos):
     return f"{int(val):d}" if val >= 1 else f"{val:g}"
 
 
-def draw_scatter_panels_by_attribute(
-    application_to_model_to_delta,
+def draw_combined_scatter_panels(
+    attribute_type_to_application_to_model_to_delta,
     model_to_parameter_count,
-    attribute_type,
+    attribute_types,
     model_names,
     output_dir="outputs/parameter",
 ):
     """
-    Draw one Nature-style multi-panel figure per attribute type.
-    Panels correspond to applications.
-    Models are distinguished by a shared legend, not text annotations.
+    Draw one combined Nature-style 2x3 figure:
+        Top row: Gender
+        Bottom row: Race
+        Columns: Scholarship, Hiring, Loan
+
+    Models are distinguished by a shared legend.
     """
 
     set_nature_style()
     sns.set_theme(style="white")
-
     os.makedirs(output_dir, exist_ok=True)
 
     applications = ["edu", "hiring", "loan"]
@@ -176,8 +178,7 @@ def draw_scatter_panels_by_attribute(
         "loan": "Loan",
     }
 
-    # Consistent color per model
-    # Okabe-Ito style / colorblind-friendly palette
+    # Colorblind-friendly palette
     palette = [
         "#0072B2",  # blue
         "#D55E00",  # vermillion
@@ -190,114 +191,113 @@ def draw_scatter_panels_by_attribute(
     ]
     model_to_color = {m: palette[i % len(palette)] for i, m in enumerate(model_names)}
 
-    # Global ranges for consistent panel comparison
+    # Global ranges for consistency across all 6 panels
     all_x = []
     all_y = []
-    for application in applications:
-        for m in model_names:
-            all_x.append(model_to_parameter_count[m])
-            all_y.append(application_to_model_to_delta[application][m])
+    for attribute_type in attribute_types:
+        application_to_model_to_delta = attribute_type_to_application_to_model_to_delta[attribute_type]
+        for application in applications:
+            for m in model_names:
+                all_x.append(model_to_parameter_count[m])
+                all_y.append(application_to_model_to_delta[application][m])
 
     x_min = min(all_x) * 0.85
     x_max = max(all_x) * 1.20
-
     y_max = max(all_y) * 1.18
     y_max = max(y_max, 0.01)
 
     fig, axes = plt.subplots(
-        1, 3,
-        figsize=(7.45, 2.9),
+        2, 3,
+        figsize=(7.45, 5.6),
         sharex=True,
         sharey=True,
     )
 
-    for idx, application in enumerate(applications):
-        ax = axes[idx]
+    for row_idx, attribute_type in enumerate(attribute_types):
+        application_to_model_to_delta = attribute_type_to_application_to_model_to_delta[attribute_type]
 
-        xs = np.array([model_to_parameter_count[m] for m in model_names], dtype=float)
-        ys = np.array([application_to_model_to_delta[application][m] for m in model_names], dtype=float)
+        for col_idx, application in enumerate(applications):
+            ax = axes[row_idx, col_idx]
 
-        # Scatter points
-        for m, x, y in zip(model_names, xs, ys):
-            ax.scatter(
-                x,
-                y,
-                s=34,
-                color=model_to_color[m],
-                edgecolors="white",
-                linewidths=0.7,
-                alpha=0.95,
-                zorder=3,
+            # Remove upper and right-hand side boundaries
+            ax.spines["top"].set_visible(False)
+            ax.spines["right"].set_visible(False)
+
+            xs = np.array([model_to_parameter_count[m] for m in model_names], dtype=float)
+            ys = np.array(
+                [application_to_model_to_delta[application][m] for m in model_names],
+                dtype=float
             )
 
-        # Regression in log-x space
-        x_log = np.log10(xs)
-        r, p_two_sided = pearsonr(x_log, ys)
-        p_one_sided = p_two_sided / 2 if r > 0 else 1.0
+            # Scatter points
+            for m, x, y in zip(model_names, xs, ys):
+                ax.scatter(
+                    x,
+                    y,
+                    s=34,
+                    color=model_to_color[m],
+                    edgecolors="white",
+                    linewidths=0.7,
+                    alpha=0.95,
+                    zorder=3,
+                )
 
-        xg, yg, yl, yu = fit_linear_with_ci(x_log, ys)
+            # Regression in log-x space
+            x_log = np.log10(xs)
+            r, p_two_sided = pearsonr(x_log, ys)
+            p_one_sided = p_two_sided / 2 if r > 0 else 1.0
 
-        ax.plot(
-            10 ** xg,
-            yg,
-            color="0.15",
-            linewidth=1.35,
-            zorder=2,
-        )
-        ax.fill_between(
-            10 ** xg,
-            yl,
-            yu,
-            color="0.35",
-            alpha=0.12,
-            zorder=1,
-        )
+            xg, yg, yl, yu = fit_linear_with_ci(x_log, ys)
 
-        # Panel label
-        ax.text(
-            -0.18,
-            1.06,
-            chr(ord("a") + idx),
-            transform=ax.transAxes,
-            fontsize=9,
-            fontweight="bold",
-            va="top",
-            ha="left",
-        )
+            ax.plot(
+                10 ** xg,
+                yg,
+                color="0.15",
+                linewidth=1.35,
+                zorder=2,
+            )
+            ax.fill_between(
+                10 ** xg,
+                yl,
+                yu,
+                color="0.35",
+                alpha=0.12,
+                zorder=1,
+            )
 
-        # Panel title
-        ax.set_title(panel_titles[application], pad=5, fontweight="bold")
+            # Panel title only for the top row?
+            # Better to keep for both rows for clarity.
+            ax.set_title(panel_titles[application], pad=5, fontweight="bold")
 
-        # Correlation text
-        ax.text(
-            0.03,
-            0.96,
-            rf"$r={r:.2f}$" + "\n" + rf"$P={p_one_sided:.3f}$",
-            transform=ax.transAxes,
-            ha="left",
-            va="top",
-            fontsize=7.6,
-            color="0.15",
-        )
+            # Correlation text
+            ax.text(
+                0.03,
+                0.96,
+                rf"$r={r:.2f}$" + "\n" + rf"$P={p_one_sided:.3f}$",
+                transform=ax.transAxes,
+                ha="left",
+                va="top",
+                fontsize=7.4,
+                color="0.15",
+            )
 
-        # Axes and styling
-        ax.set_xscale("log")
-        ax.set_xlim(x_min, x_max)
-        ax.set_ylim(0, y_max)
+            # Axes and styling
+            ax.set_xscale("log")
+            ax.set_xlim(x_min, x_max)
+            ax.set_ylim(0, y_max)
 
-        ax.grid(axis="y", color="0.88", linewidth=0.6, linestyle="-")
-        ax.set_axisbelow(True)
+            ax.grid(axis="y", color="0.88", linewidth=0.6, linestyle="-")
+            ax.set_axisbelow(True)
 
-        ax.tick_params(axis="both", direction="out", length=3.0, width=0.7)
-
-        ax.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"{v * 100:.0f}%"))
-        ax.xaxis.set_major_formatter(FuncFormatter(format_param_ticks))
+            ax.tick_params(axis="both", direction="out", length=3.0, width=0.7)
+            ax.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"{v * 100:.0f}%"))
+            ax.xaxis.set_major_formatter(FuncFormatter(format_param_ticks))
 
     # Shared labels
     fig.supxlabel(
         "Model parameters (billions)",
         fontsize=9.2,
-        y=0.14,
+        y=0.10,
     )
     fig.supylabel(
         "Absolute difference in selection rate (%)\nat the minimum contextual ratio",
@@ -305,7 +305,7 @@ def draw_scatter_panels_by_attribute(
         x=0.02,
     )
 
-    # Legend for models
+    # Shared legend for models
     legend_handles = [
         Line2D(
             [0], [0],
@@ -323,7 +323,7 @@ def draw_scatter_panels_by_attribute(
     fig.legend(
         handles=legend_handles,
         loc="lower center",
-        bbox_to_anchor=(0.5, -0.03),
+        bbox_to_anchor=(0.5, -0.01),
         ncol=4,
         frameon=False,
         handletextpad=0.5,
@@ -333,14 +333,32 @@ def draw_scatter_panels_by_attribute(
     fig.subplots_adjust(
         left=0.10,
         right=0.995,
-        bottom=0.34,
-        top=0.90,
+        bottom=0.24,
+        top=0.88,
         wspace=0.25,
+        hspace=0.42,
     )
 
-    base = f"contextual_parameter_vs_delta_{safe_slug(attribute_type)}_nature_style"
-    pdf_path = os.path.join(output_dir, base + ".pdf")
+    # Row titles: Gender and Race
+    for row_idx, attribute_type in enumerate(attribute_types):
+        pos_left = axes[row_idx, 0].get_position()
+        pos_right = axes[row_idx, 2].get_position()
 
+        x_center = 0.5
+        y_text = pos_left.y1 + 0.02
+
+        fig.text(
+            x_center,
+            y_text,
+            attribute_type,
+            ha="center",
+            va="bottom",
+            fontsize=10.5,
+            fontweight="bold",
+        )
+
+    base = "contextual_parameter_vs_delta_Gender_Race_combined_nature_style"
+    pdf_path = os.path.join(output_dir, base + ".pdf")
     fig.savefig(pdf_path, bbox_inches="tight")
     print(f"Saved: {pdf_path}")
 
@@ -375,6 +393,8 @@ if __name__ == "__main__":
 
     attribute_types = ["Gender", "Race"]
 
+    attribute_type_to_application_to_model_to_delta = {}
+
     for attribute_type in attribute_types:
         application_to_model_to_delta = defaultdict(lambda: defaultdict(float))
 
@@ -391,9 +411,11 @@ if __name__ == "__main__":
                 delta = compute_results(file_name, attribute_type)
                 application_to_model_to_delta[application][model_name] = delta
 
-        draw_scatter_panels_by_attribute(
-            application_to_model_to_delta=application_to_model_to_delta,
-            model_to_parameter_count=model_to_parameter_count,
-            attribute_type=attribute_type,
-            model_names=model_names,
-        )
+        attribute_type_to_application_to_model_to_delta[attribute_type] = application_to_model_to_delta
+
+    draw_combined_scatter_panels(
+        attribute_type_to_application_to_model_to_delta=attribute_type_to_application_to_model_to_delta,
+        model_to_parameter_count=model_to_parameter_count,
+        attribute_types=attribute_types,
+        model_names=model_names,
+    )
