@@ -162,9 +162,9 @@ def draw_combined_scatter_panels(
     Draw one combined Nature-style 2x3 figure:
         Top row: Gender
         Bottom row: Race
-        Columns: Scholarship, Hiring, Loan
+        Columns: Hiring, Loan, Scholarship
 
-    Models are distinguished by a shared legend.
+    Model points are colored consistently, but the legend is omitted.
     """
 
     set_nature_style()
@@ -191,25 +191,18 @@ def draw_combined_scatter_panels(
     ]
     model_to_color = {m: palette[i % len(palette)] for i, m in enumerate(model_names)}
 
-    # Global ranges for consistency across all 6 panels
+    # Global x-range across all panels
     all_x = []
-    all_y = []
-    for attribute_type in attribute_types:
-        application_to_model_to_delta = attribute_type_to_application_to_model_to_delta[attribute_type]
-        for application in applications:
-            for m in model_names:
-                all_x.append(model_to_parameter_count[m])
-                all_y.append(application_to_model_to_delta[application][m])
+    for m in model_names:
+        all_x.append(model_to_parameter_count[m])
 
     x_min = min(all_x) * 0.85
     x_max = max(all_x) * 1.20
-    y_max = max(all_y) * 1.18
-    y_max = max(y_max, 0.01)
 
     fig, axes = plt.subplots(
         2, 3,
-        figsize=(7.45, 5.6),
-        sharex=True,
+        figsize=(7.45, 5.35),
+        sharex=False,
         sharey=False,
     )
 
@@ -219,14 +212,17 @@ def draw_combined_scatter_panels(
         for col_idx, application in enumerate(applications):
             ax = axes[row_idx, col_idx]
 
-            # Remove upper and right-hand side boundaries
+            # Remove upper and right boundaries
             ax.spines["top"].set_visible(False)
             ax.spines["right"].set_visible(False)
 
-            xs = np.array([model_to_parameter_count[m] for m in model_names], dtype=float)
+            xs = np.array(
+                [model_to_parameter_count[m] for m in model_names],
+                dtype=float,
+            )
             ys = np.array(
                 [application_to_model_to_delta[application][m] for m in model_names],
-                dtype=float
+                dtype=float,
             )
 
             # Scatter points
@@ -265,7 +261,10 @@ def draw_combined_scatter_panels(
                 zorder=1,
             )
 
-            ax.set_title(panel_titles[application], pad=5)
+            ax.set_title(
+                panel_titles[application],
+                pad=5,
+            )
 
             # Correlation text
             ax.text(
@@ -282,67 +281,55 @@ def draw_combined_scatter_panels(
             # Axes and styling
             ax.set_xscale("log")
             ax.set_xlim(x_min, x_max)
-            # ax.set_ylim(0, y_max)
 
             ax.set_axisbelow(True)
 
-            ax.tick_params(axis="both", direction="out", length=3.0, width=0.7)
-            ax.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"{v * 100:.0f}%"))
-            ax.xaxis.set_major_formatter(FuncFormatter(format_param_ticks))
+            ax.tick_params(
+                axis="both",
+                direction="out",
+                length=3.0,
+                width=0.7,
+            )
+            ax.yaxis.set_major_formatter(
+                FuncFormatter(lambda v, pos: f"{v * 100:.0f}")
+            )
+            ax.xaxis.set_major_formatter(
+                FuncFormatter(format_param_ticks)
+            )
 
     # Shared labels
     fig.supxlabel(
         "Model parameters (billions)",
         fontsize=9.2,
-        y=0.15,
+        y=0.060,
     )
+
     fig.supylabel(
         "Absolute difference in selection rate (%)\nat the minimum contextual ratio",
         fontsize=9.2,
         x=0.015,
     )
 
-    # Shared legend for models
-    legend_handles = [
-        Line2D(
-            [0], [0],
-            marker="o",
-            linestyle="",
-            markerfacecolor=model_to_color[m],
-            markeredgecolor="white",
-            markeredgewidth=0.7,
-            markersize=6.5,
-            label=pretty_model_name(m),
-        )
-        for m in model_names
-    ]
-
-    fig.legend(
-        handles=legend_handles,
-        loc="lower center",
-        bbox_to_anchor=(0.5, -0.01),
-        ncol=4,
-        frameon=False,
-        handletextpad=0.5,
-        columnspacing=1.2,
-    )
+    # No legend for now.
 
     fig.subplots_adjust(
         left=0.10,
         right=0.995,
-        bottom=0.24,
-        top=0.88,
+        bottom=0.145,
+        top=0.835,
         wspace=0.25,
-        hspace=0.42,
+        hspace=0.58,
     )
 
-    # Row titles: Gender and Race
+    # Row subtitles: Gender and Race
+    # Larger title_offset creates more space between subtitle and subfigure.
+    title_offset = 0.045
+
     for row_idx, attribute_type in enumerate(attribute_types):
         pos_left = axes[row_idx, 0].get_position()
-        pos_right = axes[row_idx, 2].get_position()
 
         x_center = 0.5
-        y_text = pos_left.y1 + 0.02
+        y_text = pos_left.y1 + title_offset
 
         fig.text(
             x_center,
@@ -350,12 +337,13 @@ def draw_combined_scatter_panels(
             attribute_type,
             ha="center",
             va="bottom",
-            # fontsize=10.5,
+            fontsize=10.5,
             fontweight="bold",
         )
 
     base = "contextual_parameter_vs_delta_Gender_Race_combined_nature_style"
     pdf_path = os.path.join(output_dir, base + ".pdf")
+
     fig.savefig(pdf_path, bbox_inches="tight")
     print(f"Saved: {pdf_path}")
 
