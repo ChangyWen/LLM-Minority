@@ -299,7 +299,7 @@ def draw_combined_scatter_panels(
 
     # Shared labels
     fig.supxlabel(
-        "Model parameters (billions)",
+        r"Model parameters ($\times 10^9$, log scale)",
         fontsize=9.2,
         y=0.060,
     )
