@@ -431,7 +431,7 @@ def draw_scale_block(
         block_title,
         ha="left",
         va="bottom",
-        fontsize=12,
+        fontsize=14,
         fontweight="bold",
     )
 
@@ -468,7 +468,7 @@ def draw_scale_block(
     # Optional block-level y-axis label.
     if ylabel is not None:
         fig.text(
-            block_x0 - 0.045,
+            block_x0 - 0.03,
             block_y_center,
             ylabel,
             ha="center",
@@ -515,8 +515,8 @@ def draw_super_scale_figure(
         right=0.995,
         bottom=0.165,
         top=0.910,
-        wspace=0.20,
-        hspace=0.38,
+        wspace=0.1,
+        hspace=0.5,
     )
 
     # a. Contextual results vs parameters
@@ -529,7 +529,7 @@ def draw_super_scale_figure(
         model_names=model_names,
         model_to_color=model_to_color,
         panel_letter="a",
-        block_title="Contextual minorities: model parameters",
+        block_title="Bias towards contextual minority vs. model parameters",
         xlabel=r"Model parameters ($\times 1$B, log scale)",
         ylabel="Absolute difference in selection rate (%)",
     )
@@ -544,7 +544,7 @@ def draw_super_scale_figure(
         model_names=model_names,
         model_to_color=model_to_color,
         panel_letter="b",
-        block_title="Contextual minorities: training compute",
+        block_title="Bias towards contextual minority vs. training compute",
         xlabel=r"Training compute in FLOPs ($\times 10^{23}$, log scale)",
         ylabel=None,
     )
@@ -559,7 +559,7 @@ def draw_super_scale_figure(
         model_names=model_names,
         model_to_color=model_to_color,
         panel_letter="c",
-        block_title="Societal minorities: model parameters",
+        block_title="Bias towards societal minorities vs. model parameters",
         xlabel=r"Model parameters ($\times 1$B, log scale)",
         ylabel="Relative difference in score (%)",
     )
@@ -574,7 +574,7 @@ def draw_super_scale_figure(
         model_names=model_names,
         model_to_color=model_to_color,
         panel_letter="d",
-        block_title="Societal minorities: training compute",
+        block_title="Bias towards societal minorities vs. training compute",
         xlabel=r"Training compute in FLOPs ($\times 10^{23}$, log scale)",
         ylabel=None,
     )
@@ -608,13 +608,8 @@ def draw_super_scale_figure(
     base = "scale_super_figure_contextual_societal_parameter_compute_nature_style"
 
     pdf_path = os.path.join(output_dir, base + ".pdf")
-    png_path = os.path.join(output_dir, base + ".png")
-
     fig.savefig(pdf_path, bbox_inches="tight")
-    fig.savefig(png_path, dpi=600, bbox_inches="tight")
-
     print(f"Saved: {pdf_path}")
-    print(f"Saved: {png_path}")
 
     plt.close(fig)
 
