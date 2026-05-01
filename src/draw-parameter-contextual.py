@@ -1,14 +1,13 @@
 import json
-import sys
-from collections import defaultdict
 import os
 import math
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from matplotlib.ticker import MaxNLocator, FuncFormatter, ScalarFormatter
-from scipy.stats import pearsonr
-from scipy.stats import t
+from collections import defaultdict
+from matplotlib.ticker import FuncFormatter
+from matplotlib.lines import Line2D
+from scipy.stats import pearsonr, t
 
 
 def compute_results(file_name, attribute_type, max_n_trials=1000000):
@@ -76,10 +75,9 @@ def fit_linear_with_ci(x, y, alpha=0.05):
     - lower CI
     - upper CI
     """
-    x = np.asarray(x)
-    y = np.asarray(y)
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
 
-    # Linear fit
     coef = np.polyfit(x, y, 1)
     y_hat = np.polyval(coef, x)
 
@@ -100,156 +98,260 @@ def fit_linear_with_ci(x, y, alpha=0.05):
     return x_grid, y_grid, y_grid - ci, y_grid + ci
 
 
-def draw_scatter_by_application(
+def set_nature_style():
+    plt.rcParams.update({
+        "font.family": "sans-serif",
+        "font.sans-serif": ["Arial", "Helvetica", "DejaVu Sans"],
+        "pdf.fonttype": 42,
+        "ps.fonttype": 42,
+
+        "figure.dpi": 150,
+        "savefig.dpi": 600,
+
+        "axes.linewidth": 0.7,
+        "axes.edgecolor": "0.15",
+        "axes.spines.top": False,
+        "axes.spines.right": False,
+
+        "axes.titlesize": 9,
+        "axes.labelsize": 9,
+        "xtick.labelsize": 8,
+        "ytick.labelsize": 8,
+        "legend.fontsize": 8,
+
+        "xtick.major.width": 0.7,
+        "ytick.major.width": 0.7,
+        "xtick.major.size": 3.0,
+        "ytick.major.size": 3.0,
+
+        "lines.linewidth": 1.2,
+    })
+
+
+def pretty_model_name(model_key):
+    mapping = {
+        "msra-gpt-4o": "GPT-4o",
+        "gpt-oss-120b": "GPT-OSS-120B",
+        "Qwen3-235B-A22B-Instruct-2507": "Qwen3-235B-A22B",
+        "Qwen3-Next-80B-A3B-Instruct": "Qwen3-Next-80B-A3B",
+        "GLM-4.5-Air": "GLM-4.5-Air",
+        "gemma-3-27b-it": "Gemma-3-27B-IT",
+        "Llama-3.3-70B-Instruct": "Llama-3.3-70B-Instruct",
+        "NVIDIA-Nemotron-Nano-12B-v2": "Nemotron-Nano-12B-v2",
+    }
+    return mapping.get(model_key, model_key.replace("msra-", ""))
+
+
+def safe_slug(text):
+    import re
+    return re.sub(r"[^A-Za-z0-9_.-]+", "_", str(text)).strip("_")
+
+
+def format_param_ticks(val, pos):
+    return f"{int(val):d}" if val >= 1 else f"{val:g}"
+
+
+def draw_scatter_panels_by_attribute(
     application_to_model_to_delta,
     model_to_parameter_count,
     attribute_type,
+    model_names,
+    output_dir="outputs/parameter",
 ):
     """
-    For each application, draw a scatter plot:
-      x-axis: training compute
-      y-axis: delta
-    One figure per application (per attribute_type).
+    Draw one Nature-style multi-panel figure per attribute type.
+    Panels correspond to applications.
+    Models are distinguished by a shared legend, not text annotations.
     """
 
-    # Match global style with your current code
-    plt.rcParams.update({
-        "font.size": 11,
-        "axes.titlesize": 13,
-        "axes.labelsize": 11,
-        "xtick.labelsize": 10,
-        "ytick.labelsize": 10,
-        "axes.edgecolor": "black",
-        "axes.linewidth": 0.8,
-    })
-    sns.set_theme(style="whitegrid")
+    set_nature_style()
+    sns.set_theme(style="white")
 
-    applications = sorted(application_to_model_to_delta.keys())
-    some_app = next(iter(application_to_model_to_delta.values()))
-    models = sorted(some_app.keys())
+    os.makedirs(output_dir, exist_ok=True)
 
-    # One consistent color per model
-    palette = sns.color_palette("Set2", n_colors=len(models))
-    model_to_color = {m: palette[i] for i, m in enumerate(models)}
+    applications = ["edu", "hiring", "loan"]
+    panel_titles = {
+        "edu": "Scholarship",
+        "hiring": "Hiring",
+        "loan": "Loan",
+    }
 
+    # Consistent color per model
+    # Okabe-Ito style / colorblind-friendly palette
+    palette = [
+        "#0072B2",  # blue
+        "#D55E00",  # vermillion
+        "#009E73",  # bluish green
+        "#CC79A7",  # reddish purple
+        "#E69F00",  # orange
+        "#56B4E9",  # sky blue
+        "#000000",  # black
+        "#F0E442",  # yellow
+    ]
+    model_to_color = {m: palette[i % len(palette)] for i, m in enumerate(model_names)}
+
+    # Global ranges for consistent panel comparison
+    all_x = []
+    all_y = []
     for application in applications:
-        fig, ax = plt.subplots(figsize=(8, 6))
+        for m in model_names:
+            all_x.append(model_to_parameter_count[m])
+            all_y.append(application_to_model_to_delta[application][m])
 
-        # Remove upper and right-hand side boundaries
-        ax.spines["top"].set_visible(False)
-        ax.spines["right"].set_visible(False)
+    x_min = min(all_x) * 0.85
+    x_max = max(all_x) * 1.20
 
-        xs, ys, cs = [], [], []
-        for m in models:
-            xs.append(model_to_parameter_count[m])
-            ys.append(application_to_model_to_delta[application][m])
-            cs.append(model_to_color[m])
+    y_max = max(all_y) * 1.18
+    y_max = max(y_max, 0.01)
 
-        # Scatter
-        ax.scatter(
-            xs,
-            ys,
-            s=55,
-            c=cs,
-            edgecolors="black",
-            linewidths=0.6,
-            zorder=3,
-        )
+    fig, axes = plt.subplots(
+        1, 3,
+        figsize=(7.45, 2.9),
+        sharex=True,
+        sharey=True,
+    )
 
-        # ---- Regression (log-space x) ----
+    for idx, application in enumerate(applications):
+        ax = axes[idx]
+
+        xs = np.array([model_to_parameter_count[m] for m in model_names], dtype=float)
+        ys = np.array([application_to_model_to_delta[application][m] for m in model_names], dtype=float)
+
+        # Scatter points
+        for m, x, y in zip(model_names, xs, ys):
+            ax.scatter(
+                x,
+                y,
+                s=34,
+                color=model_to_color[m],
+                edgecolors="white",
+                linewidths=0.7,
+                alpha=0.95,
+                zorder=3,
+            )
+
+        # Regression in log-x space
         x_log = np.log10(xs)
-        y_arr = np.array(ys)
-
-        # Pearson r (one-sided: positive correlation)
-        r, p_two_sided = pearsonr(x_log, y_arr)
+        r, p_two_sided = pearsonr(x_log, ys)
         p_one_sided = p_two_sided / 2 if r > 0 else 1.0
 
-        # Fit line + CI
-        xg, yg, yl, yu = fit_linear_with_ci(x_log, y_arr)
+        xg, yg, yl, yu = fit_linear_with_ci(x_log, ys)
 
-        # Convert back to original x-scale for plotting
         ax.plot(
             10 ** xg,
             yg,
-            color="black",
-            linewidth=2.0,
+            color="0.15",
+            linewidth=1.35,
             zorder=2,
-            label="Linear fit",
         )
         ax.fill_between(
             10 ** xg,
             yl,
             yu,
-            color="black",
-            alpha=0.15,
+            color="0.35",
+            alpha=0.12,
             zorder=1,
-            label="95% CI",
         )
 
-        # Keep labels beside each point
-        for x, y, m in zip(xs, ys, models):
-            m = m.replace("msra-", "")
-            ax.annotate(
-                m,
-                (x, y),
-                textcoords="offset points",
-                xytext=(6, 5),
-                ha="left",
-                va="bottom",
-                fontsize=9,
-                alpha=0.9,
-            )
-
-        # Axes
-        ax.set_xlabel("Model Parameters")
-        ax.set_ylabel("Abs. Diff. of Selection Rate (w.r.t. min. contextual ratio)")
-
-        ax.set_xscale("log")
-        ax.xaxis.set_major_formatter(ScalarFormatter())
-
-        ax.yaxis.set_major_locator(MaxNLocator(nbins=4))
-        ax.yaxis.set_major_formatter(
-            FuncFormatter(lambda v, pos: f"{v*100:.0f}%")
-        )
-
-        # Manually add scale label on x-axis (without scientific ticks)
+        # Panel label
         ax.text(
-            1.01, -0.02, r"($\times 10^9$)",
+            -0.18,
+            1.06,
+            chr(ord("a") + idx),
             transform=ax.transAxes,
-            fontsize=10,
+            fontsize=9,
+            fontweight="bold",
+            va="top",
+            ha="left",
+        )
+
+        # Panel title
+        ax.set_title(panel_titles[application], pad=5, fontweight="bold")
+
+        # Correlation text
+        ax.text(
+            0.03,
+            0.96,
+            rf"$r={r:.2f}$" + "\n" + rf"$P={p_one_sided:.3f}$",
+            transform=ax.transAxes,
             ha="left",
             va="top",
+            fontsize=7.6,
+            color="0.15",
         )
 
-        # Grid & spines (same style as before)
-        ax.grid(True, linestyle="--", linewidth=0.7, alpha=0.8)
+        # Axes and styling
+        ax.set_xscale("log")
+        ax.set_xlim(x_min, x_max)
+        ax.set_ylim(0, y_max)
+
+        ax.grid(axis="y", color="0.88", linewidth=0.6, linestyle="-")
         ax.set_axisbelow(True)
-        for spine in ax.spines.values():
-            spine.set_edgecolor("black")
-            spine.set_linewidth(0.8)
 
-        # ✅ Updated title format
-        ax.set_title(
-            f"{application.capitalize()} - {attribute_type}",
-            fontsize=16,
-            fontweight="bold",
-            pad=12,
+        ax.tick_params(axis="both", direction="out", length=3.0, width=0.7)
+
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"{v * 100:.0f}%"))
+        ax.xaxis.set_major_formatter(FuncFormatter(format_param_ticks))
+
+    # Shared labels
+    fig.supxlabel(
+        "Model parameters (billions)",
+        fontsize=9.2,
+        y=0.14,
+    )
+    fig.supylabel(
+        "Absolute difference in selection rate (%)\nat the minimum contextual ratio",
+        fontsize=9.2,
+        x=0.02,
+    )
+
+    # Legend for models
+    legend_handles = [
+        Line2D(
+            [0], [0],
+            marker="o",
+            linestyle="",
+            markerfacecolor=model_to_color[m],
+            markeredgecolor="white",
+            markeredgewidth=0.7,
+            markersize=6.5,
+            label=pretty_model_name(m),
         )
+        for m in model_names
+    ]
 
-        plt.tight_layout()
-        out_dir = f"outputs/parameter/"
-        os.makedirs(out_dir, exist_ok=True)
-        out_path = f"outputs/parameter/contextual_parameter_vs_delta_{application}_{attribute_type}.png"
-        plt.savefig(out_path, dpi=512, bbox_inches="tight")
-        print(f"Saved scatter plot to {out_path}")
-        plt.close(fig)
+    fig.legend(
+        handles=legend_handles,
+        loc="lower center",
+        bbox_to_anchor=(0.5, -0.03),
+        ncol=4,
+        frameon=False,
+        handletextpad=0.5,
+        columnspacing=1.2,
+    )
+
+    fig.subplots_adjust(
+        left=0.10,
+        right=0.995,
+        bottom=0.34,
+        top=0.90,
+        wspace=0.25,
+    )
+
+    base = f"contextual_parameter_vs_delta_{safe_slug(attribute_type)}_nature_style"
+    pdf_path = os.path.join(output_dir, base + ".pdf")
+
+    fig.savefig(pdf_path, bbox_inches="tight")
+    print(f"Saved: {pdf_path}")
+
+    plt.close(fig)
 
 
 if __name__ == "__main__":
     applications = ["edu", "hiring", "loan"]
 
     model_names = [
-        # "msra-gpt-4o",
+        "msra-gpt-4o",
         "gpt-oss-120b",
         "Qwen3-235B-A22B-Instruct-2507",
         "Qwen3-Next-80B-A3B-Instruct",
@@ -259,7 +361,7 @@ if __name__ == "__main__":
         "NVIDIA-Nemotron-Nano-12B-v2",
     ]
 
-    # * 1B
+    # in billions
     model_to_parameter_count = {
         "msra-gpt-4o": 250,
         "gpt-oss-120b": 120,
@@ -275,19 +377,23 @@ if __name__ == "__main__":
 
     for attribute_type in attribute_types:
         application_to_model_to_delta = defaultdict(lambda: defaultdict(float))
+
         for application in applications:
             for model_name in model_names:
                 file_name = f"outputs/{application}/contextual/{attribute_type}/{model_name}_5_500.jsonl"
                 if not os.path.exists(file_name):
                     file_name = f"outputs/{application}/contextual/{attribute_type}/{model_name}_5_200.jsonl"
                 if not os.path.exists(file_name):
-                    raise FileNotFoundError(f"File not found: {application} {attribute_type} {model_name}")
+                    raise FileNotFoundError(
+                        f"File not found: {application} {attribute_type} {model_name}"
+                    )
 
                 delta = compute_results(file_name, attribute_type)
                 application_to_model_to_delta[application][model_name] = delta
 
-        draw_scatter_by_application(
+        draw_scatter_panels_by_attribute(
             application_to_model_to_delta=application_to_model_to_delta,
             model_to_parameter_count=model_to_parameter_count,
             attribute_type=attribute_type,
+            model_names=model_names,
         )
