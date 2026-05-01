@@ -300,7 +300,7 @@ def draw_combined_scatter_panels(
 
     # Shared labels
     fig.supxlabel(
-        r"Model parameters ($\times 10^9$, log scale)",
+        r"Model parameters ($\times 1$B, log scale)",
         fontsize=10,
         y=0.060,
     )

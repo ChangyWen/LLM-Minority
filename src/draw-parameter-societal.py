@@ -236,15 +236,6 @@ def draw_combined_societal_scatter_panels(
                     zorder=3,
                 )
 
-            # Zero reference line, useful because societal differences can be positive or negative
-            ax.axhline(
-                0,
-                color="0.65",
-                linewidth=0.75,
-                linestyle="-",
-                zorder=1,
-            )
-
             # Regression in log-x space
             x_log = np.log10(xs_valid)
 
@@ -305,7 +296,7 @@ def draw_combined_societal_scatter_panels(
                 width=0.7,
             )
             ax.yaxis.set_major_formatter(
-                FuncFormatter(lambda v, pos: f"{v * 100:.0f}%")
+                FuncFormatter(lambda v, pos: f"{v * 100:.0f}")
             )
             ax.xaxis.set_major_formatter(
                 FuncFormatter(format_param_ticks)
@@ -313,7 +304,7 @@ def draw_combined_societal_scatter_panels(
 
     # Shared labels
     fig.supxlabel(
-        r"Model parameters ($\times 10^9$, log scale)",
+        r"Model parameters ($\times 1$B, log scale)",
         fontsize=10,
         y=0.060,
     )
@@ -321,7 +312,7 @@ def draw_combined_societal_scatter_panels(
     fig.supylabel(
         "Relative difference in score (%)",
         fontsize=10,
-        x=0.03,
+        x=0.05,
     )
 
     # No legend for now.
