@@ -319,7 +319,7 @@ def draw_combined_societal_scatter_panels(
     )
 
     fig.supylabel(
-        "Relative difference in score (%)\n[(minority - majority) / majority]",
+        "Relative difference in score (%)",
         fontsize=10,
         x=0.03,
     )
