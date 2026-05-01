@@ -171,7 +171,7 @@ def draw_combined_scatter_panels(
     sns.set_theme(style="white")
     os.makedirs(output_dir, exist_ok=True)
 
-    applications = ["edu", "hiring", "loan"]
+    applications = ["hiring", "loan", "edu"]
     panel_titles = {
         "edu": "Scholarship",
         "hiring": "Hiring",
@@ -180,14 +180,14 @@ def draw_combined_scatter_panels(
 
     # Colorblind-friendly palette
     palette = [
-        "#0072B2",  # blue
-        "#D55E00",  # vermillion
-        "#009E73",  # bluish green
-        "#CC79A7",  # reddish purple
-        "#E69F00",  # orange
-        "#56B4E9",  # sky blue
-        "#000000",  # black
-        "#F0E442",  # yellow
+        "#9ba415ff",  # Olive
+        "#459434ff",  # Green
+        "#019aa3ff",  # Teal
+        "#0272b2ff",  # Blue
+        "#a84e94ff",  # Purple
+        "#c93e3fff",  # Red
+        "#ec6f00ff",  # Orange
+        "#cca02cff",  # Yellow
     ]
     model_to_color = {m: palette[i % len(palette)] for i, m in enumerate(model_names)}
 
@@ -210,7 +210,7 @@ def draw_combined_scatter_panels(
         2, 3,
         figsize=(7.45, 5.6),
         sharex=True,
-        sharey=True,
+        sharey=False,
     )
 
     for row_idx, attribute_type in enumerate(attribute_types):
@@ -265,9 +265,7 @@ def draw_combined_scatter_panels(
                 zorder=1,
             )
 
-            # Panel title only for the top row?
-            # Better to keep for both rows for clarity.
-            ax.set_title(panel_titles[application], pad=5, fontweight="bold")
+            ax.set_title(panel_titles[application], pad=5)
 
             # Correlation text
             ax.text(
@@ -284,9 +282,8 @@ def draw_combined_scatter_panels(
             # Axes and styling
             ax.set_xscale("log")
             ax.set_xlim(x_min, x_max)
-            ax.set_ylim(0, y_max)
+            # ax.set_ylim(0, y_max)
 
-            ax.grid(axis="y", color="0.88", linewidth=0.6, linestyle="-")
             ax.set_axisbelow(True)
 
             ax.tick_params(axis="both", direction="out", length=3.0, width=0.7)
@@ -353,7 +350,7 @@ def draw_combined_scatter_panels(
             attribute_type,
             ha="center",
             va="bottom",
-            fontsize=10.5,
+            # fontsize=10.5,
             fontweight="bold",
         )
 
