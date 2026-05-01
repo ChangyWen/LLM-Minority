@@ -268,7 +268,7 @@ def draw_combined_societal_scatter_panels(
             ax.set_title(
                 panel_titles[application],
                 pad=5,
-                fontsize=10,
+                fontsize=12,
             )
 
             # Correlation text
@@ -279,7 +279,7 @@ def draw_combined_societal_scatter_panels(
                 transform=ax.transAxes,
                 ha="left",
                 va="top",
-                fontsize=10,
+                fontsize=12,
                 color="0.15",
             )
 
@@ -312,14 +312,14 @@ def draw_combined_societal_scatter_panels(
     # Shared labels
     fig.supxlabel(
         r"Model parameters ($\times 1$B, log scale)",
-        fontsize=10,
+        fontsize=12,
         y=0.060,
     )
 
     fig.supylabel(
         "Relative difference in score (%)",
-        fontsize=10,
-        x=0.05,
+        fontsize=12,
+        x=0.045,
     )
 
     # No legend for now.
@@ -348,7 +348,7 @@ def draw_combined_societal_scatter_panels(
             attribute_type,
             ha="center",
             va="bottom",
-            fontsize=10,
+            fontsize=12,
             fontweight="bold",
         )
 
