@@ -270,7 +270,7 @@ def draw_scale_block(
         2,
         3,
         wspace=0.12,
-        hspace=0.68,
+        hspace=0.90,
     )
 
     axes = np.empty((2, 3), dtype=object)
@@ -352,7 +352,7 @@ def draw_scale_block(
                 ax.set_title(
                     panel_titles[application],
                     pad=5,
-                    fontsize=14,
+                    fontsize=16,
                 )
 
             ax.text(
@@ -362,7 +362,7 @@ def draw_scale_block(
                 transform=ax.transAxes,
                 ha="left",
                 va="top",
-                fontsize=14,
+                fontsize=16,
                 color="0.15",
             )
 
@@ -421,7 +421,7 @@ def draw_scale_block(
         panel_letter,
         ha="left",
         va="bottom",
-        fontsize=14,
+        fontsize=16,
         fontweight="bold",
     )
 
@@ -431,7 +431,7 @@ def draw_scale_block(
         block_title,
         ha="left",
         va="bottom",
-        fontsize=14,
+        fontsize=16,
         fontweight="bold",
     )
 
@@ -451,7 +451,7 @@ def draw_scale_block(
             attribute_type,
             ha="center",
             va="bottom",
-            fontsize=14,
+            fontsize=16,
             fontweight="bold",
         )
 
@@ -462,7 +462,7 @@ def draw_scale_block(
         xlabel,
         ha="center",
         va="top",
-        fontsize=14,
+        fontsize=16,
     )
 
     # Optional block-level y-axis label.
@@ -474,7 +474,7 @@ def draw_scale_block(
             ha="center",
             va="center",
             rotation=90,
-            fontsize=14,
+            fontsize=16,
         )
 
     return axes
@@ -513,10 +513,10 @@ def draw_super_scale_figure(
         2,
         left=0.075,
         right=0.995,
-        bottom=0.19,
+        bottom=0.22,
         top=0.910,
         wspace=0.08,
-        hspace=0.6,
+        hspace=0.73,
     )
 
     # a. Contextual results vs parameters
@@ -600,7 +600,7 @@ def draw_super_scale_figure(
         bbox_to_anchor=(0.5, 0.045),
         ncol=4,
         frameon=False,
-        fontsize=14,
+        fontsize=16,
         handletextpad=0.45,
         columnspacing=1.35,
     )
