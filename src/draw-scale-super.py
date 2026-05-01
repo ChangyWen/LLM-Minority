@@ -310,7 +310,7 @@ def draw_scale_block(
                 ax.scatter(
                     x,
                     y,
-                    s=50,
+                    s=54,
                     color=model_to_color[m],
                     edgecolors="none",
                     linewidths=0,
@@ -513,7 +513,7 @@ def draw_super_scale_figure(
         2,
         left=0.075,
         right=0.995,
-        bottom=0.165,
+        bottom=0.19,
         top=0.910,
         wspace=0.08,
         hspace=0.6,
