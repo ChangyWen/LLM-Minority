@@ -515,8 +515,8 @@ def draw_super_scale_figure(
         right=0.995,
         bottom=0.165,
         top=0.910,
-        wspace=0.1,
-        hspace=0.5,
+        wspace=0.08,
+        hspace=0.6,
     )
 
     # a. Contextual results vs parameters
