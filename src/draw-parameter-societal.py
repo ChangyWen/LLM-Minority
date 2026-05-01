@@ -291,9 +291,16 @@ def draw_combined_societal_scatter_panels(
 
             ax.tick_params(
                 axis="both",
+                which="major",
                 direction="out",
-                length=3.0,
-                width=0.7,
+                length=3.5,
+                width=0.8,
+                color="black",
+                labelcolor="black",
+                bottom=True,
+                left=True,
+                top=False,
+                right=False,
             )
             ax.yaxis.set_major_formatter(
                 FuncFormatter(lambda v, pos: f"{v * 100:.0f}")
