@@ -230,10 +230,10 @@ def draw_combined_scatter_panels(
                 ax.scatter(
                     x,
                     y,
-                    s=34,
+                    s=50,
                     color=model_to_color[m],
-                    edgecolors="white",
-                    linewidths=0.7,
+                    edgecolors="none",
+                    linewidths=0,
                     alpha=0.95,
                     zorder=3,
                 )
@@ -264,17 +264,18 @@ def draw_combined_scatter_panels(
             ax.set_title(
                 panel_titles[application],
                 pad=5,
+                fontsize=10,
             )
 
             # Correlation text
             ax.text(
                 0.03,
                 0.96,
-                rf"$r={r:.2f}$" + "\n" + rf"$P={p_one_sided:.3f}$",
+                rf"$r={r:.2f}$" + "\n" + rf"$P={p_one_sided:.2f}$",
                 transform=ax.transAxes,
                 ha="left",
                 va="top",
-                fontsize=7.4,
+                fontsize=10,
                 color="0.15",
             )
 
@@ -300,14 +301,14 @@ def draw_combined_scatter_panels(
     # Shared labels
     fig.supxlabel(
         r"Model parameters ($\times 10^9$, log scale)",
-        fontsize=9.2,
+        fontsize=10,
         y=0.060,
     )
 
     fig.supylabel(
         "Absolute difference in selection rate (%)\nat the minimum contextual ratio",
-        fontsize=9.2,
-        x=0.015,
+        fontsize=10,
+        x=0.03,
     )
 
     # No legend for now.
@@ -317,7 +318,7 @@ def draw_combined_scatter_panels(
         right=0.995,
         bottom=0.145,
         top=0.835,
-        wspace=0.25,
+        wspace=0.12,   # smaller horizontal gap between subfigures
         hspace=0.58,
     )
 
@@ -337,7 +338,7 @@ def draw_combined_scatter_panels(
             attribute_type,
             ha="center",
             va="bottom",
-            fontsize=10.5,
+            fontsize=10,
             fontweight="bold",
         )
 
