@@ -556,13 +556,13 @@ def draw_attribute_big_figure(
 
     attr_style = get_attribute_style(attribute_type)
 
-    fig = plt.figure(figsize=(7.45, 11.6))
+    fig = plt.figure(figsize=(10.2, 11.6))
 
     outer_gs = fig.add_gridspec(
         3,
         1,
-        left=0.090,
-        right=0.925,
+        left=0.125,    # more room for the main y-axis label
+        right=0.875,   # more room for the twin y-axis label
         bottom=0.090,
         top=0.940,
         hspace=0.42,
@@ -574,7 +574,7 @@ def draw_attribute_big_figure(
         inner_gs = outer_gs[app_idx].subgridspec(
             2,
             4,
-            wspace=0.30,
+            wspace=0.55,    # larger horizontal gap between model panels
             hspace=0.36,
         )
 
@@ -635,11 +635,11 @@ def draw_attribute_big_figure(
     fig.supylabel(
         "Selection rate",
         fontsize=9.2,
-        x=0.022,
+        x=0.035,   # farther from the left edge of the panels
     )
 
     fig.text(
-        0.965,
+        0.965,     # farther from the right edge of the panels
         0.515,
         attr_style["right_ylabel"],
         va="center",
