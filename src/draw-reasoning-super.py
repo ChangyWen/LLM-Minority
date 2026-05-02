@@ -351,8 +351,8 @@ def draw_reasoning_block(
     }
 
     pair_defs = [
-        ("GLM-4.5-Air", "GLM-4.5-Air_no_thinking", "GLM-4.5-Air"),
-        ("NVIDIA-Nemotron-Nano-12B-v2", "NVIDIA-Nemotron-Nano-12B-v2_no_thinking", "Nemotron-12B"),
+        ("GLM-4.5-Air", "GLM-4.5-Air_no_thinking", "GLM"),
+        ("NVIDIA-Nemotron-Nano-12B-v2", "NVIDIA-Nemotron-Nano-12B-v2_no_thinking", "Nemotron"),
     ]
 
     model_order = [p[2] for p in pair_defs]
@@ -436,11 +436,10 @@ def draw_reasoning_block(
 
             ax.set_xticks([model_to_x[m] for m in model_order])
             ax.set_xticklabels(model_order)
-
             for tick_label in ax.get_xticklabels():
                 model_name = tick_label.get_text()
                 tick_label.set_color(base_to_color[model_name])
-                tick_label.set_fontweight("bold")
+                # tick_label.set_fontweight("bold")
 
             ax.yaxis.set_major_locator(MaxNLocator(nbins=4))
             ax.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"{v * 100:.0f}%"))
@@ -521,16 +520,6 @@ def draw_reasoning_block(
             fontweight="bold",
         )
 
-    # Block-level labels
-    fig.text(
-        block_x_center,
-        block_y0 - 0.055,
-        "Model",
-        ha="center",
-        va="top",
-        fontsize=11,
-    )
-
     fig.text(
         block_x0 - 0.045,
         block_y_center,
@@ -560,8 +549,8 @@ def draw_reasoning_super_figure(
 
     # Professional, colorblind-safe colors
     base_to_color = {
-        "GLM-4.5-Air": "#0072B2",
-        "Nemotron-12B": "#D55E00",
+        "GLM": "#0072B2",
+        "Nemotron": "#D55E00",
     }
 
     mode_to_marker = {
@@ -614,28 +603,28 @@ def draw_reasoning_super_figure(
             [0],
             marker="o",
             linestyle="",
-            markerfacecolor=base_to_color["GLM-4.5-Air"],
+            markerfacecolor="#0072B2",
             markeredgecolor="none",
             markersize=8.0,
-            label="GLM-4.5-Air",
+            label="GLM: GLM-4.5-Air",
         ),
         Line2D(
             [0],
             [0],
             marker="o",
             linestyle="",
-            markerfacecolor=base_to_color["Nemotron-12B"],
+            markerfacecolor="#D55E00",
             markeredgecolor="none",
             markersize=8.0,
-            label="Nemotron-12B",
+            label="Nemotron: Nemotron-Nano-12B-v2",
         ),
         Line2D(
             [0],
             [0],
-            marker=mode_to_marker["reasoning"],
+            marker="o",
             linestyle="",
-            color="0.20",
-            markerfacecolor="0.20",
+            color="black",
+            markerfacecolor="black",
             markeredgecolor="none",
             markersize=8.0,
             label="Reasoning",
@@ -643,10 +632,10 @@ def draw_reasoning_super_figure(
         Line2D(
             [0],
             [0],
-            marker=mode_to_marker["non-reasoning"],
+            marker="X",
             linestyle="",
-            color="0.20",
-            markerfacecolor="0.20",
+            color="black",
+            markerfacecolor="black",
             markeredgecolor="none",
             markersize=8.0,
             label="Non-reasoning",
@@ -656,7 +645,7 @@ def draw_reasoning_super_figure(
     fig.legend(
         handles=legend_handles,
         loc="lower center",
-        bbox_to_anchor=(0.5, 0.045),
+        bbox_to_anchor=(0.5, 0.075),
         ncol=4,
         frameon=False,
         fontsize=10,
