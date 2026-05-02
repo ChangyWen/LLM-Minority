@@ -319,12 +319,13 @@ def draw_scale_block(
                 ax.scatter(
                     x,
                     y,
-                    s=54,
+                    s=98,
                     color=model_to_color[m],
                     edgecolors="none",
                     linewidths=0,
                     alpha=0.95,
                     zorder=3,
+                    clip_on=False,
                 )
 
             if len(xs_valid) >= 3 and np.std(ys_valid) > 0 and np.std(xs_valid) > 0:
@@ -358,7 +359,7 @@ def draw_scale_block(
                 ax.set_title(
                     panel_titles[application],
                     pad=8,
-                    fontsize=16,
+                    fontsize=18,
                 )
 
             ax.text(
@@ -368,7 +369,7 @@ def draw_scale_block(
                 transform=ax.transAxes,
                 ha="left",
                 va="top",
-                fontsize=16,
+                fontsize=18,
                 color="0.15",
             )
 
@@ -413,7 +414,7 @@ def draw_scale_block(
         panel_letter,
         ha="left",
         va="bottom",
-        fontsize=16,
+        fontsize=18,
         fontweight="bold",
     )
 
@@ -423,7 +424,7 @@ def draw_scale_block(
         block_title,
         ha="left",
         va="bottom",
-        fontsize=16,
+        fontsize=18,
         fontweight="bold",
     )
 
@@ -442,7 +443,7 @@ def draw_scale_block(
             attribute_type,
             ha="center",
             va="bottom",
-            fontsize=16,
+            fontsize=18,
             fontweight="bold",
         )
 
@@ -452,7 +453,7 @@ def draw_scale_block(
         xlabel,
         ha="center",
         va="top",
-        fontsize=16,
+        fontsize=18,
     )
 
     if ylabel is not None:
@@ -463,7 +464,7 @@ def draw_scale_block(
             ha="center",
             va="center",
             rotation=90,
-            fontsize=16,
+            fontsize=18,
         )
 
     return axes
@@ -585,7 +586,7 @@ def draw_super_scale_figure(
             linestyle="",
             markerfacecolor=model_to_color[m],
             markeredgecolor="none",
-            markersize=8.0,
+            markersize=12.0,
             label=pretty_model_name(m),
         )
         for m in model_names
@@ -597,7 +598,7 @@ def draw_super_scale_figure(
         bbox_to_anchor=(0.5, 0.065),
         ncol=4,
         frameon=False,
-        fontsize=16,
+        fontsize=18,
         handletextpad=0.45,
         columnspacing=1.35,
     )
