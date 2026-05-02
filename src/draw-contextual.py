@@ -548,20 +548,20 @@ if __name__ == "__main__":
         "NVIDIA-Nemotron-Nano-12B-v2",
     ]
 
-    applications = ["hiring", "loan", "edu"]
     attribute_types = ["Gender", "Race"]
+    applications = ["hiring", "loan", "edu"]
     application_to_pool_count = {
         "edu": 500,
         "hiring": 200,
         "loan": 500,
     }
 
-    for application in applications:
-        for attribute_type in attribute_types:
+    for attribute_type in attribute_types:
+        for application in applications:
             draw_results_grid(
                 application=application,
                 attribute_type=attribute_type,
-                resume_count=5,
+                resume_count=[5, 10],
                 model_names=model_names_order,
                 pool_count=application_to_pool_count[application],
                 max_n_trials=max_n_trials,
