@@ -243,10 +243,6 @@ def format_log_ticks(val, pos):
     return f"{val:.1f}"
 
 
-def format_log_ticks(val, pos):
-    return f"{val:.1f}"
-
-
 def draw_scale_block(
     fig,
     outer_spec,
@@ -271,9 +267,9 @@ def draw_scale_block(
 
     applications = ["hiring", "loan", "edu"]
     panel_titles = {
-        "edu": "Scholarship",
+        "edu": "Scholarship application",
         "hiring": "Hiring",
-        "loan": "Loan",
+        "loan": "Loan approval",
     }
 
     inner_gs = outer_spec.subgridspec(
@@ -361,7 +357,7 @@ def draw_scale_block(
             if row_idx == 0:
                 ax.set_title(
                     panel_titles[application],
-                    pad=5,
+                    pad=8,
                     fontsize=16,
                 )
 
@@ -431,7 +427,7 @@ def draw_scale_block(
         fontweight="bold",
     )
 
-    row_title_offset = 0.026
+    row_title_offset = 0.03
 
     for row_idx, attribute_type in enumerate(attribute_types):
         pos_row_left = axes[row_idx, 0].get_position()
