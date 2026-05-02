@@ -360,8 +360,8 @@ def draw_reasoning_block(
 
     dodge = 0.16
     mode_to_dx = {
-        "reasoning": -dodge,
-        "non-reasoning": +dodge,
+        "non-reasoning": -dodge,   # left
+        "reasoning": +dodge,       # right
     }
 
     inner_gs = outer_spec.subgridspec(
@@ -616,16 +616,6 @@ def draw_reasoning_super_figure(
         # marker entries for reasoning modes
         Line2D(
             [0], [0],
-            marker="o",
-            linestyle="",
-            color="black",
-            markerfacecolor="black",
-            markeredgecolor="none",
-            markersize=8.0,
-            label="Reasoning",
-        ),
-        Line2D(
-            [0], [0],
             marker="X",
             linestyle="",
             color="black",
@@ -633,6 +623,16 @@ def draw_reasoning_super_figure(
             markeredgecolor="none",
             markersize=8.0,
             label="Non-reasoning",
+        ),
+        Line2D(
+            [0], [0],
+            marker="o",
+            linestyle="",
+            color="black",
+            markerfacecolor="black",
+            markeredgecolor="none",
+            markersize=8.0,
+            label="Reasoning",
         ),
     ]
 
