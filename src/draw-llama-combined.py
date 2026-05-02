@@ -366,7 +366,7 @@ def add_sig_bracket(
         text,
         ha="center",
         va="bottom",
-        fontsize=7.5,
+        fontsize=FIG_FONT_SIZE,
         color="black",
         clip_on=False,
         zorder=6,
@@ -676,7 +676,7 @@ def draw_combined_llama_figure(
 
             ax.set_title(
                 pretty_model_name(model_name),
-                fontsize=8.8,
+                fontsize=FIG_FONT_SIZE,
                 pad=5,
             )
 
@@ -849,7 +849,7 @@ def draw_combined_llama_figure(
                     p_to_stars(pvalues_by_ratio[rstr]),
                     ha="center",
                     va="bottom",
-                    fontsize=7.0,
+                    fontsize=FIG_FONT_SIZE,
                     color="0.10",
                     zorder=4,
                 )
@@ -907,7 +907,7 @@ def draw_combined_llama_figure(
         "a",
         ha="left",
         va="bottom",
-        fontsize=14,
+        fontsize=FIG_FONT_SIZE,
         fontweight="bold",
     )
 
@@ -917,7 +917,7 @@ def draw_combined_llama_figure(
         "Societal minority bias",
         ha="left",
         va="bottom",
-        fontsize=12,
+        fontsize=FIG_FONT_SIZE,
         fontweight="bold",
     )
 
@@ -927,7 +927,7 @@ def draw_combined_llama_figure(
         "b",
         ha="left",
         va="bottom",
-        fontsize=14,
+        fontsize=FIG_FONT_SIZE,
         fontweight="bold",
     )
 
@@ -937,7 +937,7 @@ def draw_combined_llama_figure(
         "Contextual minority bias",
         ha="left",
         va="bottom",
-        fontsize=12,
+        fontsize=FIG_FONT_SIZE,
         fontweight="bold",
     )
 
@@ -949,7 +949,7 @@ def draw_combined_llama_figure(
         ha="center",
         va="center",
         rotation=90,
-        fontsize=9.2,
+        fontsize=FIG_FONT_SIZE,
     )
 
     fig.text(
@@ -959,7 +959,7 @@ def draw_combined_llama_figure(
         ha="center",
         va="center",
         rotation=90,
-        fontsize=9.2,
+        fontsize=FIG_FONT_SIZE,
     )
 
     shared_x_label_y = min(soc_y0, ctx_y0) - 0.06
@@ -971,7 +971,7 @@ def draw_combined_llama_figure(
         "Attribute",
         ha="center",
         va="top",
-        fontsize=9.2,
+        fontsize=FIG_FONT_SIZE,
     )
 
     # Contextual x-axis label
@@ -981,7 +981,7 @@ def draw_combined_llama_figure(
         "Proportion of focal group in candidate pool (%)",
         ha="center",
         va="top",
-        fontsize=9.2,
+        fontsize=FIG_FONT_SIZE,
     )
 
     # ============================================================
@@ -1006,7 +1006,7 @@ def draw_combined_llama_figure(
             app_name,
             ha="center",
             va="bottom",
-            fontsize=9.5,
+            fontsize=FIG_FONT_SIZE,
             fontweight="bold",
         )
 
@@ -1022,7 +1022,7 @@ def draw_combined_llama_figure(
             app_name,
             ha="center",
             va="bottom",
-            fontsize=9.5,
+            fontsize=FIG_FONT_SIZE,
             fontweight="bold",
         )
 
@@ -1036,7 +1036,7 @@ def draw_combined_llama_figure(
                 attribute_type,
                 ha="center",
                 va="bottom",
-                fontsize=8.5,
+                fontsize=FIG_FONT_SIZE,
             )
 
     # -----------------------------
@@ -1076,7 +1076,7 @@ def draw_combined_llama_figure(
         handlelength=1.5,
         columnspacing=0.9,
         handletextpad=0.40,
-        fontsize=8.1,
+        fontsize=FIG_FONT_SIZE,
     )
 
     # -----------------------------
@@ -1118,7 +1118,7 @@ def draw_combined_llama_figure(
         handlelength=1.5,
         columnspacing=0.9,
         handletextpad=0.40,
-        fontsize=8.1,
+        fontsize=FIG_FONT_SIZE,
     )
 
     # Save
