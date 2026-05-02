@@ -1,279 +1,80 @@
 import json
-import sys
-from collections import defaultdict
+import os
 import math
+import re
+from collections import defaultdict
+
+import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-import os
-from scipy.stats import chi2_contingency, norm
 import statsmodels.api as sm
-import numpy as np
-from matplotlib.ticker import MaxNLocator, FormatStrFormatter
+
+from scipy.stats import chi2_contingency, norm
+from matplotlib.ticker import MaxNLocator, FuncFormatter
+from matplotlib.lines import Line2D
 
 
-DELTA_COLOR = "blue"  # fixed color for Δ
+# ============================================================
+# Global style
+# ============================================================
+
+DELTA_COLOR = "#4D4D4D"  # dark gray, more professional than pure blue
 
 
-# -----------------------------
-# Wilson 95% CI for proportions
-# -----------------------------
-def wilson_ci(k, n, z=1.96):
-    if n == 0:
-        return (0.0, 0.0)
-
-    p = k / n
-    denominator = 1 + (z**2) / n
-    centre = p + (z**2) / (2 * n)
-    margin = z * math.sqrt((p * (1 - p) / n) + (z**2) / (4 * n**2))
-    lower = (centre - margin) / denominator
-    upper = (centre + margin) / denominator
-    return (lower, upper)
-
-
-def chi2_test_same_attr_effect(attr_counts):
+def set_nature_style():
     """
-    attr_counts: dict[int -> (hit_count, total_count)]
-                 e.g. {0: (h0, n0), 1: (h1, n1), ...}
-    Returns: chi2, p_value, dof, levels
+    Compact, clean plotting style suitable for Nature-style multi-panel figures.
     """
-    table = []
-    levels = sorted(attr_counts.keys())
-    for c in levels:
-        hit, total = attr_counts[c]
-        miss = total - hit
-        table.append([hit, miss])
+    plt.rcParams.update({
+        "font.family": "sans-serif",
+        "font.sans-serif": ["Arial", "Helvetica", "DejaVu Sans"],
 
-    chi2, p, dof, expected = chi2_contingency(table)
-    return chi2, p, dof, levels
+        "pdf.fonttype": 42,
+        "ps.fonttype": 42,
 
+        "figure.dpi": 150,
+        "savefig.dpi": 600,
 
-def cochran_armitage_trend(attr_counts):
-    """
-    Cochran–Armitage trend test for ordered proportions.
+        "axes.linewidth": 0.7,
+        "axes.edgecolor": "0.15",
+        "axes.spines.top": False,
+        "axes.spines.right": False,
 
-    returns:
-        z                # test statistic
-        p_two_sided
-        p_one_inc        # one-sided p for INCREASING trend
-        p_one_dec        # one-sided p for DECREASING trend
-    """
-    levels = sorted(attr_counts.keys())
-    if not levels:
-        return float("nan"), float("nan"), float("nan"), float("nan")
+        "axes.titlesize": 8.5,
+        "axes.labelsize": 9.0,
+        "xtick.labelsize": 8.0,
+        "ytick.labelsize": 8.0,
+        "legend.fontsize": 8.5,
 
-    scores = [float(c) for c in levels]
-    hits = [attr_counts[c][0] for c in levels]
-    totals = [attr_counts[c][1] for c in levels]
+        "xtick.major.width": 0.7,
+        "ytick.major.width": 0.7,
+        "xtick.major.size": 3.0,
+        "ytick.major.size": 3.0,
 
-    N = sum(totals)
-    X = sum(hits)
-    if N == 0:
-        return float("nan"), float("nan"), float("nan"), float("nan")
-
-    p_hat = X / N
-    T = sum(w * (x - p_hat * n) for w, x, n in zip(scores, hits, totals))
-    sum_nw = sum(n * w for n, w in zip(totals, scores))
-    sum_nw2 = sum(n * (w ** 2) for n, w in zip(totals, scores))
-
-    var_T = p_hat * (1 - p_hat) * (sum_nw2 - (sum_nw ** 2) / N)
-    if var_T <= 0:
-        return float("nan"), float("nan"), float("nan"), float("nan")
-
-    z = T / math.sqrt(var_T)
-
-    p_two = 2 * (1 - norm.cdf(abs(z)))
-    p_inc = 1 - norm.cdf(z)   # one-sided increasing
-    p_dec = norm.cdf(z)       # one-sided decreasing
-
-    return z, p_two, p_inc, p_dec
-
-
-def trend_test_delta_counts(attr_counts_A, attr_counts_B):
-    """
-    Tests whether delta(c) = pA(c) - pB(c) changes systematically with c
-    using a logistic regression with interaction term group*c.
-
-    Returns: z, p_two_sided, p_one_inc, p_one_dec
-    """
-    print("A counts:", attr_counts_A)
-    print("B counts:", attr_counts_B)
-    for c in sorted(set(attr_counts_A) & set(attr_counts_B)):
-        hA, nA = attr_counts_A[c]
-        hB, nB = attr_counts_B[c]
-        print(c, " A:", hA, "/", nA, "=", hA/nA, "  B:", hB, "/", nB, "=", hB/nB)
-
-    levels = sorted(set(attr_counts_A) & set(attr_counts_B))
-    rows = []
-
-    for c in levels:
-        hA, nA = attr_counts_A[c]
-        hB, nB = attr_counts_B[c]
-        # group = 1 for A, 0 for B
-        rows.append([1, c, hA, nA])  # A
-        rows.append([0, c, hB, nB])  # B
-
-    rows = np.array(rows, dtype=float)
-    group = rows[:, 0]
-    cvals = rows[:, 1]
-    hits = rows[:, 2]
-    totals = rows[:, 3]
-
-    # endog must be proportion in [0,1] when using freq_weights with Binomial
-    y = hits / totals
-    w = totals
-
-    # design matrix: intercept + group + c + group*c
-    X = np.column_stack([np.ones_like(group), group, cvals, group * cvals])
-
-    model = sm.GLM(y, X, family=sm.families.Binomial(), freq_weights=w)
-    result = model.fit()
-
-    beta3 = result.params[3]   # interaction coefficient
-    se3 = result.bse[3]
-    z = beta3 / se3
-
-    # two-sided and one-sided p-values for the interaction
-    p_two = 2 * (1 - norm.cdf(abs(z)))
-    p_inc = 1 - norm.cdf(z)   # delta increases with c
-    p_dec = norm.cdf(z)       # delta decreases with c
-
-    print(result.summary())   # very helpful to inspect once
-    print("beta3, se3, z:", beta3, se3, z)
-
-    return z, p_two, p_inc, p_dec
-
-
-def two_proportion_z_test(x1, n1, x2, n2):
-    """
-    Two-sided z-test for equality of two proportions.
-    H0: p1 == p2
-    H1: p1 != p2
-
-    Returns: z, p_two_sided
-    """
-    if n1 == 0 or n2 == 0:
-        return float("nan"), float("nan")
-
-    p1 = x1 / n1
-    p2 = x2 / n2
-    p_pool = (x1 + x2) / (n1 + n2)
-
-    # standard error under H0
-    se = math.sqrt(p_pool * (1 - p_pool) * (1.0 / n1 + 1.0 / n2))
-    if se == 0:
-        # no variability: proportions are identical or degenerate
-        return float("nan"), 1.0
-
-    z = (p1 - p2) / se
-    p = 2.0 * (1.0 - norm.cdf(abs(z)))
-    return z, p
-
-
-def compute_results(file_name, attribute_type, max_n_trials=100000):
-
-    attr_value_to_results = defaultdict(lambda: {
-        "same_attr_count_to_count": defaultdict(int),
-        "same_attr_count_to_hit_count": defaultdict(int),
+        "lines.linewidth": 1.25,
     })
-    n_trials = 0
 
-    with open(file_name, "r") as f:
-        for line in f:
-            item = json.loads(line)
-            attributes = item["attributes"]
-            if "Asian" in attributes:
-                continue
-            suggested_candidate_id = item["suggested_candidate_id"]
 
-            if n_trials >= max_n_trials:
-                break
-            n_trials += 1
-
-            for inner_idx, attr_value in enumerate(attributes):
-                same_attr_count = attributes.count(attr_value) - 1
-                attr_value_to_results[attr_value]["same_attr_count_to_count"][same_attr_count] += 1
-                attr_value_to_results[attr_value]["same_attr_count_to_hit_count"][same_attr_count] += (1 if inner_idx == suggested_candidate_id else 0)
-
-    print(f"Attribute type: {attribute_type}")
-    results = {}
-    significance = {}
-    attr_counts_A = None
-    attr_counts_B = None
-    for attr_value, attr_value_results in attr_value_to_results.items():
-        # sort the attr_value_results by same_attr_count
-        print(f"attr_value: {attr_value}")
-        results[attr_value] = {}
-        significance[attr_value] = {}
-
-        # store raw counts for global and trend tests
-        attr_counts = {}
-
-        # sort attr_value_results["same_attr_count_to_count"]
-        same_attr_count_to_count = dict(sorted(attr_value_results["same_attr_count_to_count"].items(), key=lambda x: x[0]))
-        for same_attr_count, count in same_attr_count_to_count.items():
-            hit_count = attr_value_results["same_attr_count_to_hit_count"][same_attr_count]
-            hit_rate = hit_count / count
-            ci_low, ci_high = wilson_ci(hit_count, count)
-            print(f"same_attr_count: {same_attr_count}, total: {count}, hit_rate: {hit_rate:.6f} [{ci_low:.6f}, {ci_high:.6f}]")
-            results[attr_value][same_attr_count] = {
-                "hit_rate": hit_rate,
-                "ci_low": ci_low,
-                "ci_high": ci_high,
-            }
-
-            attr_counts[same_attr_count] = (hit_count, count)
-
-        # ---------- Global test (χ²) ----------
-        chi2, p_global, dof, levels = chi2_test_same_attr_effect(attr_counts)
-        print(f"[Global test] p-value={p_global:.6g}")
-        significance[attr_value]["global_test_p_value"] = p_global
-
-        # ---------- Cochran–Armitage trend test ----------
-        z, p_two, p_inc, p_dec = cochran_armitage_trend(attr_counts)
-        print(f"[Cochran-Armitage trend test] z={z:.6g}, p-value={p_two:.6g}, p-inc={p_inc:.6g}, p-dec={p_dec:.6g}")
-        significance[attr_value]["p_value_two_sided"] = p_two
-        significance[attr_value]["p_value_one_inc"] = p_inc
-        significance[attr_value]["p_value_one_dec"] = p_dec
-
-        # attr_counts_A/B for delta trend test
-        if attr_value == "Black" or attr_value == "Female":
-            attr_counts_A = attr_counts
-        else:
-            attr_counts_B = attr_counts
-
-    z, p_two, p_inc, p_dec = trend_test_delta_counts(attr_counts_A, attr_counts_B)
-    print(f"[Delta Trend test] z={z:.6g}, p-value={p_two:.6g}, p-inc={p_inc:.6g}, p-dec={p_dec:.6g}")
-    significance["delta"] = {
-        "p_value_two_sided": p_two,
-        "p_value_one_inc": p_inc,
-        "p_value_one_dec": p_dec,
+def pretty_model_name(model_key):
+    mapping = {
+        "msra-gpt-4o": "GPT-4o",
+        "gpt-oss-120b": "GPT-OSS-120B",
+        "Qwen3-235B-A22B-Instruct-2507": "Qwen3-235B-A22B",
+        "Qwen3-Next-80B-A3B-Instruct": "Qwen3-Next-80B-A3B",
+        "GLM-4.5-Air": "GLM-4.5-Air",
+        "gemma-3-27b-it": "Gemma-3-27B-IT",
+        "Llama-3.3-70B-Instruct": "Llama-3.3-70B-Instruct",
+        "NVIDIA-Nemotron-Nano-12B-v2": "Nemotron-Nano-12B-v2",
     }
+    return mapping.get(model_key, model_key.replace("msra-", ""))
 
-    results["delta"] = {}
-    for c in sorted(set(attr_counts_A) & set(attr_counts_B)):
-        hA, nA = attr_counts_A[c]
-        hB, nB = attr_counts_B[c]
-        pA = hA / nA
-        pB = hB / nB
-        delta = pA - pB
-        ciA_low, ciA_high = wilson_ci(hA, nA)
-        ciB_low, ciB_high = wilson_ci(hB, nB)
-        ci_low = ciA_low - ciB_high
-        ci_high = ciA_high - ciB_low
-        results["delta"][c] = {
-            "delta": delta,
-            "ci_low": ci_low,
-            "ci_high": ci_high,
-        }
 
-    return results, significance, n_trials
+def safe_slug(text):
+    return re.sub(r"[^A-Za-z0-9_.-]+", "_", str(text)).strip("_")
 
 
 def p_to_stars(p):
-    """
-    Convert p-value to significance stars.
-    """
-    if math.isnan(p):
+    if p is None or math.isnan(p):
         return ""
     if p < 0.001:
         return "***"
@@ -285,258 +86,674 @@ def p_to_stars(p):
         return ""
 
 
-def plot_model_panel(ax_main, attribute_type, resume_count, all_results, significance, model_name):
+def get_attribute_style(attribute_type):
     """
-    Draw one model's panel onto ax_main (and its twin y-axis).
-    No xlabel / ylabel is set here (only ticks, legend, etc.).
+    Consistent Nature-style color mapping.
+    For Gender: Female - Male
+    For Race: Black - White
+    """
+    if attribute_type == "Gender":
+        return {
+            "order": ["Female", "Male"],
+            "colors": {
+                "Female": "#D55E00",  # vermillion
+                "Male": "#0072B2",    # blue
+            },
+            "delta_label": r"$\Delta$ (F. - M.)",
+            "right_ylabel": r"$\Delta$ in selection rate (F. - M.)",
+        }
+
+    if attribute_type == "Race":
+        return {
+            "order": ["Black", "White"],
+            "colors": {
+                "Black": "#D55E00",   # vermillion
+                "White": "#0072B2",   # blue
+            },
+            "delta_label": r"$\Delta$ (B. - W.)",
+            "right_ylabel": r"$\Delta$ in selection rate (B. - W.)",
+        }
+
+    raise ValueError(f"Unknown attribute_type: {attribute_type}")
+
+
+# ============================================================
+# Statistical helpers
+# ============================================================
+
+def wilson_ci(k, n, z=1.96):
+    if n == 0:
+        return 0.0, 0.0
+
+    p = k / n
+    denominator = 1 + (z ** 2) / n
+    centre = p + (z ** 2) / (2 * n)
+    margin = z * math.sqrt((p * (1 - p) / n) + (z ** 2) / (4 * n ** 2))
+
+    lower = (centre - margin) / denominator
+    upper = (centre + margin) / denominator
+    return lower, upper
+
+
+def chi2_test_same_attr_effect(attr_counts):
+    table = []
+    levels = sorted(attr_counts.keys())
+
+    for c in levels:
+        hit, total = attr_counts[c]
+        miss = total - hit
+        table.append([hit, miss])
+
+    chi2, p, dof, expected = chi2_contingency(table)
+    return chi2, p, dof, levels
+
+
+def cochran_armitage_trend(attr_counts):
+    levels = sorted(attr_counts.keys())
+    if not levels:
+        return float("nan"), float("nan"), float("nan"), float("nan")
+
+    scores = [float(c) for c in levels]
+    hits = [attr_counts[c][0] for c in levels]
+    totals = [attr_counts[c][1] for c in levels]
+
+    N = sum(totals)
+    X = sum(hits)
+
+    if N == 0:
+        return float("nan"), float("nan"), float("nan"), float("nan")
+
+    p_hat = X / N
+
+    T = sum(w * (x - p_hat * n) for w, x, n in zip(scores, hits, totals))
+
+    sum_nw = sum(n * w for n, w in zip(totals, scores))
+    sum_nw2 = sum(n * (w ** 2) for n, w in zip(totals, scores))
+
+    var_T = p_hat * (1 - p_hat) * (sum_nw2 - (sum_nw ** 2) / N)
+
+    if var_T <= 0:
+        return float("nan"), float("nan"), float("nan"), float("nan")
+
+    z = T / math.sqrt(var_T)
+
+    p_two = 2 * (1 - norm.cdf(abs(z)))
+    p_inc = 1 - norm.cdf(z)
+    p_dec = norm.cdf(z)
+
+    return z, p_two, p_inc, p_dec
+
+
+def trend_test_delta_counts(attr_counts_A, attr_counts_B):
+    """
+    Tests whether delta(c) = pA(c) - pB(c) changes systematically with c
+    using a logistic regression with interaction term group*c.
     """
 
-    non_delta_values = set(all_results.keys()) - {"delta"}
-    attribute_values = sorted(list(non_delta_values))
-    palette = sns.color_palette("husl", len(attribute_values))
+    levels = sorted(set(attr_counts_A) & set(attr_counts_B))
+    rows = []
 
-    delta_color = DELTA_COLOR
+    for c in levels:
+        hA, nA = attr_counts_A[c]
+        hB, nB = attr_counts_B[c]
 
-    baseline_value = 0
-    xticks = []
+        rows.append([1, c, hA, nA])
+        rows.append([0, c, hB, nB])
+
+    rows = np.array(rows, dtype=float)
+
+    group = rows[:, 0]
+    cvals = rows[:, 1]
+    hits = rows[:, 2]
+    totals = rows[:, 3]
+
+    y = hits / totals
+    w = totals
+
+    X = np.column_stack([
+        np.ones_like(group),
+        group,
+        cvals,
+        group * cvals,
+    ])
+
+    model = sm.GLM(
+        y,
+        X,
+        family=sm.families.Binomial(),
+        freq_weights=w,
+    )
+    result = model.fit()
+
+    beta3 = result.params[3]
+    se3 = result.bse[3]
+
+    if se3 == 0 or np.isnan(se3):
+        return float("nan"), float("nan"), float("nan"), float("nan")
+
+    z = beta3 / se3
+
+    p_two = 2 * (1 - norm.cdf(abs(z)))
+    p_inc = 1 - norm.cdf(z)
+    p_dec = norm.cdf(z)
+
+    return z, p_two, p_inc, p_dec
+
+
+# ============================================================
+# Data computation
+# ============================================================
+
+def compute_results(file_name, attribute_type, max_n_trials=1000000):
+    attr_value_to_results = defaultdict(lambda: {
+        "same_attr_count_to_count": defaultdict(int),
+        "same_attr_count_to_hit_count": defaultdict(int),
+    })
+
+    n_trials = 0
+
+    with open(file_name, "r") as f:
+        for line in f:
+            item = json.loads(line)
+
+            attributes = item["attributes"]
+
+            if "Asian" in attributes:
+                continue
+
+            suggested_candidate_id = item["suggested_candidate_id"]
+
+            if n_trials >= max_n_trials:
+                break
+
+            n_trials += 1
+
+            for inner_idx, attr_value in enumerate(attributes):
+                same_attr_count = attributes.count(attr_value) - 1
+
+                attr_value_to_results[attr_value]["same_attr_count_to_count"][same_attr_count] += 1
+                attr_value_to_results[attr_value]["same_attr_count_to_hit_count"][same_attr_count] += (
+                    1 if inner_idx == suggested_candidate_id else 0
+                )
+
+    results = {}
+    significance = {}
+
+    attr_counts_A = None
+    attr_counts_B = None
+
+    for attr_value, attr_value_results in attr_value_to_results.items():
+        results[attr_value] = {}
+        significance[attr_value] = {}
+
+        attr_counts = {}
+
+        same_attr_count_to_count = dict(
+            sorted(
+                attr_value_results["same_attr_count_to_count"].items(),
+                key=lambda x: x[0],
+            )
+        )
+
+        for same_attr_count, count in same_attr_count_to_count.items():
+            hit_count = attr_value_results["same_attr_count_to_hit_count"][same_attr_count]
+            hit_rate = hit_count / count
+
+            ci_low, ci_high = wilson_ci(hit_count, count)
+
+            results[attr_value][same_attr_count] = {
+                "hit_rate": hit_rate,
+                "ci_low": ci_low,
+                "ci_high": ci_high,
+            }
+
+            attr_counts[same_attr_count] = (hit_count, count)
+
+        chi2, p_global, dof, levels = chi2_test_same_attr_effect(attr_counts)
+        significance[attr_value]["global_test_p_value"] = p_global
+
+        z, p_two, p_inc, p_dec = cochran_armitage_trend(attr_counts)
+        significance[attr_value]["p_value_two_sided"] = p_two
+        significance[attr_value]["p_value_one_inc"] = p_inc
+        significance[attr_value]["p_value_one_dec"] = p_dec
+
+        if attr_value in ["Black", "Female"]:
+            attr_counts_A = attr_counts
+        else:
+            attr_counts_B = attr_counts
+
+    if attr_counts_A is None or attr_counts_B is None:
+        return results, significance, n_trials
+
+    z, p_two, p_inc, p_dec = trend_test_delta_counts(attr_counts_A, attr_counts_B)
+
+    significance["delta"] = {
+        "p_value_two_sided": p_two,
+        "p_value_one_inc": p_inc,
+        "p_value_one_dec": p_dec,
+    }
+
+    results["delta"] = {}
+
+    for c in sorted(set(attr_counts_A) & set(attr_counts_B)):
+        hA, nA = attr_counts_A[c]
+        hB, nB = attr_counts_B[c]
+
+        pA = hA / nA
+        pB = hB / nB
+
+        delta = pA - pB
+
+        ciA_low, ciA_high = wilson_ci(hA, nA)
+        ciB_low, ciB_high = wilson_ci(hB, nB)
+
+        ci_low = ciA_low - ciB_high
+        ci_high = ciA_high - ciB_low
+
+        results["delta"][c] = {
+            "delta": delta,
+            "ci_low": ci_low,
+            "ci_high": ci_high,
+        }
+
+    return results, significance, n_trials
+
+
+# ============================================================
+# Panel plotting
+# ============================================================
+
+def plot_model_panel(
+    ax_main,
+    attribute_type,
+    all_results,
+    significance,
+    model_name,
+    show_left_ticks=True,
+    show_right_ticks=True,
+):
+    """
+    Draw one model panel.
+
+    Left y-axis:
+        selection rates for the two attribute values.
+
+    Right y-axis:
+        delta in selection rate.
+    """
+
+    attr_style = get_attribute_style(attribute_type)
+    attribute_order = attr_style["order"]
+    attribute_colors = attr_style["colors"]
+
     all_barlines = []
+    xticks = []
 
-    # -----------------------------------------------------------
-    # MAIN PLOT (per-attribute selection rates)
-    # -----------------------------------------------------------
-    for i, attribute_value in enumerate(attribute_values):
+    # ------------------------------------------------------------
+    # Main selection-rate curves
+    # ------------------------------------------------------------
+    for attribute_value in attribute_order:
+        if attribute_value not in all_results:
+            continue
+
         res = all_results[attribute_value]
 
         xs = sorted(res.keys())
         xticks = xs
-        baseline_value = 1 / len(xs)
-        ys = [res[x]["hit_rate"] for x in xs]
 
+        ys = [res[x]["hit_rate"] for x in xs]
         lower_err = [res[x]["hit_rate"] - res[x]["ci_low"] for x in xs]
         upper_err = [res[x]["ci_high"] - res[x]["hit_rate"] for x in xs]
-        yerr = [lower_err, upper_err]
+
+        color = attribute_colors[attribute_value]
 
         line, caplines, barlines = ax_main.errorbar(
-            xs, ys, yerr=yerr,
+            xs,
+            ys,
+            yerr=[lower_err, upper_err],
             marker="o",
-            markersize=6,
-            linewidth=1.5,
+            markersize=3.8,
+            linewidth=1.15,
             linestyle="-",
-            color=palette[i],
-            capsize=6,
-            capthick=1.5,
+            color=color,
+            markerfacecolor="white",
+            markeredgecolor=color,
+            markeredgewidth=0.9,
+            capsize=2.0,
+            capthick=0.75,
+            elinewidth=0.75,
+            zorder=3,
         )
+
         all_barlines.extend(barlines)
 
-        # Legend label with directional stars (trend test)
-        p_one_inc = significance.get(attribute_value, {}).get("p_value_one_inc", float("nan"))
-        p_one_dec = significance.get(attribute_value, {}).get("p_value_one_dec", float("nan"))
-
-        if attribute_value in ("Male", "White"):
-            stars = p_to_stars(p_one_inc)
-            stars = f"↑{stars}" if stars else ""
-        elif attribute_value in ("Female", "Black"):
-            stars = p_to_stars(p_one_dec)
-            stars = f"↓{stars}" if stars else ""
-        else:
-            raise ValueError(f"Unknown attribute value: {attribute_value}")
-
-        label = f"{attribute_value} {stars}" if stars else attribute_value
-        line.set_label(label)
-
-    # style group CI barlines
     for bar in all_barlines:
         bar.set_linestyle("-")
-        bar.set_linewidth(1.2)
+        bar.set_linewidth(0.75)
 
-    # baseline with legend entry
-    # ax_main.axhline(
-    #     y=baseline_value,
-    #     color="black",
-    #     linestyle=":",
-    #     linewidth=1.5,
-    #     # label=f"Random ({baseline_value:.1f})"
-    # )
+    if len(xticks) > 0:
+        ax_main.set_xticks(
+            xticks,
+            labels=[f"{(c + 1) / len(xticks) * 100:.0f}" for c in xticks],
+        )
+        ax_main.set_xlim(-0.12, len(xticks) - 1 + 0.12)
 
-    ax_main.set_xticks(
-        xticks,
-        labels=[f"{(c + 1)/(len(xticks)) * 100:.0f}%" for c in xticks]
+    ax_main.grid(
+        axis="y",
+        color="0.88",
+        linewidth=0.6,
+        linestyle="-",
+        zorder=0,
     )
-    ax_main.set_xlim(-0.1, len(xticks) - 1 + 0.1)
-
-    ax_main.grid(axis="y", linestyle=":", linewidth=0.7, alpha=0.6)
     ax_main.set_axisbelow(True)
 
-    for spine in ["top", "right"]:
-        ax_main.spines[spine].set_visible(False)
+    ax_main.yaxis.set_major_locator(MaxNLocator(nbins=4))
+    ax_main.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"{v:.2f}"))
 
-    # -----------------------------------------------------------
-    # DELTA LINE on twin y-axis (with marker + CI)
-    # -----------------------------------------------------------
-    ax_delta = None
+    ax_main.tick_params(
+        axis="both",
+        direction="out",
+        length=3.0,
+        width=0.7,
+        color="black",
+        labelcolor="black",
+        labelleft=show_left_ticks,
+    )
+
+    ax_main.spines["top"].set_visible(False)
+    ax_main.spines["right"].set_visible(False)
+
+    # ------------------------------------------------------------
+    # Delta curve on right y-axis
+    # ------------------------------------------------------------
     if "delta" in all_results:
         ax_delta = ax_main.twinx()
 
         delta_res = all_results["delta"]
+
         xs_delta = sorted(delta_res.keys())
         ys_delta = [delta_res[c]["delta"] for c in xs_delta]
 
-        lower_err_delta = [ys_delta[i] - delta_res[c]["ci_low"] for i, c in enumerate(xs_delta)]
-        upper_err_delta = [delta_res[c]["ci_high"] - ys_delta[i] for i, c in enumerate(xs_delta)]
-        yerr_delta = [lower_err_delta, upper_err_delta]
+        lower_err_delta = [
+            ys_delta[i] - delta_res[c]["ci_low"]
+            for i, c in enumerate(xs_delta)
+        ]
+        upper_err_delta = [
+            delta_res[c]["ci_high"] - ys_delta[i]
+            for i, c in enumerate(xs_delta)
+        ]
 
-        # stars from trend_test_p_value_one_dec (delta trend)
-        delta_stars = p_to_stars(significance.get("delta", {}).get("p_value_one_dec", float("nan")))
-        delta_stars = f"↓{delta_stars}" if delta_stars else ""
-        delta_label_pre = "(F. - M.)" if attribute_type == "Gender" else "(B. - W.)"
-        delta_label = r"$\Delta $" + delta_label_pre
-        if delta_stars:
-            delta_label += f" {delta_stars}"
-
-        line_delta, cap_delta, bar_delta = ax_delta.errorbar(
+        ax_delta.errorbar(
             xs_delta,
             ys_delta,
-            yerr=yerr_delta,
+            yerr=[lower_err_delta, upper_err_delta],
             marker="s",
-            markersize=5,
+            markersize=3.5,
             linestyle="--",
-            linewidth=1.5,
-            color=delta_color,
-            capsize=5,
-            capthick=1.3,
+            linewidth=1.10,
+            color=DELTA_COLOR,
+            markerfacecolor=DELTA_COLOR,
+            markeredgecolor=DELTA_COLOR,
+            markeredgewidth=0.8,
+            capsize=2.0,
+            capthick=0.75,
+            elinewidth=0.75,
+            zorder=4,
         )
-        for bar in bar_delta:
-            bar.set_linestyle("--")
-            bar.set_label(None)
-        for cap in cap_delta:
-            cap.set_label(None)
 
-        line_delta.set_label(delta_label)
+        ax_delta.yaxis.set_major_locator(MaxNLocator(nbins=4))
+        ax_delta.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"{v:.2f}"))
 
-        ax_delta.tick_params(axis="y", labelcolor=delta_color)
+        ax_delta.tick_params(
+            axis="y",
+            direction="out",
+            length=3.0,
+            width=0.7,
+            colors=DELTA_COLOR,
+            right=True,                  # keep right-side tick marks
+            labelright=show_right_ticks, # show labels only on the last column
+        )
+
         ax_delta.spines["top"].set_visible(False)
 
-    # ---------------------------
-    # FORMAT Y TICKS (max 2 decimals)
-    # ---------------------------
-    # Main y-axis: max 5 ticks
-    ax_main.yaxis.set_major_locator(MaxNLocator(nbins=5))
-    ax_main.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
-
-    # Delta axis (if exists): max 5 ticks
-    if ax_delta is not None:
-        ax_delta.yaxis.set_major_locator(MaxNLocator(nbins=5))
-        ax_delta.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
-
-    # -----------------------------------------------------------
-    # LEGEND (combine main + delta), top-right inside this panel
-    # -----------------------------------------------------------
-    handles_main, labels_main = ax_main.get_legend_handles_labels()
-    if ax_delta is not None:
-        handles_delta, labels_delta = ax_delta.get_legend_handles_labels()
-        handles = handles_main + handles_delta
-        labels = labels_main + labels_delta
-    else:
-        handles, labels = handles_main, labels_main
-
-    ax_main.legend(
-        handles,
-        labels,
-        fontsize=9,
-        title_fontsize=10,
-        markerscale=1,
-        loc="upper right",
-        frameon=True,
-        framealpha=0.5,
-        borderpad=0.3,
-    )
+        # Keep the right-hand boundary for every panel because every panel has a twin y-axis.
+        ax_delta.spines["right"].set_visible(True)
+        ax_delta.spines["right"].set_color(DELTA_COLOR)
+        ax_delta.spines["right"].set_linewidth(0.7)
 
 
-def draw_results_grid(application, attribute_type, resume_count, model_names, pool_count, max_n_trials):
+# ============================================================
+# Big figure drawing
+# ============================================================
+
+def draw_attribute_big_figure(
+    attribute_type,
+    model_names,
+    application_to_pool_count,
+    resume_count=5,
+    max_n_trials=1000000,
+    output_dir="outputs/contextual",
+):
     """
-    Create one big figure (2x3 grid) for given attribute_type and resume_count.
-    Each panel is one model.
+    Draw one big figure for one attribute.
+
+    Layout:
+        a. Hiring
+        b. Loan approval
+        c. Scholarship application
+
+    Each application block contains eight model panels arranged as 2 x 4.
     """
 
-    plt.rcParams.update({
-        "font.size": 11,
-        "axes.titlesize": 13,
-        "axes.labelsize": 11,
-        "xtick.labelsize": 10,
-        "ytick.labelsize": 10,
-        "axes.edgecolor": "gray",
-        "axes.linewidth": 0.8,
-    })
+    set_nature_style()
+    sns.set_theme(style="white")
+    os.makedirs(output_dir, exist_ok=True)
 
-    fig, axes = plt.subplots(
-        2, 4,
-        dpi=1024,
-        figsize=(18, 8),
-        sharex=True  # share x to make the global xlabel consistent
+    applications = ["hiring", "loan", "edu"]
+
+    application_title_map = {
+        "hiring": "Hiring",
+        "loan": "Loan approval",
+        "edu": "Scholarship application",
+    }
+
+    panel_letters = {
+        "hiring": "a",
+        "loan": "b",
+        "edu": "c",
+    }
+
+    attr_style = get_attribute_style(attribute_type)
+
+    fig = plt.figure(figsize=(7.45, 11.6))
+
+    outer_gs = fig.add_gridspec(
+        3,
+        1,
+        left=0.090,
+        right=0.925,
+        bottom=0.090,
+        top=0.940,
+        hspace=0.42,
     )
 
-    fig.suptitle(f"{application} - {attribute_type}", fontweight="bold", y=0.97)
+    all_axes = {}
 
-    # Adjust margins to leave space for shared labels and right ylabel
-    fig.subplots_adjust(
-        left=0.06,
-        right=0.92,
-        bottom=0.07,
-        top=0.90,
-        wspace=0.28,
-        hspace=0.30,
+    for app_idx, application in enumerate(applications):
+        inner_gs = outer_gs[app_idx].subgridspec(
+            2,
+            4,
+            wspace=0.30,
+            hspace=0.36,
+        )
+
+        axes = np.empty((2, 4), dtype=object)
+        all_axes[application] = axes
+
+        pool_count = application_to_pool_count[application]
+
+        for idx, model_name in enumerate(model_names):
+            row = idx // 4
+            col = idx % 4
+
+            ax_main = fig.add_subplot(inner_gs[row, col])
+            axes[row, col] = ax_main
+
+            ax_main.set_title(
+                pretty_model_name(model_name),
+                loc="center",
+                pad=4,
+                fontsize=8.0,
+            )
+
+            file_name = (
+                f"outputs/{application}/contextual/"
+                f"{attribute_type}/{model_name}_{resume_count}_{pool_count}.jsonl"
+            )
+
+            if not os.path.exists(file_name):
+                print(f"[Warning] File not found, skipping: {file_name}")
+                ax_main.set_visible(False)
+                continue
+
+            results, significance, n_trials = compute_results(
+                file_name=file_name,
+                attribute_type=attribute_type,
+                max_n_trials=max_n_trials,
+            )
+
+            plot_model_panel(
+                ax_main=ax_main,
+                attribute_type=attribute_type,
+                all_results=results,
+                significance=significance,
+                model_name=model_name,
+                show_left_ticks=(col == 0),
+                show_right_ticks=(col == 3),
+            )
+
+    # ------------------------------------------------------------
+    # Shared labels
+    # ------------------------------------------------------------
+    fig.supxlabel(
+        "Proportion of focal group in candidate pool (%)",
+        fontsize=9.2,
+        y=0.047,
     )
 
-    # Plot each model in the specified order
-    for idx, model_name in enumerate(model_names):
-        row = idx // 4
-        col = idx % 4
-        ax_main = axes[row, col]
+    fig.supylabel(
+        "Selection rate",
+        fontsize=9.2,
+        x=0.022,
+    )
 
-        model_name_clean = model_name.replace("msra-", "")
-        ax_main.set_title(model_name_clean, fontweight="bold")
-
-        file_name = f"outputs/{application}/contextual/{attribute_type}/{model_name}_{resume_count}_{pool_count}.jsonl"
-        if not os.path.exists(file_name):
-            print(f"[Warning] File not found, skipping: {file_name}")
-            ax_main.set_visible(False)
-            continue
-
-        print(f"------------------------------------\n\n{file_name}")
-        results, significance, n_trials = compute_results(file_name, attribute_type, max_n_trials)
-        plot_model_panel(ax_main, attribute_type, resume_count, results, significance, model_name)
-
-    # Shared labels (no per-subplot xlabel / ylabel)
-    fig.supxlabel("Same-attribute Ratio", fontsize=12, fontweight="bold")
-    fig.supylabel("Selection Rate", fontsize=12, fontweight="bold")
-
-    # Shared right ylabel for Δ
-    delta_label_pre = "(F. - M.)" if attribute_type == "Gender" else "(B. - W.)"
     fig.text(
-        0.96,
-        0.5,
-        r"$\Delta$ in Selection Rate " + delta_label_pre,
+        0.965,
+        0.515,
+        attr_style["right_ylabel"],
         va="center",
         ha="center",
         rotation=270,
-        fontsize=12,
-        fontweight="bold",
+        fontsize=9.2,
         color=DELTA_COLOR,
     )
 
-    # Save one big figure
-    save_file = f"outputs/contextual/{application}_{attribute_type}_{resume_count}.png"
-    print(f"Saving figure to: {save_file}")
-    fig.savefig(save_file, bbox_inches="tight")
+    # ------------------------------------------------------------
+    # Application row titles and Nature-style letters
+    # ------------------------------------------------------------
+    for application in applications:
+        axes = all_axes[application]
+
+        pos_left = axes[0, 0].get_position()
+        pos_right = axes[0, 3].get_position()
+
+        x0 = pos_left.x0
+        x1 = pos_right.x1
+        y1 = pos_left.y1
+
+        fig.text(
+            x0 - 0.055,
+            y1 + 0.030,
+            panel_letters[application],
+            ha="left",
+            va="bottom",
+            fontsize=11.0,
+            fontweight="bold",
+        )
+
+        fig.text(
+            (x0 + x1) / 2,
+            y1 + 0.030,
+            application_title_map[application],
+            ha="center",
+            va="bottom",
+            fontsize=10.0,
+            fontweight="bold",
+        )
+
+    # ------------------------------------------------------------
+    # Shared legend
+    # ------------------------------------------------------------
+    legend_handles = []
+
+    for attribute_value in attr_style["order"]:
+        legend_handles.append(
+            Line2D(
+                [0],
+                [0],
+                color=attr_style["colors"][attribute_value],
+                marker="o",
+                markerfacecolor="white",
+                markeredgecolor=attr_style["colors"][attribute_value],
+                markeredgewidth=0.9,
+                linewidth=1.20,
+                markersize=4.0,
+                label=attribute_value,
+            )
+        )
+
+    legend_handles.append(
+        Line2D(
+            [0],
+            [0],
+            color=DELTA_COLOR,
+            marker="s",
+            markerfacecolor=DELTA_COLOR,
+            markeredgecolor=DELTA_COLOR,
+            linewidth=1.20,
+            linestyle="--",
+            markersize=4.0,
+            label=attr_style["delta_label"],
+        )
+    )
+
+    fig.legend(
+        handles=legend_handles,
+        loc="lower center",
+        bbox_to_anchor=(0.5, 0.010),
+        ncol=3,
+        frameon=False,
+        handlelength=1.7,
+        columnspacing=1.4,
+        handletextpad=0.55,
+    )
+
+    base = f"{safe_slug(attribute_type)}_all_applications_contextual_nature_style"
+    pdf_path = os.path.join(output_dir, base + ".pdf")
+
+    fig.savefig(pdf_path, bbox_inches="tight")
+    print(f"Saved: {pdf_path}")
+
     plt.close(fig)
 
+
+# ============================================================
+# Main
+# ============================================================
 
 if __name__ == "__main__":
     max_n_trials = 1000000
 
-    # Fixed order of models in the 2x3 grid:
-    # Row 1: msra-gpt-4o, gpt-oss-120b, Qwen3-Next-80B-A3B-Instruct
-    # Row 2: GLM-4.5-Air, gemma-3-27b-it, Llama-3.3-70B-Instruct
     model_names_order = [
         "msra-gpt-4o",
         "gpt-oss-120b",
@@ -549,7 +766,7 @@ if __name__ == "__main__":
     ]
 
     attribute_types = ["Gender", "Race"]
-    applications = ["hiring", "loan", "edu"]
+
     application_to_pool_count = {
         "edu": 500,
         "hiring": 200,
@@ -557,12 +774,11 @@ if __name__ == "__main__":
     }
 
     for attribute_type in attribute_types:
-        for application in applications:
-            draw_results_grid(
-                application=application,
-                attribute_type=attribute_type,
-                resume_count=[5, 10],
-                model_names=model_names_order,
-                pool_count=application_to_pool_count[application],
-                max_n_trials=max_n_trials,
-            )
+        draw_attribute_big_figure(
+            attribute_type=attribute_type,
+            model_names=model_names_order,
+            application_to_pool_count=application_to_pool_count,
+            resume_count=5,
+            max_n_trials=max_n_trials,
+            output_dir="outputs/contextual",
+        )
