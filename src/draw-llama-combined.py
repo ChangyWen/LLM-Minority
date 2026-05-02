@@ -16,7 +16,7 @@ type_to_minority_attributes = {
     "Gender Identity": ["Transgender", "Non-binary"],
     "Sexual Orientation": ["Homosexual", "Bisexual", "Asexual"],
 }
-
+FIG_FONT_SIZE = 12
 
 
 # ============================================================
