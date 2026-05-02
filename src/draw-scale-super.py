@@ -495,7 +495,7 @@ def draw_super_scale_figure(
 
     model_to_color = get_model_colors(model_names)
 
-    fig = plt.figure(figsize=(15.0, 11.4))
+    fig = plt.figure(figsize=(15.0, 12.4))
 
     outer_gs = fig.add_gridspec(
         2,
