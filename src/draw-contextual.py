@@ -87,6 +87,14 @@ def p_to_stars(p):
         return ""
 
 
+def format_percent_tick(v, pos):
+    return f"{v * 100:.0f}"
+
+
+def format_signed_percent_tick(v, pos):
+    return f"{v * 100:.0f}"
+
+
 def get_attribute_style(attribute_type):
     """
     Consistent Nature-style color mapping.
@@ -100,8 +108,8 @@ def get_attribute_style(attribute_type):
                 "Female": "#D55E00",  # vermillion
                 "Male": "#0072B2",    # blue
             },
-            "delta_label": r"$\Delta$ (F. - M.)",
-            "right_ylabel": r"$\Delta$ in selection rate (F. - M.)",
+            "delta_label": r"Selection-rate difference",
+            "right_ylabel": r"Selection-rate difference (F. - M.)",
         }
 
     if attribute_type == "Race":
@@ -111,8 +119,8 @@ def get_attribute_style(attribute_type):
                 "Black": "#D55E00",   # vermillion
                 "White": "#0072B2",   # blue
             },
-            "delta_label": r"$\Delta$ (B. - W.)",
-            "right_ylabel": r"$\Delta$ in selection rate (B. - W.)",
+            "delta_label": r"Selection-rate difference (B. - W.)",
+            "right_ylabel": r"Selection-rate difference (B. - W.)",
         }
 
     raise ValueError(f"Unknown attribute_type: {attribute_type}")
@@ -442,7 +450,7 @@ def plot_model_panel(
     ax_main.set_axisbelow(True)
 
     ax_main.yaxis.set_major_locator(MaxNLocator(nbins=4))
-    ax_main.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"{v:.2f}"))
+    ax_main.yaxis.set_major_formatter(FuncFormatter(format_percent_tick))
 
     ax_main.tick_params(
         axis="x",
@@ -509,7 +517,7 @@ def plot_model_panel(
         )
 
         ax_delta.yaxis.set_major_locator(MaxNLocator(nbins=4))
-        ax_delta.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"{v:.2f}"))
+        ax_delta.yaxis.set_major_formatter(FuncFormatter(format_signed_percent_tick))
 
         ax_delta.tick_params(
             axis="y",
@@ -578,7 +586,7 @@ def draw_attribute_big_figure(
         right=0.875,   # more room for the twin y-axis label
         bottom=0.090,
         top=0.940,
-        hspace=0.42,
+        hspace=0.33,
     )
 
     all_axes = {}
@@ -587,7 +595,7 @@ def draw_attribute_big_figure(
         inner_gs = outer_gs[app_idx].subgridspec(
             2,
             4,
-            wspace=0.55,    # larger horizontal gap between model panels
+            wspace=0.32,    # larger horizontal gap between model panels
             hspace=0.36,
         )
 
@@ -646,15 +654,15 @@ def draw_attribute_big_figure(
     )
 
     fig.supylabel(
-        "Selection rate",
+        "Selection rate (%)",
         fontsize=FONT_SIZE,
-        x=0.035,   # farther from the left edge of the panels
+        x=0.08,   # farther from the left edge of the panels
     )
 
     fig.text(
-        0.965,     # farther from the right edge of the panels
+        0.915,     # farther from the right edge of the panels
         0.515,
-        attr_style["right_ylabel"],
+        attr_style["right_ylabel"] + " (pp)",
         va="center",
         ha="center",
         rotation=270,
@@ -730,6 +738,7 @@ def draw_attribute_big_figure(
         handlelength=1.7,
         columnspacing=1.4,
         handletextpad=0.55,
+        fontsize=FONT_SIZE,   # legend text size
     )
 
     base = f"{safe_slug(attribute_type)}_all_applications_contextual_nature_style"
