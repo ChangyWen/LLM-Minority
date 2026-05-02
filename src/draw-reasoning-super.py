@@ -135,7 +135,7 @@ def add_sig_bracket(
         text,
         ha="center",
         va="bottom",
-        fontsize=8.5,
+        fontsize=10,
         color="black",
         clip_on=False,
         zorder=5,
@@ -634,7 +634,7 @@ def draw_reasoning_block(
             if row_idx == 0:
                 ax.set_title(
                     panel_titles[application],
-                    fontsize=10.5,
+                    fontsize=10,
                     pad=6,
                 )
 
@@ -656,6 +656,7 @@ def draw_reasoning_block(
                 top=False,
                 right=False,
             )
+            ax.tick_params(axis="x", labelsize=10)
 
             for tick_label in ax.get_xticklabels():
                 model_name = tick_label.get_text()
@@ -689,7 +690,7 @@ def draw_reasoning_block(
         panel_letter,
         ha="left",
         va="bottom",
-        fontsize=14,
+        fontsize=10,
         fontweight="bold",
     )
 
@@ -699,7 +700,7 @@ def draw_reasoning_block(
         block_title,
         ha="left",
         va="bottom",
-        fontsize=12,
+        fontsize=10,
         fontweight="bold",
     )
 
@@ -719,7 +720,7 @@ def draw_reasoning_block(
             attribute_type,
             ha="center",
             va="bottom",
-            fontsize=11,
+            fontsize=10,
             fontweight="bold",
         )
 
@@ -730,7 +731,7 @@ def draw_reasoning_block(
         ha="center",
         va="center",
         rotation=90,
-        fontsize=11,
+        fontsize=10,
     )
 
     return axes
