@@ -18,7 +18,7 @@ from matplotlib.lines import Line2D
 # Global style
 # ============================================================
 
-DELTA_COLOR = "#4D4D4D"  # dark gray, more professional than pure blue
+DELTA_COLOR = "#009E73"  # dark gray, more professional than pure blue
 FONT_SIZE = 9.5
 LABEL_SIZE = 8.0
 
@@ -108,8 +108,8 @@ def get_attribute_style(attribute_type):
                 "Female": "#D55E00",  # vermillion
                 "Male": "#0072B2",    # blue
             },
-            "delta_label": r"Selection-rate difference",
-            "right_ylabel": r"Selection-rate difference (F. - M.)",
+            "delta_label": r"Selection-rate difference (Female - Male)",
+            "right_ylabel": r"Selection-rate difference",
         }
 
     if attribute_type == "Race":
@@ -119,8 +119,8 @@ def get_attribute_style(attribute_type):
                 "Black": "#D55E00",   # vermillion
                 "White": "#0072B2",   # blue
             },
-            "delta_label": r"Selection-rate difference (B. - W.)",
-            "right_ylabel": r"Selection-rate difference (B. - W.)",
+            "delta_label": r"Selection-rate difference (Black - White)",
+            "right_ylabel": r"Selection-rate difference",
         }
 
     raise ValueError(f"Unknown attribute_type: {attribute_type}")
@@ -507,7 +507,7 @@ def plot_model_panel(
             xs_delta,
             ys_delta,
             yerr=[lower_err_delta, upper_err_delta],
-            marker="s",
+            marker="^",
             markersize=3.5,
             linestyle="--",
             linewidth=1.10,
@@ -530,8 +530,8 @@ def plot_model_panel(
             direction="out",
             length=3.0,
             width=0.7,
-            color=DELTA_COLOR,
-            labelcolor=DELTA_COLOR,
+            color="black",
+            labelcolor="black",
             labelsize=LABEL_SIZE,   # twin y-axis tick-number size
             right=True,
             labelright=True,
@@ -541,7 +541,7 @@ def plot_model_panel(
 
         ax_delta.spines["top"].set_visible(False)
         ax_delta.spines["right"].set_visible(True)
-        ax_delta.spines["right"].set_color(DELTA_COLOR)
+        ax_delta.spines["right"].set_color("black")
         ax_delta.spines["right"].set_linewidth(0.7)
         ax_delta.spines["left"].set_visible(False)
         ax_delta.spines["bottom"].set_visible(False)
@@ -674,7 +674,7 @@ def draw_attribute_big_figure(
         ha="center",
         rotation=270,
         fontsize=FONT_SIZE,
-        color=DELTA_COLOR,
+        color="black",
     )
 
     # ------------------------------------------------------------
@@ -717,7 +717,7 @@ def draw_attribute_big_figure(
                 markeredgewidth=0.9,
                 linewidth=1.20,
                 markersize=4.0,
-                label=attribute_value,
+                label=f"Selection rate ({attribute_value})",
             )
         )
 
@@ -726,7 +726,7 @@ def draw_attribute_big_figure(
             [0],
             [0],
             color=DELTA_COLOR,
-            marker="s",
+            marker="^",
             markerfacecolor=DELTA_COLOR,
             markeredgecolor=DELTA_COLOR,
             linewidth=1.20,
