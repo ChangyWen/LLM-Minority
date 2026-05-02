@@ -18,9 +18,10 @@ from matplotlib.lines import Line2D
 # Global style
 # ============================================================
 
-DELTA_COLOR = "#e05759"  # dark gray, more professional than pure blue
+DELTA_COLOR = "#459434ff"  # dark gray, more professional than pure blue
 FONT_SIZE = 9.5
 LABEL_SIZE = 8.0
+CI_ALPHA = 0.38
 
 def set_nature_style():
     """
@@ -434,6 +435,13 @@ def plot_model_panel(
             zorder=3,
         )
 
+        # Make CI bars and caps transparent
+        for cap in caplines:
+            cap.set_alpha(CI_ALPHA)
+
+        for bar in barlines:
+            bar.set_alpha(CI_ALPHA)
+
         all_barlines.extend(barlines)
 
     for bar in all_barlines:
@@ -503,7 +511,7 @@ def plot_model_panel(
             for i, c in enumerate(xs_delta)
         ]
 
-        ax_delta.errorbar(
+        line_delta, cap_delta, bar_delta = ax_delta.errorbar(
             xs_delta,
             ys_delta,
             yerr=[lower_err_delta, upper_err_delta],
@@ -520,6 +528,12 @@ def plot_model_panel(
             elinewidth=0.75,
             zorder=4,
         )
+
+        for cap in cap_delta:
+            cap.set_alpha(CI_ALPHA)
+
+        for bar in bar_delta:
+            bar.set_alpha(CI_ALPHA)
 
         ax_delta.yaxis.set_major_locator(MaxNLocator(nbins=4))
         ax_delta.yaxis.set_major_formatter(FuncFormatter(format_signed_percent_tick))
