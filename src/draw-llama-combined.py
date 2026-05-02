@@ -17,7 +17,7 @@ type_to_minority_attributes = {
     "Sexual Orientation": ["Homosexual", "Bisexual", "Asexual"],
 }
 FIG_FONT_SIZE = 12
-
+MARKER_SIZE = 4.8
 
 # ============================================================
 # Statistical helpers
@@ -395,8 +395,8 @@ def plot_societal_panel(
         minority and majority scores with 95% CI.
     """
 
-    minority_marker = "o"
-    majority_marker = "s"
+    minority_marker = "D"
+    majority_marker = "^"
 
     x_gap = 0.40
     x_base = np.arange(len(attribute_types), dtype=float) * x_gap
@@ -437,7 +437,7 @@ def plot_societal_panel(
             min_mean,
             yerr=[[min_mean - min_low], [min_high - min_mean]],
             marker=minority_marker,
-            markersize=4.8,
+            markersize=MARKER_SIZE,
             capsize=2.4,
             capthick=0.8,
             elinewidth=0.8,
@@ -459,13 +459,13 @@ def plot_societal_panel(
             maj_mean,
             yerr=[[maj_mean - maj_low], [maj_high - maj_mean]],
             marker=majority_marker,
-            markersize=4.8,
+            markersize=MARKER_SIZE,
             capsize=2.4,
             capthick=0.8,
             elinewidth=0.8,
             linestyle="",
             color=color,
-            markerfacecolor=color,
+            markerfacecolor="white",
             markeredgecolor=color,
             markeredgewidth=1.0,
             zorder=3,
@@ -674,11 +674,11 @@ def draw_combined_llama_figure(
                 attribute_to_color=societal_attr_color,
             )
 
-            ax.set_title(
-                pretty_model_name(model_name),
-                fontsize=FIG_FONT_SIZE,
-                pad=5,
-            )
+            # ax.set_title(
+            #     pretty_model_name(model_name),
+            #     fontsize=FIG_FONT_SIZE,
+            #     pad=5,
+            # )
 
     # ============================================================
     # b. Contextual minority bias
@@ -772,7 +772,7 @@ def draw_combined_llama_figure(
                     markerfacecolor="white",
                     markeredgecolor=style["color"],
                     markeredgewidth=1.0,
-                    markersize=4.2,
+                    markersize=MARKER_SIZE,
                     linewidth=1.20,
                     elinewidth=0.80,
                     capsize=2.0,
@@ -994,20 +994,23 @@ def draw_combined_llama_figure(
     # ============================================================
 
     row_app_offset = 0.045
-    row_subtitle_offset = 0.022
+    column_label_offset = 0.018   # shared by Llama labels and Gender/Race labels
 
     for row_idx, application in enumerate(applications):
         app_name = application_title_map.get(application, application)
 
-        # Societal row application name
-        pos_left = societal_axes[row_idx, 0].get_position()
-        pos_right = societal_axes[row_idx, len(model_names) - 1].get_position()
-        x_center = (pos_left.x0 + pos_right.x1) / 2
-        y_top = pos_left.y1
+        # ------------------------------------------------------------
+        # Societal block: application name
+        # ------------------------------------------------------------
+        soc_pos_left = societal_axes[row_idx, 0].get_position()
+        soc_pos_right = societal_axes[row_idx, len(model_names) - 1].get_position()
+
+        soc_row_x_center = (soc_pos_left.x0 + soc_pos_right.x1) / 2
+        soc_row_y_top = soc_pos_left.y1
 
         fig.text(
-            x_center,
-            y_top + row_app_offset,
+            soc_row_x_center,
+            soc_row_y_top + row_app_offset,
             app_name,
             ha="center",
             va="bottom",
@@ -1015,15 +1018,34 @@ def draw_combined_llama_figure(
             fontweight="bold",
         )
 
-        # Contextual row application name
-        pos_left = contextual_axes[row_idx, 0].get_position()
-        pos_right = contextual_axes[row_idx, len(contextual_attribute_types) - 1].get_position()
-        x_center = (pos_left.x0 + pos_right.x1) / 2
-        y_top = pos_left.y1
+        # ------------------------------------------------------------
+        # Societal block: model labels
+        # Use the same offset as Gender/Race labels.
+        # ------------------------------------------------------------
+        for col_idx, model_name in enumerate(model_names):
+            pos = societal_axes[row_idx, col_idx].get_position()
+
+            fig.text(
+                (pos.x0 + pos.x1) / 2,
+                pos.y1 + column_label_offset,
+                pretty_model_name(model_name),
+                ha="center",
+                va="bottom",
+                fontsize=FIG_FONT_SIZE,
+            )
+
+        # ------------------------------------------------------------
+        # Contextual block: application name
+        # ------------------------------------------------------------
+        ctx_pos_left = contextual_axes[row_idx, 0].get_position()
+        ctx_pos_right = contextual_axes[row_idx, len(contextual_attribute_types) - 1].get_position()
+
+        ctx_row_x_center = (ctx_pos_left.x0 + ctx_pos_right.x1) / 2
+        ctx_row_y_top = ctx_pos_left.y1
 
         fig.text(
-            x_center,
-            y_top + row_app_offset,
+            ctx_row_x_center,
+            ctx_row_y_top + row_app_offset,
             app_name,
             ha="center",
             va="bottom",
@@ -1031,13 +1053,16 @@ def draw_combined_llama_figure(
             fontweight="bold",
         )
 
-        # Contextual attribute labels below application name
+        # ------------------------------------------------------------
+        # Contextual block: attribute labels
+        # Same offset as the Llama model labels.
+        # ------------------------------------------------------------
         for col_idx, attribute_type in enumerate(contextual_attribute_types):
             pos = contextual_axes[row_idx, col_idx].get_position()
 
             fig.text(
                 (pos.x0 + pos.x1) / 2,
-                y_top + row_subtitle_offset,
+                pos.y1 + column_label_offset,
                 attribute_type,
                 ha="center",
                 va="bottom",
@@ -1050,7 +1075,7 @@ def draw_combined_llama_figure(
     societal_legend_handles = [
         Line2D(
             [0], [0],
-            marker="o",
+            marker="D",
             linestyle="",
             markerfacecolor="white",
             markeredgecolor="black",
@@ -1060,9 +1085,9 @@ def draw_combined_llama_figure(
         ),
         Line2D(
             [0], [0],
-            marker="s",
+            marker="^",
             linestyle="",
-            markerfacecolor="black",
+            markerfacecolor="white",
             markeredgecolor="black",
             markeredgewidth=1.0,
             markersize=5.0,
