@@ -111,59 +111,141 @@ def compute_results(file_name, context_size, max_n_trials=1000000):
 
     return results_delta
 
-def draw_1x2_per_application(
+
+# ---------------------------------------------------------------------
+# Nature-style plotting helpers
+# ---------------------------------------------------------------------
+def set_nature_style():
+    """
+    Compact, clean plotting style suitable for Nature-style multi-panel figures.
+    """
+    plt.rcParams.update({
+        "font.family": "sans-serif",
+        "font.sans-serif": ["Arial", "Helvetica", "DejaVu Sans"],
+
+        # Keep text editable in Illustrator / Inkscape
+        "pdf.fonttype": 42,
+        "ps.fonttype": 42,
+
+        "figure.dpi": 150,
+        "savefig.dpi": 600,
+
+        "axes.linewidth": 0.7,
+        "axes.edgecolor": "0.15",
+        "axes.spines.top": False,
+        "axes.spines.right": False,
+
+        "axes.titlesize": 8.5,
+        "axes.labelsize": 9.0,
+        "xtick.labelsize": 8.0,
+        "ytick.labelsize": 8.0,
+        "legend.fontsize": 8.5,
+
+        "xtick.major.width": 0.7,
+        "ytick.major.width": 0.7,
+        "xtick.major.size": 3.0,
+        "ytick.major.size": 3.0,
+
+        "lines.linewidth": 1.25,
+    })
+
+
+def pretty_model_name(model_key):
+    """
+    Shorter display names for compact multi-panel figures.
+    """
+    mapping = {
+        "msra-gpt-4o": "GPT-4o",
+        "gpt-oss-120b": "GPT-OSS-120B",
+        "Qwen3-235B-A22B-Instruct-2507": "Qwen3-235B-A22B",
+        "Qwen3-Next-80B-A3B-Instruct": "Qwen3-Next-80B-A3B",
+        "GLM-4.5-Air": "GLM-4.5-Air",
+        "gemma-3-27b-it": "Gemma-3-27B-IT",
+        "Llama-3.3-70B-Instruct": "Llama-3.3-70B-Instruct",
+        "NVIDIA-Nemotron-Nano-12B-v2": "Nemotron-Nano-12B-v2",
+    }
+    return mapping.get(model_key, model_key.replace("msra-", ""))
+
+
+def draw_all_applications_in_one_figure(
     app_attr_model_to_delta,
     applications,
     attribute_types,
     model_names,
+    output_dir="outputs/llama",
 ):
     """
-    One figure per application (1x2).
-    Each subplot = one attribute type.
-    Each subplot contains 2 lines = 2 models.
-    Context size is fixed (not shown in the figure).
+    Draw one Nature-style figure for all applications.
+
+    Layout:
+        rows = applications
+        cols = attribute types
+
+    So the figure is 3 x 2:
+        Hiring / Loan / Scholarship application
+        x
+        Gender / Race
     """
 
-    plt.rcParams.update({
-        "font.size": 11,
-        "axes.titlesize": 12,
-        "axes.labelsize": 11,
-        "xtick.labelsize": 10,
-        "ytick.labelsize": 10,
-        "axes.edgecolor": "black",
-        "axes.linewidth": 0.8,
-    })
-    sns.set_theme(style="whitegrid")
+    set_nature_style()
+    sns.set_theme(style="white")
+    os.makedirs(output_dir, exist_ok=True)
 
     ratio_strs = ["20%", "40%", "60%", "80%"]
     ratio_x = np.array([20, 40, 60, 80], dtype=float)
 
-    # Model colors
-    palette = sns.color_palette("tab10", n_colors=max(2, len(model_names)))
-    model_to_color = {m: palette[i] for i, m in enumerate(model_names)}
+    application_title_map = {
+        "hiring": "Hiring",
+        "loan": "Loan approval",
+        "edu": "Scholarship application",
+    }
 
-    # Shared legend
-    legend_handles = [
-        Line2D(
-            [0], [0],
-            color=model_to_color[m],
-            marker="o",
-            linestyle="-",
-            linewidth=1.6,
-            markersize=6.5,
-            markeredgecolor="black",
-            markeredgewidth=0.7,
-        )
-        for m in model_names
-    ]
-    legend_labels = model_names[:]
+    # Same drawing style as draw-size-contextual.py
+    model_style = {
+        "Llama-3.1-8B": {
+            "color": "#0072B2",
+            "marker": "o",
+            "label": "Llama-3.1-8B",
+        },
+        "Llama-3.1-8B-Instruct": {
+            "color": "#D55E00",
+            "marker": "s",
+            "label": "Llama-3.1-8B-Instruct",
+        },
+    }
 
-    for application in applications:
-        fig, axes = plt.subplots(1, 2, figsize=(14.0, 5.0), sharex=False, sharey=False)
+    fallback_colors = ["#009E73", "#CC79A7", "#56B4E9", "#E69F00"]
+    fallback_markers = ["^", "D", "v", "P"]
 
-        for ax, attribute_type in zip(axes, attribute_types):
+    for idx, model_name in enumerate(model_names):
+        if model_name not in model_style:
+            model_style[model_name] = {
+                "color": fallback_colors[idx % len(fallback_colors)],
+                "marker": fallback_markers[idx % len(fallback_markers)],
+                "label": pretty_model_name(model_name),
+            }
+
+    fig, axes = plt.subplots(
+        len(applications),
+        len(attribute_types),
+        figsize=(7.45, 7.4),
+        sharex=False,
+        sharey=False,
+    )
+
+    # Make sure axes is always 2D
+    axes = np.asarray(axes)
+
+    for row_idx, application in enumerate(applications):
+        for col_idx, attribute_type in enumerate(attribute_types):
+            ax = axes[row_idx, col_idx]
+
             ax.spines["top"].set_visible(False)
             ax.spines["right"].set_visible(False)
+
+            ax.axhline(0, color="0.30", linewidth=0.7, zorder=1)
+
+            panel_ci_upper_values = []
 
             for model_name in model_names:
                 delta_by_ratio = (
@@ -172,89 +254,161 @@ def draw_1x2_per_application(
                     .get(attribute_type, {})
                     .get(model_name, None)
                 )
+
                 if not delta_by_ratio:
                     continue
 
-                xs, ys, yerr_lo, yerr_hi = [], [], [], []
+                xs, ys, yerr_low, yerr_high = [], [], [], []
+
                 for rx, rstr in zip(ratio_x, ratio_strs):
                     if rstr not in delta_by_ratio:
                         continue
+
                     d = delta_by_ratio[rstr]
                     y = float(d["delta"])
-                    lo = float(d["ci_low"])
-                    hi = float(d["ci_high"])
+
+                    lo = max(0.0, float(d["ci_low"]))
+                    hi = max(0.0, float(d["ci_high"]))
+
                     xs.append(rx)
                     ys.append(y)
-                    yerr_lo.append(y - lo)
-                    yerr_hi.append(hi - y)
+                    yerr_low.append(max(0.0, y - lo))
+                    yerr_high.append(max(0.0, hi - y))
+
+                    panel_ci_upper_values.append(hi)
 
                 if len(xs) == 0:
                     continue
 
-                yerr = np.vstack([yerr_lo, yerr_hi])
+                yerr = np.vstack([yerr_low, yerr_high])
+                style = model_style[model_name]
 
                 ax.errorbar(
-                    xs, ys,
+                    xs,
+                    ys,
                     yerr=yerr,
-                    fmt="-o",
-                    markersize=6.5,
-                    capsize=4.0,
-                    elinewidth=1.5,
-                    linewidth=1.6,
-                    markeredgecolor="black",
-                    markeredgewidth=0.7,
-                    color=model_to_color[model_name],
+                    fmt=style["marker"] + "-",
+                    color=style["color"],
+                    markerfacecolor="white",
+                    markeredgecolor=style["color"],
+                    markeredgewidth=1.0,
+                    markersize=4.2,
+                    linewidth=1.20,
+                    elinewidth=0.80,
+                    capsize=2.0,
+                    capthick=0.80,
                     zorder=3,
                 )
 
-            ax.set_title(attribute_type, fontweight="bold", pad=8, fontsize=16)
+            # Panel-specific y-limit
+            if len(panel_ci_upper_values) == 0:
+                panel_data_top = 1.0
+            else:
+                panel_data_top = max(panel_ci_upper_values)
+                panel_data_top = max(panel_data_top, 0.05)
 
-            # Keep x-axis unchanged
+            ax.set_ylim(0.0, panel_data_top * 1.20)
+
+            # Only show column titles on the first row
+            if row_idx == 0:
+                ax.set_title(
+                    attribute_type,
+                    loc="center",
+                    pad=5,
+                    fontsize=9.0,
+                    fontweight="bold",
+                )
+
+            # Add application label at the left of each row
+            if col_idx == 0:
+                ax.text(
+                    -0.42,
+                    0.5,
+                    application_title_map.get(application, application),
+                    transform=ax.transAxes,
+                    rotation=90,
+                    ha="center",
+                    va="center",
+                    fontsize=9.0,
+                    fontweight="bold",
+                )
+
+            ax.set_xlim(12, 88)
             ax.set_xticks(ratio_x)
-            ax.set_xticklabels(ratio_strs)
-            ax.set_xlim(10, 90)
+            ax.set_xticklabels(["20", "40", "60", "80"])
 
-            # Keep y-axis unchanged
             ax.yaxis.set_major_locator(MaxNLocator(nbins=4))
-            ax.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"{v*100:.0f}%"))
+            ax.yaxis.set_major_formatter(
+                FuncFormatter(lambda v, pos: f"{v * 100:.0f}")
+            )
 
-            ax.grid(True, linestyle="--", linewidth=0.7, alpha=0.8)
-            ax.set_axisbelow(True)
-            for spine in ax.spines.values():
-                spine.set_edgecolor("black")
-                spine.set_linewidth(0.8)
+            ax.tick_params(
+                axis="both",
+                direction="out",
+                length=3.0,
+                width=0.7,
+                color="black",
+                labelcolor="black",
+            )
 
-        fig.suptitle(f"{application.capitalize()}", fontsize=16, fontweight="bold", y=0.98)
+    # Shared labels
+    fig.supxlabel(
+        "Proportion of focal group in candidate pool (%)",
+        fontsize=9.2,
+        y=0.08,
+    )
 
-        fig.legend(
-            legend_handles,
-            legend_labels,
-            loc="upper center",
-            bbox_to_anchor=(0.5, 0.915),
-            ncol=len(model_names),
-            frameon=False,
-            fontsize=12,
-            handlelength=2.4,
-            columnspacing=1.6,
-            handletextpad=0.6,
+    fig.supylabel(
+        "Normalized absolute selection-rate difference (%)",
+        fontsize=9.2,
+        x=0.03,
+    )
+
+    # Shared legend
+    legend_handles = [
+        Line2D(
+            [0],
+            [0],
+            color=model_style[m]["color"],
+            marker=model_style[m]["marker"],
+            markerfacecolor="white",
+            markeredgecolor=model_style[m]["color"],
+            markeredgewidth=1.0,
+            linewidth=1.25,
+            markersize=4.5,
+            label=model_style[m]["label"],
         )
+        for m in model_names
+    ]
 
-        fig.supylabel(
-            "Norm. Abs. Diff. of Selection Rate\n(Δ / random-rate)",
-            fontweight="bold",
-            fontsize=16,
-            x=0.03,
-            ha="center"
-        )
-        fig.supxlabel("Contextual Ratio", fontweight="bold", fontsize=16, y=0.04)
+    fig.legend(
+        handles=legend_handles,
+        loc="lower center",
+        bbox_to_anchor=(0.5, 0.015),
+        ncol=len(model_names),
+        frameon=False,
+        handlelength=1.8,
+        columnspacing=1.4,
+        handletextpad=0.6,
+    )
 
-        plt.tight_layout(rect=[0, 0, 1, 0.90])
+    fig.subplots_adjust(
+        left=0.14,
+        right=0.995,
+        bottom=0.16,
+        top=0.93,
+        wspace=0.26,
+        hspace=0.38,
+    )
 
-        os.makedirs("outputs/llama", exist_ok=True)
-        out_path = f"outputs/llama/{application}.png"
-        plt.savefig(out_path, dpi=512, bbox_inches="tight")
-        print(f"Saved 1x2 figure to {out_path}")
-        plt.close(fig)
+    base = "all_applications_Gender_Race_llama_contextual"
+    pdf_path = os.path.join(output_dir, base + ".pdf")
+
+    fig.savefig(pdf_path, bbox_inches="tight")
+    print(f"Saved: {pdf_path}")
+
+    plt.close(fig)
+
 
 if __name__ == "__main__":
     applications = ["loan", "hiring", "edu"]
@@ -279,7 +433,7 @@ if __name__ == "__main__":
                 delta = compute_results(file_name, context_size=context_size)
                 app_attr_model_to_delta[application][attribute_type][model_name] = delta
 
-    draw_1x2_per_application(
+    draw_all_applications_in_one_figure(
         app_attr_model_to_delta=app_attr_model_to_delta,
         applications=applications,
         attribute_types=attribute_types,
