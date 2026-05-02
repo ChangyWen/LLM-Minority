@@ -19,7 +19,7 @@ from matplotlib.lines import Line2D
 # ============================================================
 
 DELTA_COLOR = "#4D4D4D"  # dark gray, more professional than pure blue
-FONT_SIZE = 9.2
+FONT_SIZE = 9.5
 LABEL_SIZE = 8.0
 
 def set_nature_style():
@@ -584,7 +584,7 @@ def draw_attribute_big_figure(
 
     attr_style = get_attribute_style(attribute_type)
 
-    fig = plt.figure(figsize=(10.2, 11.6))
+    fig = plt.figure(figsize=(9.5, 10))
 
     outer_gs = fig.add_gridspec(
         3,
@@ -593,7 +593,7 @@ def draw_attribute_big_figure(
         right=0.875,   # more room for the twin y-axis label
         bottom=0.090,
         top=0.940,
-        hspace=0.33,
+        hspace=0.3,
     )
 
     all_axes = {}
@@ -692,7 +692,7 @@ def draw_attribute_big_figure(
 
         fig.text(
             (x0 + x1) / 2,
-            y1 + 0.030,
+            y1 + 0.022,
             application_title_map[application],
             ha="center",
             va="bottom",
