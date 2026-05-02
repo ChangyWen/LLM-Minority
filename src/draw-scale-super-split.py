@@ -469,24 +469,26 @@ def draw_scale_block(
     return axes
 
 
-def draw_super_scale_figure(
+def draw_two_panel_scale_figure(
     contextual_attribute_type_to_application_to_model_to_delta,
     societal_attribute_type_to_application_to_model_to_delta,
-    model_to_parameter_count,
-    model_to_training_compute,
+    model_to_x_value,
     contextual_attribute_types,
     societal_attribute_types,
     model_names,
+    xlabel,
+    output_basename,
     output_dir="outputs/parameter",
 ):
     """
-    Draw one super big Nature-style figure.
+    Draw one Nature-style figure with two large subfigures:
 
-    Layout:
-        a: Contextual results vs model parameters
-        b: Contextual results vs training compute
-        c: Societal results vs model parameters
-        d: Societal results vs training compute
+        a: Societal minority bias vs. scale
+        b: Contextual minority bias vs. scale
+
+    Each large subfigure contains a 2 x 3 grid:
+        rows = attribute types
+        columns = Hiring, Loan approval, Scholarship application
     """
 
     set_nature_style()
@@ -495,80 +497,49 @@ def draw_super_scale_figure(
 
     model_to_color = get_model_colors(model_names)
 
-    fig = plt.figure(figsize=(15.0, 11.4))
+    fig = plt.figure(figsize=(15.0, 6.15))
 
     outer_gs = fig.add_gridspec(
-        2,
+        1,
         2,
         left=0.075,
         right=0.995,
-        bottom=0.22,
-        top=0.910,
-        wspace=0.08,
-        hspace=0.73,
+        bottom=0.245,
+        top=0.845,
+        wspace=0.18,
     )
 
-    # a. Contextual results vs parameters
+    # a. Societal minority bias
     draw_scale_block(
         fig=fig,
         outer_spec=outer_gs[0, 0],
-        attribute_type_to_application_to_model_to_delta=contextual_attribute_type_to_application_to_model_to_delta,
-        model_to_x_value=model_to_parameter_count,
-        attribute_types=contextual_attribute_types,
+        attribute_type_to_application_to_model_to_delta=societal_attribute_type_to_application_to_model_to_delta,
+        model_to_x_value=model_to_x_value,
+        attribute_types=societal_attribute_types,
         model_names=model_names,
         model_to_color=model_to_color,
         panel_letter="a",
-        block_title="Contextual minority bias vs. model parameters",
-        xlabel=r"$\log_{10}$(Model parameters / $10^9$)",
-        ylabel="Absolute selection-rate difference (%)",
+        block_title="Societal minority bias",
+        xlabel=xlabel,
+        ylabel="Relative score difference (%)",
     )
 
-    # b. Contextual results vs training compute
+    # b. Contextual minority bias
     draw_scale_block(
         fig=fig,
         outer_spec=outer_gs[0, 1],
         attribute_type_to_application_to_model_to_delta=contextual_attribute_type_to_application_to_model_to_delta,
-        model_to_x_value=model_to_training_compute,
+        model_to_x_value=model_to_x_value,
         attribute_types=contextual_attribute_types,
         model_names=model_names,
         model_to_color=model_to_color,
         panel_letter="b",
-        block_title="Contextual minority bias vs. training compute",
-        xlabel=r"$\log_{10}$(Training compute / $10^{23}$ FLOPs)",
-        ylabel=None,
+        block_title="Contextual minority bias",
+        xlabel=xlabel,
+        ylabel="Absolute selection-rate difference (%)",
     )
 
-    # c. Societal results vs parameters
-    draw_scale_block(
-        fig=fig,
-        outer_spec=outer_gs[1, 0],
-        attribute_type_to_application_to_model_to_delta=societal_attribute_type_to_application_to_model_to_delta,
-        model_to_x_value=model_to_parameter_count,
-        attribute_types=societal_attribute_types,
-        model_names=model_names,
-        model_to_color=model_to_color,
-        panel_letter="c",
-        block_title="Societal minority bias vs. model parameters",
-        xlabel=r"$\log_{10}$(Model parameters / $10^9$)",
-        ylabel="Relative score difference (%)",
-    )
-
-    # d. Societal results vs training compute
-    draw_scale_block(
-        fig=fig,
-        outer_spec=outer_gs[1, 1],
-        attribute_type_to_application_to_model_to_delta=societal_attribute_type_to_application_to_model_to_delta,
-        model_to_x_value=model_to_training_compute,
-        attribute_types=societal_attribute_types,
-        model_names=model_names,
-        model_to_color=model_to_color,
-        panel_letter="d",
-        block_title="Societal minority bias vs. training compute",
-        xlabel=r"$\log_{10}$(Training compute / $10^{23}$ FLOPs)",
-        ylabel=None,
-    )
-
-    # Shared model legend below the whole figure.
+    # Shared model legend below the whole figure
     legend_handles = [
         Line2D(
             [0],
@@ -586,7 +557,7 @@ def draw_super_scale_figure(
     fig.legend(
         handles=legend_handles,
         loc="lower center",
-        bbox_to_anchor=(0.5, 0.045),
+        bbox_to_anchor=(0.5, 0.060),
         ncol=4,
         frameon=False,
         fontsize=16,
@@ -594,9 +565,8 @@ def draw_super_scale_figure(
         columnspacing=1.35,
     )
 
-    base = "scale_super_figure_contextual_societal_parameter_compute_nature_style"
+    pdf_path = os.path.join(output_dir, output_basename + ".pdf")
 
-    pdf_path = os.path.join(output_dir, base + ".pdf")
     fig.savefig(pdf_path, bbox_inches="tight")
     print(f"Saved: {pdf_path}")
 
@@ -702,15 +672,31 @@ if __name__ == "__main__":
         societal_attribute_type_to_application_to_model_to_delta[attribute_type] = application_to_model_to_delta
 
     # ------------------------------------------------------------
-    # Draw super figure
+    # Figure 1: scale measured by model parameters
     # ------------------------------------------------------------
-    draw_super_scale_figure(
+    draw_two_panel_scale_figure(
         contextual_attribute_type_to_application_to_model_to_delta=contextual_attribute_type_to_application_to_model_to_delta,
         societal_attribute_type_to_application_to_model_to_delta=societal_attribute_type_to_application_to_model_to_delta,
-        model_to_parameter_count=model_to_parameter_count,
-        model_to_training_compute=model_to_training_compute,
+        model_to_x_value=model_to_parameter_count,
         contextual_attribute_types=contextual_attribute_types,
         societal_attribute_types=societal_attribute_types,
         model_names=model_names,
+        xlabel=r"$\log_{10}$(Model parameters / $10^9$)",
+        output_basename="scale_parameter_societal_contextual_nature_style",
+        output_dir="outputs/parameter",
+    )
+
+    # ------------------------------------------------------------
+    # Figure 2: scale measured by effective training compute
+    # ------------------------------------------------------------
+    draw_two_panel_scale_figure(
+        contextual_attribute_type_to_application_to_model_to_delta=contextual_attribute_type_to_application_to_model_to_delta,
+        societal_attribute_type_to_application_to_model_to_delta=societal_attribute_type_to_application_to_model_to_delta,
+        model_to_x_value=model_to_training_compute,
+        contextual_attribute_types=contextual_attribute_types,
+        societal_attribute_types=societal_attribute_types,
+        model_names=model_names,
+        xlabel=r"$\log_{10}$(Training compute / $10^{23}$ FLOPs)",
+        output_basename="scale_training_compute_societal_contextual_nature_style",
         output_dir="outputs/parameter",
     )
