@@ -657,7 +657,7 @@ def draw_reasoning_block(
                 top=False,
                 right=False,
             )
-            ax.tick_params(axis="x", labelsize=10)
+            ax.tick_params(axis="x", labelsize=9)
 
             for tick_label in ax.get_xticklabels():
                 model_name = tick_label.get_text()
