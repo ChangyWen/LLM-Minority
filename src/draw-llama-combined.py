@@ -645,14 +645,14 @@ def draw_combined_llama_figure(
         len(applications),
         len(model_names),
         wspace=0.16,
-        hspace=0.68,
+        hspace=0.9,
     )
 
     contextual_gs = outer_gs[0, 1].subgridspec(
         len(applications),
         len(contextual_attribute_types),
         wspace=0.16,
-        hspace=0.72,
+        hspace=0.9,
     )
 
     societal_axes = np.empty((len(applications), len(model_names)), dtype=object)
@@ -900,10 +900,13 @@ def draw_combined_llama_figure(
     ctx_x_center = (ctx_x0 + ctx_x1) / 2
     ctx_y_center = (ctx_y0 + ctx_y1) / 2
 
+    title_y_offset = 0.080
+    letter_y_offset = 0.080
+
     # Panel letters and block titles
     fig.text(
         soc_x0 - 0.030,
-        soc_y1 + 0.060,
+        soc_y1 + letter_y_offset,
         "a",
         ha="left",
         va="bottom",
@@ -913,7 +916,7 @@ def draw_combined_llama_figure(
 
     fig.text(
         soc_x0 + 0.005,
-        soc_y1 + 0.060,
+        soc_y1 + title_y_offset,
         "Societal minority bias",
         ha="left",
         va="bottom",
@@ -923,7 +926,7 @@ def draw_combined_llama_figure(
 
     fig.text(
         ctx_x0 - 0.030,
-        ctx_y1 + 0.060,
+        ctx_y1 + letter_y_offset,
         "b",
         ha="left",
         va="bottom",
@@ -933,7 +936,7 @@ def draw_combined_llama_figure(
 
     fig.text(
         ctx_x0 + 0.005,
-        ctx_y1 + 0.060,
+        ctx_y1 + title_y_offset,
         "Contextual minority bias",
         ha="left",
         va="bottom",
@@ -988,8 +991,8 @@ def draw_combined_llama_figure(
     # Row labels
     # ============================================================
 
-    row_app_offset = 0.034
-    row_subtitle_offset = 0.015
+    row_app_offset = 0.045
+    row_subtitle_offset = 0.022
 
     for row_idx, application in enumerate(applications):
         app_name = application_title_map.get(application, application)
