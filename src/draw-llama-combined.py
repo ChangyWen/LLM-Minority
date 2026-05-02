@@ -962,7 +962,7 @@ def draw_combined_llama_figure(
         fontsize=FIG_FONT_SIZE,
     )
 
-    shared_x_label_y = min(soc_y0, ctx_y0) - 0.06
+    shared_x_label_y = min(soc_y0, ctx_y0) - 0.07
 
     # Societal x-axis label
     fig.text(
@@ -1065,7 +1065,7 @@ def draw_combined_llama_figure(
         ),
     ]
 
-    shared_legend_y = shared_x_label_y - 0.06
+    shared_legend_y = shared_x_label_y - 0.07
 
     fig.legend(
         handles=societal_legend_handles,
