@@ -19,7 +19,8 @@ from matplotlib.lines import Line2D
 # ============================================================
 
 DELTA_COLOR = "#4D4D4D"  # dark gray, more professional than pure blue
-
+FONT_SIZE = 9.2
+LABEL_SIZE = 8.0
 
 def set_nature_style():
     """
@@ -41,9 +42,9 @@ def set_nature_style():
         "axes.spines.right": False,
 
         "axes.titlesize": 8.5,
-        "axes.labelsize": 9.0,
-        "xtick.labelsize": 8.0,
-        "ytick.labelsize": 8.0,
+        "axes.labelsize": 6.0,
+        "xtick.labelsize": 6.0,
+        "ytick.labelsize": 6.0,
         "legend.fontsize": 8.5,
 
         "xtick.major.width": 0.7,
@@ -444,16 +445,27 @@ def plot_model_panel(
     ax_main.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"{v:.2f}"))
 
     ax_main.tick_params(
-        axis="both",
+        axis="x",
         direction="out",
         length=3.0,
         width=0.7,
         color="black",
         labelcolor="black",
-        left=True,
-        labelleft=True,   # show main y-axis numbers for all panels
+        labelsize=LABEL_SIZE,   # x-axis tick-number size
         bottom=True,
         labelbottom=True,
+    )
+
+    ax_main.tick_params(
+        axis="y",
+        direction="out",
+        length=3.0,
+        width=0.7,
+        color="black",
+        labelcolor="black",
+        labelsize=LABEL_SIZE,   # main y-axis tick-number size
+        left=True,
+        labelleft=True,
     )
     ax_main.spines["top"].set_visible(False)
     ax_main.spines["right"].set_visible(False)
@@ -507,8 +519,9 @@ def plot_model_panel(
             width=0.7,
             color=DELTA_COLOR,
             labelcolor=DELTA_COLOR,
-            right=True,       # show right-side tick marks
-            labelright=True,  # show right-side tick numbers for all panels
+            labelsize=LABEL_SIZE,   # twin y-axis tick-number size
+            right=True,
+            labelright=True,
             left=False,
             labelleft=False,
         )
@@ -594,7 +607,7 @@ def draw_attribute_big_figure(
                 pretty_model_name(model_name),
                 loc="center",
                 pad=4,
-                fontsize=8.0,
+                fontsize=FONT_SIZE,
             )
 
             file_name = (
@@ -628,13 +641,13 @@ def draw_attribute_big_figure(
     # ------------------------------------------------------------
     fig.supxlabel(
         "Proportion of focal group in candidate pool (%)",
-        fontsize=9.2,
+        fontsize=FONT_SIZE,
         y=0.047,
     )
 
     fig.supylabel(
         "Selection rate",
-        fontsize=9.2,
+        fontsize=FONT_SIZE,
         x=0.035,   # farther from the left edge of the panels
     )
 
@@ -645,7 +658,7 @@ def draw_attribute_big_figure(
         va="center",
         ha="center",
         rotation=270,
-        fontsize=9.2,
+        fontsize=FONT_SIZE,
         color=DELTA_COLOR,
     )
 
@@ -668,7 +681,7 @@ def draw_attribute_big_figure(
             application_title_map[application],
             ha="center",
             va="bottom",
-            fontsize=10.0,
+            fontsize=FONT_SIZE,
             fontweight="bold",
         )
 
