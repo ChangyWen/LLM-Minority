@@ -478,6 +478,11 @@ def plot_model_panel(
     ax_main.spines["top"].set_visible(False)
     ax_main.spines["right"].set_visible(False)
 
+    for spine in ["left", "bottom"]:
+        ax_main.spines[spine].set_visible(True)
+        ax_main.spines[spine].set_linewidth(0.7)
+        ax_main.spines[spine].set_color("0.15")
+
     # ------------------------------------------------------------
     # Delta curve on right y-axis
     # ------------------------------------------------------------
@@ -538,6 +543,8 @@ def plot_model_panel(
         ax_delta.spines["right"].set_visible(True)
         ax_delta.spines["right"].set_color(DELTA_COLOR)
         ax_delta.spines["right"].set_linewidth(0.7)
+        ax_delta.spines["left"].set_visible(False)
+        ax_delta.spines["bottom"].set_visible(False)
 
 
 # ============================================================
