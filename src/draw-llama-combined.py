@@ -944,9 +944,11 @@ def draw_combined_llama_figure(
         fontweight="bold",
     )
 
+    ylabel_offset = 0.050
+
     # Block y-axis labels
     fig.text(
-        soc_x0 - 0.045,
+        soc_x0 - ylabel_offset,
         soc_y_center,
         "Mean score",
         ha="center",
@@ -956,7 +958,7 @@ def draw_combined_llama_figure(
     )
 
     fig.text(
-        ctx_x0 - 0.045,
+        ctx_x0 - ylabel_offset,
         ctx_y_center,
         "Normalized absolute selection-rate difference (%)",
         ha="center",
