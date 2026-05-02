@@ -638,7 +638,7 @@ def draw_combined_llama_figure(
         right=0.985,
         bottom=0.175,
         top=0.900,
-        wspace=0.18,
+        wspace=0.218,
     )
 
     societal_gs = outer_gs[0, 0].subgridspec(
