@@ -438,13 +438,6 @@ def plot_model_panel(
         )
         ax_main.set_xlim(-0.12, len(xticks) - 1 + 0.12)
 
-    ax_main.grid(
-        axis="y",
-        color="0.88",
-        linewidth=0.6,
-        linestyle="-",
-        zorder=0,
-    )
     ax_main.set_axisbelow(True)
 
     ax_main.yaxis.set_major_locator(MaxNLocator(nbins=4))
@@ -457,9 +450,11 @@ def plot_model_panel(
         width=0.7,
         color="black",
         labelcolor="black",
-        labelleft=show_left_ticks,
+        left=True,
+        labelleft=True,   # show main y-axis numbers for all panels
+        bottom=True,
+        labelbottom=True,
     )
-
     ax_main.spines["top"].set_visible(False)
     ax_main.spines["right"].set_visible(False)
 
@@ -506,17 +501,19 @@ def plot_model_panel(
 
         ax_delta.tick_params(
             axis="y",
+            which="major",
             direction="out",
             length=3.0,
             width=0.7,
-            colors=DELTA_COLOR,
-            right=True,                  # keep right-side tick marks
-            labelright=show_right_ticks, # show labels only on the last column
+            color=DELTA_COLOR,
+            labelcolor=DELTA_COLOR,
+            right=True,       # show right-side tick marks
+            labelright=True,  # show right-side tick numbers for all panels
+            left=False,
+            labelleft=False,
         )
 
         ax_delta.spines["top"].set_visible(False)
-
-        # Keep the right-hand boundary for every panel because every panel has a twin y-axis.
         ax_delta.spines["right"].set_visible(True)
         ax_delta.spines["right"].set_color(DELTA_COLOR)
         ax_delta.spines["right"].set_linewidth(0.7)
