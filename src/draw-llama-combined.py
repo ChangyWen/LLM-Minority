@@ -398,9 +398,9 @@ def plot_societal_panel(
     minority_marker = "o"
     majority_marker = "s"
 
-    x_gap = 0.65
+    x_gap = 0.40
     x_base = np.arange(len(attribute_types), dtype=float) * x_gap
-    dodge = 0.09
+    dodge = 0.065
 
     x_minority = x_base - dodge
     x_majority = x_base + dodge
@@ -536,7 +536,7 @@ def plot_societal_panel(
     ax.set_xticklabels(
         [attribute_tick_labels.get(a, a) for a in attribute_types]
     )
-    ax.set_xlim(x_base[0] - 0.35, x_base[-1] + 0.35)
+    ax.set_xlim(x_base[0] - 0.15, x_base[-1] + 0.15)
 
     for tick_label, attribute_type in zip(ax.get_xticklabels(), attribute_types):
         tick_label.set_color(attribute_to_color[attribute_type])
@@ -684,8 +684,8 @@ def draw_combined_llama_figure(
     # b. Contextual minority bias
     # ============================================================
     ratio_strs = ["20%", "40%", "60%", "80%"]
-    # ratio_x = np.array([20, 40, 60, 80], dtype=float)
-    ratio_x = np.arange(len(ratio_strs), dtype=float)
+    ratio_step = 0.65
+    ratio_x = np.arange(len(ratio_strs), dtype=float) * ratio_step
 
     # Load contextual results once
     app_attr_model_to_delta = defaultdict(lambda: defaultdict(dict))
@@ -854,7 +854,7 @@ def draw_combined_llama_figure(
                     zorder=4,
                 )
 
-            ax.set_xlim(-0.35, len(ratio_strs) - 0.65)
+            ax.set_xlim(ratio_x[0] - 0.15, ratio_x[-1] + 0.15)
             ax.set_xticks(ratio_x)
             ax.set_xticklabels(["20", "40", "60", "80"])
 
