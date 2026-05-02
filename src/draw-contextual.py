@@ -18,7 +18,7 @@ from matplotlib.lines import Line2D
 # Global style
 # ============================================================
 
-DELTA_COLOR = "#009E73"  # dark gray, more professional than pure blue
+DELTA_COLOR = "#e05759"  # dark gray, more professional than pure blue
 FONT_SIZE = 9.5
 LABEL_SIZE = 8.0
 
