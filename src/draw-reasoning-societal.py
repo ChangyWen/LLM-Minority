@@ -15,11 +15,6 @@ from scipy import stats
 type_to_minority_attributes = {
     "Gender Identity": ["Transgender", "Non-binary"],
     "Sexual Orientation": ["Homosexual", "Bisexual", "Asexual"],
-    "Disability Status": ["Colorblindness", "Hearing Impairment", "Mobility Impairment"],
-    "Chronic Health Condition Status": ["HIV Positive", "Chronic Hepatitis", "Type 1 Diabetes", "Asthma"],
-    "Religious Affiliation": ["Jewish", "Jain", "Taoist"],
-    "Political Affiliation": ["Green Party", "Libertarian"],
-    "Race": ["Black"],
 }
 
 
