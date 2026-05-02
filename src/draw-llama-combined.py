@@ -398,8 +398,9 @@ def plot_societal_panel(
     minority_marker = "o"
     majority_marker = "s"
 
-    x_base = np.arange(len(attribute_types), dtype=float)
-    dodge = 0.13
+    x_gap = 0.65
+    x_base = np.arange(len(attribute_types), dtype=float) * x_gap
+    dodge = 0.09
 
     x_minority = x_base - dodge
     x_majority = x_base + dodge
@@ -528,7 +529,14 @@ def plot_societal_panel(
 
     # Axis formatting
     ax.set_xticks(x_base)
-    ax.set_xticklabels(attribute_types)
+    attribute_tick_labels = {
+        "Gender Identity": "Gender\nidentity",
+        "Sexual Orientation": "Sexual\norientation",
+    }
+    ax.set_xticklabels(
+        [attribute_tick_labels.get(a, a) for a in attribute_types]
+    )
+    ax.set_xlim(x_base[0] - 0.35, x_base[-1] + 0.35)
 
     for tick_label, attribute_type in zip(ax.get_xticklabels(), attribute_types):
         tick_label.set_color(attribute_to_color[attribute_type])
@@ -621,29 +629,29 @@ def draw_combined_llama_figure(
         },
     }
 
-    fig = plt.figure(figsize=(15.0, 7.9))
+    fig = plt.figure(figsize=(12.0, 7.9))
 
     outer_gs = fig.add_gridspec(
         1,
         2,
-        left=0.055,
-        right=0.995,
+        left=0.070,
+        right=0.990,
         bottom=0.175,
         top=0.890,
-        wspace=0.16,
+        wspace=0.075,
     )
 
     societal_gs = outer_gs[0, 0].subgridspec(
         len(applications),
         len(model_names),
-        wspace=0.24,
+        wspace=0.16,
         hspace=0.68,
     )
 
     contextual_gs = outer_gs[0, 1].subgridspec(
         len(applications),
         len(contextual_attribute_types),
-        wspace=0.26,
+        wspace=0.16,
         hspace=0.72,
     )
 
@@ -676,7 +684,8 @@ def draw_combined_llama_figure(
     # b. Contextual minority bias
     # ============================================================
     ratio_strs = ["20%", "40%", "60%", "80%"]
-    ratio_x = np.array([20, 40, 60, 80], dtype=float)
+    # ratio_x = np.array([20, 40, 60, 80], dtype=float)
+    ratio_x = np.arange(len(ratio_strs), dtype=float)
 
     # Load contextual results once
     app_attr_model_to_delta = defaultdict(lambda: defaultdict(dict))
@@ -845,7 +854,7 @@ def draw_combined_llama_figure(
                     zorder=4,
                 )
 
-            ax.set_xlim(12, 88)
+            ax.set_xlim(-0.35, len(ratio_strs) - 0.65)
             ax.set_xticks(ratio_x)
             ax.set_xticklabels(["20", "40", "60", "80"])
 
@@ -934,7 +943,7 @@ def draw_combined_llama_figure(
 
     # Block y-axis labels
     fig.text(
-        soc_x0 - 0.060,
+        soc_x0 - 0.045,
         soc_y_center,
         "Mean score",
         ha="center",
@@ -944,7 +953,7 @@ def draw_combined_llama_figure(
     )
 
     fig.text(
-        ctx_x0 - 0.060,
+        ctx_x0 - 0.045,
         ctx_y_center,
         "Normalized absolute selection-rate difference (%)",
         ha="center",
@@ -1054,20 +1063,6 @@ def draw_combined_llama_figure(
             markersize=5.0,
             label="Majority",
         ),
-        Line2D(
-            [0], [0],
-            linestyle="-",
-            color=societal_attr_color["Gender Identity"],
-            linewidth=1.8,
-            label="Gender identity",
-        ),
-        Line2D(
-            [0], [0],
-            linestyle="-",
-            color=societal_attr_color["Sexual Orientation"],
-            linewidth=1.8,
-            label="Sexual orientation",
-        ),
     ]
 
     shared_legend_y = shared_x_label_y - 0.06
@@ -1076,12 +1071,12 @@ def draw_combined_llama_figure(
         handles=societal_legend_handles,
         loc="lower center",
         bbox_to_anchor=(soc_x_center, shared_legend_y),
-        ncol=4,
+        ncol=2,
         frameon=False,
         handlelength=1.5,
-        columnspacing=1.0,
-        handletextpad=0.45,
-        fontsize=8.3,
+        columnspacing=0.9,
+        handletextpad=0.40,
+        fontsize=8.1,
     )
 
     # -----------------------------
@@ -1120,10 +1115,10 @@ def draw_combined_llama_figure(
         bbox_to_anchor=(ctx_x_center, shared_legend_y),
         ncol=2,
         frameon=False,
-        handlelength=1.8,
-        columnspacing=1.2,
-        handletextpad=0.50,
-        fontsize=8.3,
+        handlelength=1.5,
+        columnspacing=0.9,
+        handletextpad=0.40,
+        fontsize=8.1,
     )
 
     # Save
