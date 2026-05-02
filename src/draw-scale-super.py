@@ -239,6 +239,14 @@ def get_model_colors(model_names):
     return {m: palette[i % len(palette)] for i, m in enumerate(model_names)}
 
 
+def format_log_ticks(val, pos):
+    return f"{val:.1f}"
+
+
+def format_log_ticks(val, pos):
+    return f"{val:.1f}"
+
+
 def draw_scale_block(
     fig,
     outer_spec,
@@ -257,6 +265,8 @@ def draw_scale_block(
 
     Rows: attribute types
     Columns: Hiring, Loan, Scholarship
+
+    The x-axis is log10-transformed before plotting.
     """
 
     applications = ["hiring", "loan", "edu"]
@@ -275,9 +285,11 @@ def draw_scale_block(
 
     axes = np.empty((2, 3), dtype=object)
 
-    all_x = [model_to_x_value[m] for m in model_names]
-    x_min = min(all_x) * 0.85
-    x_max = max(all_x) * 1.20
+    all_x = [model_to_x_value[m] for m in model_names if model_to_x_value[m] > 0]
+    all_x_log = np.log10(all_x)
+
+    x_min = min(all_x_log) - 0.08
+    x_max = max(all_x_log) + 0.08
 
     for row_idx, attribute_type in enumerate(attribute_types):
         application_to_model_to_delta = attribute_type_to_application_to_model_to_delta[attribute_type]
@@ -289,7 +301,7 @@ def draw_scale_block(
             ax.spines["top"].set_visible(False)
             ax.spines["right"].set_visible(False)
 
-            xs = np.array(
+            xs_raw = np.array(
                 [model_to_x_value[m] for m in model_names],
                 dtype=float,
             )
@@ -298,8 +310,9 @@ def draw_scale_block(
                 dtype=float,
             )
 
-            valid_mask = np.isfinite(xs) & np.isfinite(ys) & (xs > 0)
-            xs_valid = xs[valid_mask]
+            valid_mask = np.isfinite(xs_raw) & np.isfinite(ys) & (xs_raw > 0)
+
+            xs_valid = np.log10(xs_raw[valid_mask])
             ys_valid = ys[valid_mask]
             valid_models = [
                 m for m, ok in zip(model_names, valid_mask)
@@ -318,16 +331,14 @@ def draw_scale_block(
                     zorder=3,
                 )
 
-            if len(xs_valid) >= 3 and np.std(ys_valid) > 0 and np.std(np.log10(xs_valid)) > 0:
-                x_log = np.log10(xs_valid)
-
-                r, p_two_sided = pearsonr(x_log, ys_valid)
+            if len(xs_valid) >= 3 and np.std(ys_valid) > 0 and np.std(xs_valid) > 0:
+                r, p_two_sided = pearsonr(xs_valid, ys_valid)
                 p_one_sided = p_two_sided / 2 if r > 0 else 1.0
 
-                xg, yg, yl, yu = fit_linear_with_ci(x_log, ys_valid)
+                xg, yg, yl, yu = fit_linear_with_ci(xs_valid, ys_valid)
 
                 ax.plot(
-                    10 ** xg,
+                    xg,
                     yg,
                     color="0.15",
                     linewidth=1.35,
@@ -335,7 +346,7 @@ def draw_scale_block(
                 )
 
                 ax.fill_between(
-                    10 ** xg,
+                    xg,
                     yl,
                     yu,
                     color="0.35",
@@ -343,11 +354,10 @@ def draw_scale_block(
                     zorder=1,
                 )
 
-                corr_text = rf"$r={r:.2f}$" + "\n" + rf"$P={p_one_sided:.2f}$"
+                corr_text = rf"$r={r:.2f}$" + "\n" + rf"$P={p_two_sided:.2f}$"
             else:
                 corr_text = r"$r=\mathrm{NA}$" + "\n" + r"$P=\mathrm{NA}$"
 
-            # Only show application titles on the first row within each block.
             if row_idx == 0:
                 ax.set_title(
                     panel_titles[application],
@@ -366,7 +376,6 @@ def draw_scale_block(
                 color="0.15",
             )
 
-            ax.set_xscale("log")
             ax.set_xlim(x_min, x_max)
             ax.set_axisbelow(True)
 
@@ -384,25 +393,13 @@ def draw_scale_block(
                 right=False,
             )
 
-            ax.tick_params(
-                axis="x",
-                which="minor",
-                direction="out",
-                length=2.0,
-                width=0.6,
-                color="black",
-                bottom=True,
-                top=False,
-            )
-
             ax.yaxis.set_major_formatter(
                 FuncFormatter(lambda v, pos: f"{v * 100:.0f}")
             )
             ax.xaxis.set_major_formatter(
-                FuncFormatter(format_param_ticks)
+                FuncFormatter(format_log_ticks)
             )
 
-    # Get block geometry after axes are created.
     pos_top_left = axes[0, 0].get_position()
     pos_top_right = axes[0, 2].get_position()
     pos_bottom_left = axes[1, 0].get_position()
@@ -414,7 +411,6 @@ def draw_scale_block(
     block_x_center = (block_x0 + block_x1) / 2
     block_y_center = (block_y0 + block_y1) / 2
 
-    # Nature-style panel letter and block title.
     fig.text(
         block_x0 - 0.020,
         block_y1 + 0.060,
@@ -435,7 +431,6 @@ def draw_scale_block(
         fontweight="bold",
     )
 
-    # Row subtitles inside each block.
     row_title_offset = 0.026
 
     for row_idx, attribute_type in enumerate(attribute_types):
@@ -455,7 +450,6 @@ def draw_scale_block(
             fontweight="bold",
         )
 
-    # Block-level x-axis label.
     fig.text(
         block_x_center,
         block_y0 - 0.043,
@@ -465,7 +459,6 @@ def draw_scale_block(
         fontsize=16,
     )
 
-    # Optional block-level y-axis label.
     if ylabel is not None:
         fig.text(
             block_x0 - 0.03,
@@ -530,7 +523,7 @@ def draw_super_scale_figure(
         model_to_color=model_to_color,
         panel_letter="a",
         block_title="Bias towards contextual minority vs. model parameters",
-        xlabel=r"Model parameters ($\times 1$B, log scale)",
+        xlabel=r"$\log_{10}$(Model parameters / $10^9$)",
         ylabel="Absolute selection-rate difference (%)",
     )
 
@@ -545,7 +538,7 @@ def draw_super_scale_figure(
         model_to_color=model_to_color,
         panel_letter="b",
         block_title="Bias towards contextual minority vs. training compute",
-        xlabel=r"Training compute in FLOPs ($\times 10^{23}$, log scale)",
+        xlabel=r"$\log_{10}$(Training compute / $10^{23}$ FLOPs)",
         ylabel=None,
     )
 
@@ -560,7 +553,7 @@ def draw_super_scale_figure(
         model_to_color=model_to_color,
         panel_letter="c",
         block_title="Bias towards societal minorities vs. model parameters",
-        xlabel=r"Model parameters ($\times 1$B, log scale)",
+        xlabel=r"$\log_{10}$(Model parameters / $10^9$)",
         ylabel="Relative difference in score (%)",
     )
 
@@ -575,7 +568,7 @@ def draw_super_scale_figure(
         model_to_color=model_to_color,
         panel_letter="d",
         block_title="Bias towards societal minorities vs. training compute",
-        xlabel=r"Training compute in FLOPs ($\times 10^{23}$, log scale)",
+        xlabel=r"$\log_{10}$(Training compute / $10^{23}$ FLOPs)",
         ylabel=None,
     )
 
