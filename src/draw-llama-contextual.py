@@ -452,7 +452,7 @@ def draw_all_applications_in_one_figure(
                     ha="center",
                     va="bottom",
                     fontsize=7.0,
-                    fontweight="bold",
+                    # fontweight="bold",
                     color="0.10",
                     zorder=4,
                 )
@@ -560,7 +560,7 @@ def draw_all_applications_in_one_figure(
                 ha="center",
                 va="bottom",
                 fontsize=9.0,
-                fontweight="bold",
+                # fontweight="bold",
             )
 
     base = "all_applications_Gender_Race_llama_contextual"
@@ -573,7 +573,7 @@ def draw_all_applications_in_one_figure(
 
 
 if __name__ == "__main__":
-    applications = ["loan", "hiring", "edu"]
+    applications = ["hiring", "loan", "edu"]
     model_names = ["Llama-3.1-8B", "Llama-3.1-8B-Instruct"]
     attribute_types = ["Gender", "Race"]
 

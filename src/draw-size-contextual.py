@@ -45,7 +45,7 @@ def p_to_stars(p):
     elif p < 0.05:
         return "*"
     else:
-        return ""
+        return "ns"
 
 
 def se_diff_of_props(hA, nA, hB, nB):
@@ -498,7 +498,7 @@ def draw_combined_gender_race_by_application(
                             ha="center",
                             va="bottom",
                             fontsize=7.0,
-                            fontweight="bold",
+                            # fontweight="bold",
                             color="0.10",
                             zorder=4,
                         )
