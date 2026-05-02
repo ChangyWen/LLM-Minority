@@ -628,7 +628,7 @@ def draw_combined_llama_figure(
         2,
         left=0.055,
         right=0.995,
-        bottom=0.145,
+        bottom=0.175,
         top=0.890,
         wspace=0.16,
     )
@@ -666,12 +666,11 @@ def draw_combined_llama_figure(
                 attribute_to_color=societal_attr_color,
             )
 
-            if row_idx == 0:
-                ax.set_title(
-                    pretty_model_name(model_name),
-                    fontsize=8.8,
-                    pad=5,
-                )
+            ax.set_title(
+                pretty_model_name(model_name),
+                fontsize=8.8,
+                pad=5,
+            )
 
     # ============================================================
     # b. Contextual minority bias
@@ -954,10 +953,22 @@ def draw_combined_llama_figure(
         fontsize=9.2,
     )
 
+    shared_x_label_y = min(soc_y0, ctx_y0) - 0.06
+
+    # Societal x-axis label
+    fig.text(
+        soc_x_center,
+        shared_x_label_y,
+        "Attribute",
+        ha="center",
+        va="top",
+        fontsize=9.2,
+    )
+
     # Contextual x-axis label
     fig.text(
         ctx_x_center,
-        ctx_y0 - 0.055,
+        shared_x_label_y,
         "Proportion of focal group in candidate pool (%)",
         ha="center",
         va="top",
@@ -1019,11 +1030,10 @@ def draw_combined_llama_figure(
                 fontsize=8.5,
             )
 
-    # ============================================================
-    # Shared legend below the whole figure
-    # ============================================================
-
-    legend_handles = [
+    # -----------------------------
+    # Legend for panel a: societal
+    # -----------------------------
+    societal_legend_handles = [
         Line2D(
             [0], [0],
             marker="o",
@@ -1058,6 +1068,26 @@ def draw_combined_llama_figure(
             linewidth=1.8,
             label="Sexual orientation",
         ),
+    ]
+
+    shared_legend_y = shared_x_label_y - 0.06
+
+    fig.legend(
+        handles=societal_legend_handles,
+        loc="lower center",
+        bbox_to_anchor=(soc_x_center, shared_legend_y),
+        ncol=4,
+        frameon=False,
+        handlelength=1.5,
+        columnspacing=1.0,
+        handletextpad=0.45,
+        fontsize=8.3,
+    )
+
+    # -----------------------------
+    # Legend for panel b: contextual
+    # -----------------------------
+    contextual_legend_handles = [
         Line2D(
             [0],
             [0],
@@ -1085,15 +1115,15 @@ def draw_combined_llama_figure(
     ]
 
     fig.legend(
-        handles=legend_handles,
+        handles=contextual_legend_handles,
         loc="lower center",
-        bbox_to_anchor=(0.5, 0.020),
-        ncol=6,
+        bbox_to_anchor=(ctx_x_center, shared_legend_y),
+        ncol=2,
         frameon=False,
-        handlelength=1.6,
-        columnspacing=1.0,
-        handletextpad=0.45,
-        fontsize=8.5,
+        handlelength=1.8,
+        columnspacing=1.2,
+        handletextpad=0.50,
+        fontsize=8.3,
     )
 
     # Save
