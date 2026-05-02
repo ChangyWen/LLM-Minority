@@ -12,6 +12,136 @@ from matplotlib.ticker import MaxNLocator, FuncFormatter
 from scipy import stats
 
 
+def se_diff_of_props(hA, nA, hB, nB):
+    """
+    Standard error for the difference between two proportions.
+    Used for contextual minority bias.
+    """
+    pA = hA / nA
+    pB = hB / nB
+    return math.sqrt(pA * (1 - pA) / nA + pB * (1 - pB) / nB)
+
+
+def p_to_stars(p):
+    """
+    Convert a p-value to significance stars.
+    """
+    if p is None or np.isnan(p):
+        return ""
+    if p < 0.001:
+        return "***"
+    if p < 0.01:
+        return "**"
+    if p < 0.05:
+        return "*"
+    return "ns"
+
+
+def format_p_value(p):
+    """
+    Optional exact p-value formatting.
+    """
+    if p is None or np.isnan(p):
+        return ""
+    if p < 0.001:
+        return r"$P<0.001$"
+    return rf"$P={p:.2f}$"
+
+
+def reasoning_lower_p_value(reasoning_result, nonreasoning_result):
+    """
+    One-sided test for:
+
+        H1: bias_reasoning < bias_nonreasoning
+
+    For contextual results:
+        Uses a normal approximation based on the SE of the absolute
+        difference between two proportions.
+
+    For societal results:
+        Uses bootstrap distributions of the relative score difference.
+    """
+
+    # Societal case: bootstrap distributions are available
+    if (
+        "boot_deltas" in reasoning_result
+        and "boot_deltas" in nonreasoning_result
+    ):
+        boot_r = np.asarray(reasoning_result["boot_deltas"], dtype=float)
+        boot_nr = np.asarray(nonreasoning_result["boot_deltas"], dtype=float)
+
+        boot_r = boot_r[np.isfinite(boot_r)]
+        boot_nr = boot_nr[np.isfinite(boot_nr)]
+
+        n = min(len(boot_r), len(boot_nr))
+        if n == 0:
+            return np.nan
+
+        diff = boot_r[:n] - boot_nr[:n]
+
+        # One-sided p-value for reasoning not being lower.
+        # Smaller p supports reasoning < non-reasoning.
+        p = (np.sum(diff >= 0) + 1) / (n + 1)
+        return float(p)
+
+    # Contextual case: SEs are available
+    if "se" in reasoning_result and "se" in nonreasoning_result:
+        delta_r = float(reasoning_result["delta"])
+        delta_nr = float(nonreasoning_result["delta"])
+
+        se_r = float(reasoning_result["se"])
+        se_nr = float(nonreasoning_result["se"])
+
+        se = math.sqrt(se_r ** 2 + se_nr ** 2)
+
+        if se == 0:
+            return 0.0 if delta_r < delta_nr else 1.0
+
+        z = (delta_r - delta_nr) / se
+
+        # Left-tailed test: reasoning bias is smaller.
+        p = stats.norm.cdf(z)
+        return float(p)
+
+    return np.nan
+
+
+def add_sig_bracket(
+    ax,
+    x1,
+    x2,
+    y,
+    text,
+    bar_height,
+    text_offset,
+    linewidth=0.8,
+):
+    """
+    Add a significance bracket between two x positions.
+    """
+
+    ax.plot(
+        [x1, x1, x2, x2],
+        [y, y + bar_height, y + bar_height, y],
+        color="black",
+        linewidth=linewidth,
+        clip_on=False,
+        zorder=4,
+    )
+
+    ax.text(
+        (x1 + x2) / 2,
+        y + bar_height + text_offset,
+        text,
+        ha="center",
+        va="bottom",
+        fontsize=8.5,
+        color="black",
+        clip_on=False,
+        zorder=5,
+    )
+
+
 # ============================================================
 # Shared style
 # ============================================================
@@ -150,10 +280,13 @@ def compute_contextual_results(file_name, attribute_type, max_n_trials=1000000):
             ci_low = ciB_low - ciA_high
             ci_high = ciB_high - ciA_low
 
+        se = se_diff_of_props(hA, nA, hB, nB)
+
         results[c] = {
             "delta": delta,
             "ci_low": ci_low,
             "ci_high": ci_high,
+            "se": se,
         }
 
     if 1 not in results:
@@ -214,6 +347,7 @@ def bootstrap_relative_diff_ci(
         "delta": float(np.mean(deltas)),
         "ci_low": float(lower),
         "ci_high": float(upper),
+        "boot_deltas": deltas,
     }
 
 
@@ -404,14 +538,43 @@ def draw_reasoning_block(
                     "ci_high": float(d["ci_high"]),
                 })
 
+            # Store upper bounds and p-values for brackets
+            pair_upper = {m: -np.inf for m in model_order}
+            pair_pvalues = {}
+
+            for base_name, no_think_name, short_label in pair_defs:
+                d_reasoning = application_to_model_to_delta[application][base_name]
+                d_nonreasoning = application_to_model_to_delta[application][no_think_name]
+
+                p_val = reasoning_lower_p_value(
+                    reasoning_result=d_reasoning,
+                    nonreasoning_result=d_nonreasoning,
+                )
+                pair_pvalues[short_label] = p_val
+
+                print(
+                    f"{block_title} | {attribute_type} | {application} | "
+                    f"{short_label}: one-sided P={p_val:.4g}"
+                )
+
+            all_ci_lows = []
+            all_ci_highs = []
+
             for r in rows:
                 x0 = model_to_x[r["model"]]
                 x = x0 + mode_to_dx[r["mode"]]
                 y = r["delta"]
 
-                yerr_low = max(0.0, y - r["ci_low"])
-                yerr_high = max(0.0, r["ci_high"] - y)
+                ci_low = r["ci_low"]
+                ci_high = r["ci_high"]
+
+                yerr_low = max(0.0, y - ci_low)
+                yerr_high = max(0.0, ci_high - y)
                 yerr = np.array([[yerr_low], [yerr_high]])
+
+                pair_upper[r["model"]] = max(pair_upper[r["model"]], ci_high)
+                all_ci_lows.append(ci_low)
+                all_ci_highs.append(ci_high)
 
                 ax.errorbar(
                     [x],
@@ -426,6 +589,47 @@ def draw_reasoning_block(
                     color=base_to_color[r["model"]],
                     zorder=3,
                 )
+
+            # -------------------------------------------------------
+            # Significance brackets
+            # H1: reasoning has lower bias than non-reasoning
+            # -------------------------------------------------------
+            data_min = min(all_ci_lows)
+            data_max = max(all_ci_highs)
+            data_span = max(data_max - data_min, 0.02)
+
+            bracket_offset = 0.08 * data_span
+            bracket_height = 0.025 * data_span
+            text_offset = 0.015 * data_span
+
+            bracket_tops = []
+
+            for model_short in model_order:
+                x_left = model_to_x[model_short] + mode_to_dx["non-reasoning"]
+                x_right = model_to_x[model_short] + mode_to_dx["reasoning"]
+
+                y_bracket = pair_upper[model_short] + bracket_offset
+                p_val = pair_pvalues[model_short]
+
+                # Use stars in the figure. Exact P values are printed in terminal.
+                p_text = p_to_stars(p_val)
+
+                add_sig_bracket(
+                    ax=ax,
+                    x1=x_left,
+                    x2=x_right,
+                    y=y_bracket,
+                    text=p_text,
+                    bar_height=bracket_height,
+                    text_offset=text_offset,
+                )
+
+                bracket_tops.append(y_bracket + bracket_height + text_offset)
+
+            # Ensure brackets are visible
+            y_lower = min(0.0, data_min - 0.12 * data_span)
+            y_upper = max(max(bracket_tops), data_max) + 0.18 * data_span
+            ax.set_ylim(y_lower, y_upper)
 
             if row_idx == 0:
                 ax.set_title(
