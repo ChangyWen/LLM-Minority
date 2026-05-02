@@ -518,7 +518,7 @@ def draw_super_scale_figure(
         model_names=model_names,
         model_to_color=model_to_color,
         panel_letter="a",
-        block_title="Bias towards contextual minority vs. model parameters",
+        block_title="Contextual minority bias vs. model parameters",
         xlabel=r"$\log_{10}$(Model parameters / $10^9$)",
         ylabel="Absolute selection-rate difference (%)",
     )
@@ -533,7 +533,7 @@ def draw_super_scale_figure(
         model_names=model_names,
         model_to_color=model_to_color,
         panel_letter="b",
-        block_title="Bias towards contextual minority vs. training compute",
+        block_title="Contextual minority bias vs. training compute",
         xlabel=r"$\log_{10}$(Training compute / $10^{23}$ FLOPs)",
         ylabel=None,
     )
@@ -548,7 +548,7 @@ def draw_super_scale_figure(
         model_names=model_names,
         model_to_color=model_to_color,
         panel_letter="c",
-        block_title="Bias towards societal minorities vs. model parameters",
+        block_title="Societal minority bias vs. model parameters",
         xlabel=r"$\log_{10}$(Model parameters / $10^9$)",
         ylabel="Relative score difference (%)",
     )
@@ -563,7 +563,7 @@ def draw_super_scale_figure(
         model_names=model_names,
         model_to_color=model_to_color,
         panel_letter="d",
-        block_title="Bias towards societal minorities vs. training compute",
+        block_title="Societal minority bias vs. training compute",
         xlabel=r"$\log_{10}$(Training compute / $10^{23}$ FLOPs)",
         ylabel=None,
     )

@@ -345,9 +345,9 @@ def draw_reasoning_block(
     """
 
     panel_titles = {
-        "edu": "Scholarship",
+        "edu": "Scholarship application",
         "hiring": "Hiring",
-        "loan": "Loan",
+        "loan": "Loan approval",
     }
 
     pair_defs = [
@@ -436,10 +436,6 @@ def draw_reasoning_block(
 
             ax.set_xticks([model_to_x[m] for m in model_order])
             ax.set_xticklabels(model_order)
-            for tick_label in ax.get_xticklabels():
-                model_name = tick_label.get_text()
-                tick_label.set_color(base_to_color[model_name])
-                # tick_label.set_fontweight("bold")
 
             ax.yaxis.set_major_locator(MaxNLocator(nbins=4))
             ax.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"{v * 100:.0f}"))
@@ -451,12 +447,15 @@ def draw_reasoning_block(
                 length=3.2,
                 width=0.75,
                 color="black",
-                labelcolor="black",
                 bottom=True,
                 left=True,
                 top=False,
                 right=False,
             )
+
+            for tick_label in ax.get_xticklabels():
+                model_name = tick_label.get_text()
+                tick_label.set_color(base_to_color[model_name])
 
             ax.grid(
                 axis="y",
@@ -521,7 +520,7 @@ def draw_reasoning_block(
         )
 
     fig.text(
-        block_x0 - 0.045,
+        block_x0 - 0.06,
         block_y_center,
         ylabel,
         ha="center",
@@ -573,12 +572,12 @@ def draw_reasoning_super_figure(
     draw_reasoning_block(
         fig=fig,
         outer_spec=outer_gs[0],
-        attribute_type_to_application_to_model_to_delta=contextual_results,
-        attribute_types=contextual_attribute_types,
+        attribute_type_to_application_to_model_to_delta=societal_results,
+        attribute_types=societal_attribute_types,
         applications=applications,
         panel_letter="a",
-        block_title="Contextual minority bias",
-        ylabel="Absolute selection-rate difference (%)",
+        block_title="Societal minority bias vs. reasoning",
+        ylabel="Relative score difference (%)",
         base_to_color=base_to_color,
         mode_to_marker=mode_to_marker,
     )
@@ -586,12 +585,12 @@ def draw_reasoning_super_figure(
     draw_reasoning_block(
         fig=fig,
         outer_spec=outer_gs[1],
-        attribute_type_to_application_to_model_to_delta=societal_results,
-        attribute_types=societal_attribute_types,
+        attribute_type_to_application_to_model_to_delta=contextual_results,
+        attribute_types=contextual_attribute_types,
         applications=applications,
         panel_letter="b",
-        block_title="Societal minority bias",
-        ylabel="Relative score difference (%)",
+        block_title="Contextual minority bias vs. reasoning",
+        ylabel="Absolute selection-rate difference (%)",
         base_to_color=base_to_color,
         mode_to_marker=mode_to_marker,
     )
@@ -656,20 +655,6 @@ def draw_reasoning_super_figure(
     legend_texts = leg.get_texts()
     legend_texts[0].set_color("#0072B2")   # GLM text
     legend_texts[1].set_color("#D55E00")   # Nemotron text
-    # optional: make them visually stronger
-    legend_texts[0].set_fontweight("bold")
-    legend_texts[1].set_fontweight("bold")
-
-    fig.legend(
-        handles=legend_handles,
-        loc="lower center",
-        bbox_to_anchor=(0.5, 0.075),
-        ncol=4,
-        frameon=False,
-        fontsize=10,
-        handletextpad=0.45,
-        columnspacing=1.35,
-    )
 
     pdf_path = os.path.join(output_dir, "reasoning_contextual_societal_super_figure.pdf")
 
