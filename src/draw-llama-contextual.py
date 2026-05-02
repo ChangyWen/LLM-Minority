@@ -179,12 +179,11 @@ def draw_all_applications_in_one_figure(
 
     Layout:
         rows = applications
-        cols = attribute types
+        columns = attribute types
 
-    So the figure is 3 x 2:
-        Hiring / Loan / Scholarship application
-        x
-        Gender / Race
+    For each row:
+        application name is centered above the row;
+        attribute names, e.g., Gender and Race, are placed below the application name.
     """
 
     set_nature_style()
@@ -200,7 +199,6 @@ def draw_all_applications_in_one_figure(
         "edu": "Scholarship application",
     }
 
-    # Same drawing style as draw-size-contextual.py
     model_style = {
         "Llama-3.1-8B": {
             "color": "#0072B2",
@@ -228,12 +226,11 @@ def draw_all_applications_in_one_figure(
     fig, axes = plt.subplots(
         len(applications),
         len(attribute_types),
-        figsize=(7.45, 7.4),
+        figsize=(7.45, 7.75),
         sharex=False,
         sharey=False,
     )
 
-    # Make sure axes is always 2D
     axes = np.asarray(axes)
 
     for row_idx, application in enumerate(applications):
@@ -300,7 +297,6 @@ def draw_all_applications_in_one_figure(
                     zorder=3,
                 )
 
-            # Panel-specific y-limit
             if len(panel_ci_upper_values) == 0:
                 panel_data_top = 1.0
             else:
@@ -308,30 +304,6 @@ def draw_all_applications_in_one_figure(
                 panel_data_top = max(panel_data_top, 0.05)
 
             ax.set_ylim(0.0, panel_data_top * 1.20)
-
-            # Only show column titles on the first row
-            if row_idx == 0:
-                ax.set_title(
-                    attribute_type,
-                    loc="center",
-                    pad=5,
-                    fontsize=9.0,
-                    fontweight="bold",
-                )
-
-            # Add application label at the left of each row
-            if col_idx == 0:
-                ax.text(
-                    -0.42,
-                    0.5,
-                    application_title_map.get(application, application),
-                    transform=ax.transAxes,
-                    rotation=90,
-                    ha="center",
-                    va="center",
-                    fontsize=9.0,
-                    fontweight="bold",
-                )
 
             ax.set_xlim(12, 88)
             ax.set_xticks(ratio_x)
@@ -355,7 +327,7 @@ def draw_all_applications_in_one_figure(
     fig.supxlabel(
         "Proportion of focal group in candidate pool (%)",
         fontsize=9.2,
-        y=0.08,
+        y=0.075,
     )
 
     fig.supylabel(
@@ -384,7 +356,7 @@ def draw_all_applications_in_one_figure(
     fig.legend(
         handles=legend_handles,
         loc="lower center",
-        bbox_to_anchor=(0.5, 0.015),
+        bbox_to_anchor=(0.5, 0.012),
         ncol=len(model_names),
         frameon=False,
         handlelength=1.8,
@@ -392,14 +364,55 @@ def draw_all_applications_in_one_figure(
         handletextpad=0.6,
     )
 
+    # First adjust the axes, then place row titles using final positions.
     fig.subplots_adjust(
         left=0.14,
         right=0.995,
-        bottom=0.16,
-        top=0.93,
+        bottom=0.155,
+        top=0.900,
         wspace=0.26,
-        hspace=0.38,
+        hspace=0.72,
     )
+
+    # ------------------------------------------------------------
+    # Row headers:
+    # Application name above each row;
+    # attribute names below the application name.
+    # ------------------------------------------------------------
+    app_title_offset = 0.055
+    attr_title_offset = 0.027
+
+    for row_idx, application in enumerate(applications):
+        pos_left = axes[row_idx, 0].get_position()
+        pos_right = axes[row_idx, len(attribute_types) - 1].get_position()
+
+        row_x_center = (pos_left.x0 + pos_right.x1) / 2
+        row_y_top = pos_left.y1
+
+        # Application name, centered across the whole row
+        fig.text(
+            row_x_center,
+            row_y_top + app_title_offset,
+            application_title_map.get(application, application),
+            ha="center",
+            va="bottom",
+            fontsize=10.0,
+            fontweight="bold",
+        )
+
+        # Attribute labels, centered above each panel
+        for col_idx, attribute_type in enumerate(attribute_types):
+            pos = axes[row_idx, col_idx].get_position()
+
+            fig.text(
+                (pos.x0 + pos.x1) / 2,
+                row_y_top + attr_title_offset,
+                attribute_type,
+                ha="center",
+                va="bottom",
+                fontsize=9.0,
+                fontweight="bold",
+            )
 
     base = "all_applications_Gender_Race_llama_contextual"
     pdf_path = os.path.join(output_dir, base + ".pdf")
