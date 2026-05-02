@@ -554,12 +554,6 @@ def draw_attribute_big_figure(
         "edu": "Scholarship application",
     }
 
-    panel_letters = {
-        "hiring": "a",
-        "loan": "b",
-        "edu": "c",
-    }
-
     attr_style = get_attribute_style(attribute_type)
 
     fig = plt.figure(figsize=(7.45, 11.6))
@@ -667,16 +661,6 @@ def draw_attribute_big_figure(
         x0 = pos_left.x0
         x1 = pos_right.x1
         y1 = pos_left.y1
-
-        fig.text(
-            x0 - 0.055,
-            y1 + 0.030,
-            panel_letters[application],
-            ha="left",
-            va="bottom",
-            fontsize=11.0,
-            fontweight="bold",
-        )
 
         fig.text(
             (x0 + x1) / 2,
