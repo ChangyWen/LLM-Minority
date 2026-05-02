@@ -483,10 +483,10 @@ def draw_super_scale_figure(
     Draw one super big Nature-style figure.
 
     Layout:
-        a: Contextual results vs model parameters
-        b: Contextual results vs training compute
-        c: Societal results vs model parameters
-        d: Societal results vs training compute
+        a: Societal results vs model parameters
+        b: Societal results vs training compute
+        c: Contextual results vs model parameters
+        d: Contextual results vs training compute
     """
 
     set_nature_style()
@@ -508,62 +508,70 @@ def draw_super_scale_figure(
         hspace=0.73,
     )
 
-    # a. Contextual results vs parameters
+    # ------------------------------------------------------------
+    # Top row: Societal minority bias
+    # ------------------------------------------------------------
+
+    # a. Societal results vs model parameters
     draw_scale_block(
         fig=fig,
         outer_spec=outer_gs[0, 0],
-        attribute_type_to_application_to_model_to_delta=contextual_attribute_type_to_application_to_model_to_delta,
-        model_to_x_value=model_to_parameter_count,
-        attribute_types=contextual_attribute_types,
-        model_names=model_names,
-        model_to_color=model_to_color,
-        panel_letter="a",
-        block_title="Contextual minority bias vs. model parameters",
-        xlabel=r"$\log_{10}$(Model parameters / $10^9$)",
-        ylabel="Absolute selection-rate difference (%)",
-    )
-
-    # b. Contextual results vs training compute
-    draw_scale_block(
-        fig=fig,
-        outer_spec=outer_gs[0, 1],
-        attribute_type_to_application_to_model_to_delta=contextual_attribute_type_to_application_to_model_to_delta,
-        model_to_x_value=model_to_training_compute,
-        attribute_types=contextual_attribute_types,
-        model_names=model_names,
-        model_to_color=model_to_color,
-        panel_letter="b",
-        block_title="Contextual minority bias vs. training compute",
-        xlabel=r"$\log_{10}$(Training compute / $10^{23}$ FLOPs)",
-        ylabel=None,
-    )
-
-    # c. Societal results vs parameters
-    draw_scale_block(
-        fig=fig,
-        outer_spec=outer_gs[1, 0],
         attribute_type_to_application_to_model_to_delta=societal_attribute_type_to_application_to_model_to_delta,
         model_to_x_value=model_to_parameter_count,
         attribute_types=societal_attribute_types,
         model_names=model_names,
         model_to_color=model_to_color,
-        panel_letter="c",
+        panel_letter="a",
         block_title="Societal minority bias vs. model parameters",
         xlabel=r"$\log_{10}$(Model parameters / $10^9$)",
         ylabel="Relative score difference (%)",
     )
 
-    # d. Societal results vs training compute
+    # b. Societal results vs training compute
     draw_scale_block(
         fig=fig,
-        outer_spec=outer_gs[1, 1],
+        outer_spec=outer_gs[0, 1],
         attribute_type_to_application_to_model_to_delta=societal_attribute_type_to_application_to_model_to_delta,
         model_to_x_value=model_to_training_compute,
         attribute_types=societal_attribute_types,
         model_names=model_names,
         model_to_color=model_to_color,
-        panel_letter="d",
+        panel_letter="b",
         block_title="Societal minority bias vs. training compute",
+        xlabel=r"$\log_{10}$(Training compute / $10^{23}$ FLOPs)",
+        ylabel=None,
+    )
+
+    # ------------------------------------------------------------
+    # Bottom row: Contextual minority bias
+    # ------------------------------------------------------------
+
+    # c. Contextual results vs model parameters
+    draw_scale_block(
+        fig=fig,
+        outer_spec=outer_gs[1, 0],
+        attribute_type_to_application_to_model_to_delta=contextual_attribute_type_to_application_to_model_to_delta,
+        model_to_x_value=model_to_parameter_count,
+        attribute_types=contextual_attribute_types,
+        model_names=model_names,
+        model_to_color=model_to_color,
+        panel_letter="c",
+        block_title="Contextual minority bias vs. model parameters",
+        xlabel=r"$\log_{10}$(Model parameters / $10^9$)",
+        ylabel="Absolute selection-rate difference (%)",
+    )
+
+    # d. Contextual results vs training compute
+    draw_scale_block(
+        fig=fig,
+        outer_spec=outer_gs[1, 1],
+        attribute_type_to_application_to_model_to_delta=contextual_attribute_type_to_application_to_model_to_delta,
+        model_to_x_value=model_to_training_compute,
+        attribute_types=contextual_attribute_types,
+        model_names=model_names,
+        model_to_color=model_to_color,
+        panel_letter="d",
+        block_title="Contextual minority bias vs. training compute",
         xlabel=r"$\log_{10}$(Training compute / $10^{23}$ FLOPs)",
         ylabel=None,
     )
@@ -586,7 +594,7 @@ def draw_super_scale_figure(
     fig.legend(
         handles=legend_handles,
         loc="lower center",
-        bbox_to_anchor=(0.5, 0.045),
+        bbox_to_anchor=(0.5, 0.065),
         ncol=4,
         frameon=False,
         fontsize=16,
@@ -594,7 +602,7 @@ def draw_super_scale_figure(
         columnspacing=1.35,
     )
 
-    base = "scale_super_figure_contextual_societal_parameter_compute_nature_style"
+    base = "scale_super_figure_societal_contextual_parameter_compute_nature_style"
 
     pdf_path = os.path.join(output_dir, base + ".pdf")
     fig.savefig(pdf_path, bbox_inches="tight")
