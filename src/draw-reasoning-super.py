@@ -442,7 +442,7 @@ def draw_reasoning_block(
                 # tick_label.set_fontweight("bold")
 
             ax.yaxis.set_major_locator(MaxNLocator(nbins=4))
-            ax.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"{v * 100:.0f}%"))
+            ax.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"{v * 100:.0f}"))
 
             ax.tick_params(
                 axis="both",
@@ -591,36 +591,32 @@ def draw_reasoning_super_figure(
         applications=applications,
         panel_letter="b",
         block_title="Societal minority bias",
-        ylabel="Relative difference in score (%)",
+        ylabel="Relative score difference (%)",
         base_to_color=base_to_color,
         mode_to_marker=mode_to_marker,
     )
 
     # One shared legend below the whole figure
     legend_handles = [
+        # text-only entries for model names
         Line2D(
-            [0],
-            [0],
-            marker="o",
+            [0], [0],
             linestyle="",
-            markerfacecolor="#0072B2",
-            markeredgecolor="none",
-            markersize=8.0,
+            marker=None,
+            color="#0072B2",
             label="GLM: GLM-4.5-Air",
         ),
         Line2D(
-            [0],
-            [0],
-            marker="o",
+            [0], [0],
             linestyle="",
-            markerfacecolor="#D55E00",
-            markeredgecolor="none",
-            markersize=8.0,
+            marker=None,
+            color="#D55E00",
             label="Nemotron: Nemotron-Nano-12B-v2",
         ),
+
+        # marker entries for reasoning modes
         Line2D(
-            [0],
-            [0],
+            [0], [0],
             marker="o",
             linestyle="",
             color="black",
@@ -630,8 +626,7 @@ def draw_reasoning_super_figure(
             label="Reasoning",
         ),
         Line2D(
-            [0],
-            [0],
+            [0], [0],
             marker="X",
             linestyle="",
             color="black",
@@ -641,6 +636,29 @@ def draw_reasoning_super_figure(
             label="Non-reasoning",
         ),
     ]
+
+    leg = fig.legend(
+        handles=legend_handles,
+        loc="lower center",
+        bbox_to_anchor=(0.5, 0.075),
+        ncol=4,
+        frameon=False,
+        fontsize=10,
+        handletextpad=0.45,
+        columnspacing=1.35,
+    )
+
+    # Hide the first two dummy handles
+    for h in leg.legend_handles[:2]:
+        h.set_visible(False)
+
+    # Color the first two legend texts
+    legend_texts = leg.get_texts()
+    legend_texts[0].set_color("#0072B2")   # GLM text
+    legend_texts[1].set_color("#D55E00")   # Nemotron text
+    # optional: make them visually stronger
+    legend_texts[0].set_fontweight("bold")
+    legend_texts[1].set_fontweight("bold")
 
     fig.legend(
         handles=legend_handles,
