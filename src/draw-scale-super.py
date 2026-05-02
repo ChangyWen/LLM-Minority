@@ -550,7 +550,7 @@ def draw_super_scale_figure(
         panel_letter="c",
         block_title="Bias towards societal minorities vs. model parameters",
         xlabel=r"$\log_{10}$(Model parameters / $10^9$)",
-        ylabel="Relative difference in score (%)",
+        ylabel="Relative score difference (%)",
     )
 
     # d. Societal results vs training compute
