@@ -629,16 +629,16 @@ def draw_combined_llama_figure(
         },
     }
 
-    fig = plt.figure(figsize=(12.0, 7.9))
+    fig = plt.figure(figsize=(9, 9.5))
 
     outer_gs = fig.add_gridspec(
         1,
         2,
-        left=0.070,
-        right=0.990,
+        left=0.075,
+        right=0.985,
         bottom=0.175,
-        top=0.890,
-        wspace=0.075,
+        top=0.900,
+        wspace=0.18,
     )
 
     societal_gs = outer_gs[0, 0].subgridspec(
