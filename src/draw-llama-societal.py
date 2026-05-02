@@ -350,7 +350,7 @@ def plot_societal_panel(
 
     for tick_label, attribute_type in zip(ax.get_xticklabels(), attribute_types):
         tick_label.set_color(attribute_to_color[attribute_type])
-        tick_label.set_fontweight("bold")
+        # tick_label.set_fontweight("bold")
 
     ax.yaxis.set_major_locator(MaxNLocator(nbins=4))
     ax.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"{v:.1f}"))
@@ -367,7 +367,7 @@ def plot_societal_panel(
     # Re-apply x tick colors after tick_params
     for tick_label, attribute_type in zip(ax.get_xticklabels(), attribute_types):
         tick_label.set_color(attribute_to_color[attribute_type])
-        tick_label.set_fontweight("bold")
+        # tick_label.set_fontweight("bold")
 
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
@@ -437,17 +437,16 @@ def draw_all_applications_societal(
             )
 
             # Column titles: model names
-            if row_idx == 0:
-                ax.set_title(
-                    pretty_model_name(model_name),
-                    fontsize=9.0,
-                    fontweight="bold",
-                    pad=5,
-                )
+            ax.set_title(
+                pretty_model_name(model_name),
+                fontsize=9.0,
+                # fontweight="bold",
+                pad=5,
+            )
 
     # Shared labels
     fig.supylabel(
-        "Mean score (95% CI)",
+        "Mean score",
         fontsize=9.2,
         x=0.035,
     )
@@ -473,20 +472,6 @@ def draw_all_applications_societal(
             markeredgewidth=1.0,
             markersize=5.0,
             label="Majority",
-        ),
-        Line2D(
-            [0], [0],
-            linestyle="-",
-            color=attribute_to_color["Gender Identity"],
-            linewidth=1.8,
-            label="Gender Identity",
-        ),
-        Line2D(
-            [0], [0],
-            linestyle="-",
-            color=attribute_to_color["Sexual Orientation"],
-            linewidth=1.8,
-            label="Sexual Orientation",
         ),
     ]
 
