@@ -637,7 +637,7 @@ def draw_reasoning_block(
                 ax.set_title(
                     panel_titles[application],
                     fontsize=9,
-                    pad=6,
+                    pad=2,
                 )
 
             ax.set_xticks([model_to_x[m] for m in model_order])
@@ -727,7 +727,7 @@ def draw_reasoning_block(
         )
 
     fig.text(
-        block_x0 - 0.06,
+        block_x0 - 0.05,
         block_y_center,
         ylabel,
         ha="center",
