@@ -490,12 +490,16 @@ def draw_reasoning_block(
     ]
 
     model_order = [p[2] for p in pair_defs]
-    model_to_x = {m: i for i, m in enumerate(model_order)}
 
-    dodge = 0.16
+    # Smaller value = GLM and Nemotron closer together
+    model_gap = 0.58
+    model_to_x = {m: i * model_gap for i, m in enumerate(model_order)}
+
+    # Keep reasoning/non-reasoning points separated within each model
+    dodge = 0.11
     mode_to_dx = {
-        "non-reasoning": -dodge,   # left
-        "reasoning": +dodge,       # right
+        "non-reasoning": -dodge,
+        "reasoning": +dodge,
     }
 
     inner_gs = outer_spec.subgridspec(
@@ -642,6 +646,11 @@ def draw_reasoning_block(
 
             ax.set_xticks([model_to_x[m] for m in model_order])
             ax.set_xticklabels(model_order)
+
+            ax.set_xlim(
+                model_to_x[model_order[0]] - 0.28,
+                model_to_x[model_order[-1]] + 0.28,
+            )
 
             ax.yaxis.set_major_locator(MaxNLocator(nbins=4))
             ax.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"{v * 100:.0f}"))
