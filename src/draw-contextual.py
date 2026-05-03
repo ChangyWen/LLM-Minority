@@ -21,7 +21,7 @@ from matplotlib.lines import Line2D
 DELTA_COLOR = "#75b8b3"  # dark gray, more professional than pure blue
 FONT_SIZE = 9.5
 LABEL_SIZE = 8.0
-CI_ALPHA = 0.38
+CI_ALPHA = 0.25
 
 def set_nature_style():
     """
