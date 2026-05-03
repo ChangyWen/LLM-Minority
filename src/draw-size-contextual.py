@@ -345,7 +345,7 @@ def draw_combined_gender_race_by_application(
         # ------------------------------------------------------------------
         # Nested GridSpec layout
         # ------------------------------------------------------------------
-        fig = plt.figure(figsize=(7.45, 7.9))
+        fig = plt.figure(figsize=(7.45, 6))
 
         outer_gs = fig.add_gridspec(
             2, 1,
@@ -388,6 +388,7 @@ def draw_combined_gender_race_by_application(
                 row = row_offset + (i // 4)
                 col = i % 4
                 ax = axes[row, col]
+                ax.set_box_aspect(0.65)
 
                 ymin = 0.0
 
@@ -535,7 +536,7 @@ def draw_combined_gender_race_by_application(
         fig.supxlabel(
             "Proportion of focal group in candidate pool (%)",
             fontsize=9.2,
-            y=0.05,
+            y=0.04,
         )
 
         fig.supylabel(
@@ -562,7 +563,7 @@ def draw_combined_gender_race_by_application(
         fig.legend(
             handles=legend_handles,
             loc="lower center",
-            bbox_to_anchor=(0.5, 0.010),
+            bbox_to_anchor=(0.5, -0.01),
             ncol=len(context_sizes),
             frameon=False,
             handlelength=1.8,
