@@ -562,13 +562,13 @@ def plot_societal_panel(
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
 
-    ax.grid(
-        axis="y",
-        color="0.88",
-        linewidth=0.6,
-        linestyle="-",
-        zorder=0,
-    )
+    # ax.grid(
+    #     axis="y",
+    #     color="0.88",
+    #     linewidth=0.6,
+    #     linestyle="-",
+    #     zorder=0,
+    # )
     ax.set_axisbelow(True)
 
 
@@ -629,7 +629,7 @@ def draw_combined_llama_figure(
         },
     }
 
-    fig = plt.figure(figsize=(9, 9.5))
+    fig = plt.figure(figsize=(9, 7))
 
     outer_gs = fig.add_gridspec(
         1,
@@ -637,7 +637,7 @@ def draw_combined_llama_figure(
         left=0.075,
         right=0.985,
         bottom=0.175,
-        top=0.900,
+        top=0.870,
         wspace=0.218,
     )
 
@@ -645,14 +645,14 @@ def draw_combined_llama_figure(
         len(applications),
         len(model_names),
         wspace=0.16,
-        hspace=0.9,
+        hspace=0.85,
     )
 
     contextual_gs = outer_gs[0, 1].subgridspec(
         len(applications),
         len(contextual_attribute_types),
         wspace=0.16,
-        hspace=0.9,
+        hspace=0.85,
     )
 
     societal_axes = np.empty((len(applications), len(model_names)), dtype=object)
@@ -967,7 +967,7 @@ def draw_combined_llama_figure(
         fontsize=FIG_FONT_SIZE,
     )
 
-    shared_x_label_y = min(soc_y0, ctx_y0) - 0.07
+    shared_x_label_y = min(soc_y0, ctx_y0) - 0.066
 
     # Societal x-axis label
     fig.text(
@@ -993,8 +993,8 @@ def draw_combined_llama_figure(
     # Row labels
     # ============================================================
 
-    row_app_offset = 0.045
-    column_label_offset = 0.018   # shared by Llama labels and Gender/Race labels
+    row_app_offset = 0.038
+    column_label_offset = 0.008   # shared by Llama labels and Gender/Race labels
 
     for row_idx, application in enumerate(applications):
         app_name = application_title_map.get(application, application)
@@ -1095,7 +1095,7 @@ def draw_combined_llama_figure(
         ),
     ]
 
-    shared_legend_y = shared_x_label_y - 0.07
+    shared_legend_y = shared_x_label_y - 0.08
 
     fig.legend(
         handles=societal_legend_handles,
