@@ -512,6 +512,24 @@ def draw_societal_super_figure(
     # Shared legend
     # ------------------------------------------------------------
     legend_handles = [
+        # text-only entries for model names
+        Line2D(
+            [0], [0],
+            linestyle="",
+            marker=None,
+            markersize=0.0,
+            color="#009E73",
+            label="GI: Gender identity",
+        ),
+        Line2D(
+            [0], [0],
+            linestyle="",
+            marker=None,
+            markersize=0.0,
+            color="#CC79A7",
+            label="SO: Sexual orientation",
+        ),
+
         Line2D(
             [0], [0],
             marker="D",
@@ -534,17 +552,26 @@ def draw_societal_super_figure(
         ),
     ]
 
-    fig.legend(
+    leg = fig.legend(
         handles=legend_handles,
         loc="lower center",
         bbox_to_anchor=(0.5, 0.028),
-        ncol=2,
+        ncol=4,
         frameon=False,
         handlelength=1.5,
         columnspacing=0.9,
         handletextpad=0.40,
         fontsize=FIG_FONT_SIZE,
     )
+
+    # Hide the first two dummy handles
+    for h in leg.legend_handles[:2]:
+        h.set_visible(False)
+
+    # Color the first two legend texts
+    legend_texts = leg.get_texts()
+    legend_texts[0].set_color("#009E73")   # GI text
+    legend_texts[1].set_color("#CC79A7")   # SO text
 
     # Save
     base = "societal_all_applications_nature_style"
