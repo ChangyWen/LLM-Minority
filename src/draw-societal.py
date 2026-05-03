@@ -476,13 +476,13 @@ def draw_societal_super_figure(
     fig.supxlabel(
         "Attribute",
         fontsize=FIG_FONT_SIZE,
-        y=0.055,
+        y=0.065,
     )
 
     fig.supylabel(
         "Score",
         fontsize=FIG_FONT_SIZE,
-        x=0.045,
+        x=0.05,
     )
 
     # ------------------------------------------------------------
@@ -537,7 +537,7 @@ def draw_societal_super_figure(
     fig.legend(
         handles=legend_handles,
         loc="lower center",
-        bbox_to_anchor=(0.5, 0.012),
+        bbox_to_anchor=(0.5, 0.028),
         ncol=2,
         frameon=False,
         handlelength=1.5,
