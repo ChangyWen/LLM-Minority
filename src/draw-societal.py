@@ -137,10 +137,10 @@ def set_nature_style():
         "axes.spines.top": False,
         "axes.spines.right": False,
 
-        "axes.titlesize": 8.5,
+        "axes.titlesize": 6,
         "axes.labelsize": 8.5,
-        "xtick.labelsize": 7.5,
-        "ytick.labelsize": 7.5,
+        "xtick.labelsize": 3,
+        "ytick.labelsize": 3,
         "legend.fontsize": 8.5,
 
         "xtick.major.width": 0.7,
@@ -197,7 +197,7 @@ def add_sig_bracket(
         text,
         ha="center",
         va="bottom",
-        fontsize=8.0,
+        fontsize=FIG_FONT_SIZE,
         color="black",
         clip_on=False,
         zorder=6,
@@ -228,9 +228,9 @@ def plot_model_panel_societal(
     minority_marker = "D"
     majority_marker = "^"
 
-    x_gap = 0.42
+    x_gap = 0.2
     x_base = np.arange(len(attribute_types), dtype=float) * x_gap
-    dodge = 0.07
+    dodge = 0.04
 
     x_minority = x_base - dodge
     x_majority = x_base + dodge
@@ -240,8 +240,8 @@ def plot_model_panel_societal(
     bracket_info = []
 
     attribute_tick_labels = {
-        "Gender Identity": "Gender\nidentity",
-        "Sexual Orientation": "Sexual\norientation",
+        "Gender Identity": "GI",
+        "Sexual Orientation": "SO",
     }
 
     for i, attribute_type in enumerate(attribute_types):
@@ -362,7 +362,7 @@ def plot_model_panel_societal(
     # Axis formatting
     ax.set_xticks(x_base)
     ax.set_xticklabels([attribute_tick_labels.get(a, a) for a in attribute_types])
-    ax.set_xlim(x_base[0] - 0.17, x_base[-1] + 0.17)
+    ax.set_xlim(x_base[0] - 0.1, x_base[-1] + 0.1)
 
     for tick_label, attribute_type in zip(ax.get_xticklabels(), attribute_types):
         tick_label.set_color(attribute_to_color[attribute_type])
@@ -372,11 +372,12 @@ def plot_model_panel_societal(
 
     ax.tick_params(
         axis="both",
-        direction="out",
-        length=3.0,
-        width=0.7,
-        color="black",
+        # direction="out",
+        length=0.0,
+        width=0.0,
+        # color="black",
         labelcolor="black",
+        labelsize=9.0,
     )
 
     # Re-apply x tick colors after tick_params
@@ -422,7 +423,7 @@ def draw_societal_super_figure(
         "Sexual Orientation": "#CC79A7",  # purple
     }
 
-    fig = plt.figure(figsize=(9.5, 10.0))
+    fig = plt.figure(figsize=(8.5, 9.0))
 
     outer_gs = fig.add_gridspec(
         3,
@@ -431,7 +432,7 @@ def draw_societal_super_figure(
         right=0.990,
         bottom=0.110,
         top=0.955,
-        hspace=0.40,
+        hspace=0.28,
     )
 
     all_axes = {}
@@ -440,8 +441,8 @@ def draw_societal_super_figure(
         inner_gs = outer_gs[app_idx].subgridspec(
             2,
             4,
-            wspace=0.28,
-            hspace=0.38,
+            wspace=0.18,
+            hspace=0.45,
         )
 
         axes = np.empty((2, 4), dtype=object)
@@ -487,8 +488,6 @@ def draw_societal_super_figure(
     # ------------------------------------------------------------
     # Application block titles
     # ------------------------------------------------------------
-    panel_letters = ["a", "b", "c"]
-
     for i, application in enumerate(applications):
         axes = all_axes[application]
 
@@ -498,16 +497,6 @@ def draw_societal_super_figure(
         x0 = pos_left.x0
         x1 = pos_right.x1
         y1 = pos_left.y1
-
-        fig.text(
-            x0 - 0.030,
-            y1 + 0.020,
-            panel_letters[i],
-            ha="left",
-            va="bottom",
-            fontsize=FIG_FONT_SIZE,
-            fontweight="bold",
-        )
 
         fig.text(
             (x0 + x1) / 2,
