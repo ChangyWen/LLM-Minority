@@ -658,10 +658,10 @@ def draw_reasoning_block(
             ax.tick_params(
                 axis="both",
                 which="major",
-                direction="out",
-                length=3.2,
-                width=0.75,
-                color="black",
+                # direction="out",
+                length=0.0,
+                width=0.0,
+                # color="black",
                 bottom=True,
                 left=True,
                 top=False,
@@ -673,13 +673,13 @@ def draw_reasoning_block(
                 model_name = tick_label.get_text()
                 tick_label.set_color(base_to_color[model_name])
 
-            ax.grid(
-                axis="y",
-                color="0.88",
-                linewidth=0.6,
-                linestyle="-",
-                zorder=0,
-            )
+            # ax.grid(
+            #     axis="y",
+            #     color="0.88",
+            #     linewidth=0.6,
+            #     linestyle="-",
+            #     zorder=0,
+            # )
             ax.set_axisbelow(True)
 
     # Geometry
