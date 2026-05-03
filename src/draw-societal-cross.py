@@ -283,8 +283,8 @@ if __name__ == "__main__":
         "NVIDIA-Nemotron-Nano-12B-v2",
     ]
 
-    for application in ["loan", "hiring", "edu"]:
-        for attribute_type in ["Gender Identity", "Sexual Orientation"]:
+    for attribute_type in ["Gender Identity", "Sexual Orientation"]:
+        for application in ["loan", "hiring", "edu"]:
             draw_results_grid_big(
                 application=application,
                 attribute_type=attribute_type,
