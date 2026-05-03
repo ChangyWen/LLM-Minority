@@ -465,6 +465,7 @@ def plot_model_panel(
     model_name,
     show_left_ticks=True,
     show_right_ticks=True,
+    application=None,
 ):
     """
     Draw one model panel.
@@ -649,10 +650,17 @@ def plot_model_panel(
     # ------------------------------------------------------------
     trend_handles = make_trend_legend_handles(attribute_type, significance)
 
+    if application == "loan":
+        loc = "lower right"
+        bbox_to_anchor = (0.98, 0.02)
+    else:
+        loc = "upper right"
+        bbox_to_anchor = (0.98, 0.98)
+
     trend_legend = ax_main.legend(
         handles=trend_handles,
-        loc="upper right",
-        bbox_to_anchor=(0.98, 0.98),
+        loc=loc,
+        bbox_to_anchor=bbox_to_anchor,
         frameon=True,
         framealpha=0.92,
         facecolor="white",
@@ -771,6 +779,7 @@ def draw_attribute_big_figure(
                 model_name=model_name,
                 show_left_ticks=(col == 0),
                 show_right_ticks=(col == 3),
+                application=application,
             )
 
     # ------------------------------------------------------------
