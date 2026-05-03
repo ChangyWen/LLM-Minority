@@ -135,7 +135,7 @@ def add_sig_bracket(
         text,
         ha="center",
         va="bottom",
-        fontsize=10,
+        fontsize=9,
         color="black",
         clip_on=False,
         zorder=5,
@@ -512,6 +512,7 @@ def draw_reasoning_block(
 
         for col_idx, application in enumerate(applications):
             ax = fig.add_subplot(inner_gs[row_idx, col_idx])
+            # ax.set_box_aspect(0.65)
             axes[row_idx, col_idx] = ax
 
             ax.spines["top"].set_visible(False)
@@ -635,7 +636,7 @@ def draw_reasoning_block(
             if row_idx == 0:
                 ax.set_title(
                     panel_titles[application],
-                    fontsize=10,
+                    fontsize=9,
                     pad=6,
                 )
 
@@ -691,7 +692,7 @@ def draw_reasoning_block(
         panel_letter,
         ha="left",
         va="bottom",
-        fontsize=10,
+        fontsize=9,
         fontweight="bold",
     )
 
@@ -701,7 +702,7 @@ def draw_reasoning_block(
         block_title,
         ha="left",
         va="bottom",
-        fontsize=10,
+        fontsize=9,
         fontweight="bold",
     )
 
@@ -721,7 +722,7 @@ def draw_reasoning_block(
             attribute_type,
             ha="center",
             va="bottom",
-            fontsize=10,
+            fontsize=9,
             fontweight="bold",
         )
 
@@ -732,7 +733,7 @@ def draw_reasoning_block(
         ha="center",
         va="center",
         rotation=90,
-        fontsize=10,
+        fontsize=9,
     )
 
     return axes
@@ -763,7 +764,7 @@ def draw_reasoning_super_figure(
         "non-reasoning": "X",
     }
 
-    fig = plt.figure(figsize=(7.45, 8.4))
+    fig = plt.figure(figsize=(7.45, 6.5))
 
     outer_gs = fig.add_gridspec(
         2,
@@ -772,7 +773,7 @@ def draw_reasoning_super_figure(
         right=0.995,
         bottom=0.165,
         top=0.925,
-        hspace=0.42,
+        hspace=0.38,
     )
 
     draw_reasoning_block(
@@ -848,7 +849,7 @@ def draw_reasoning_super_figure(
         bbox_to_anchor=(0.5, 0.075),
         ncol=4,
         frameon=False,
-        fontsize=10,
+        fontsize=9,
         handletextpad=0.45,
         columnspacing=1.35,
     )
