@@ -127,6 +127,90 @@ def get_attribute_style(attribute_type):
     raise ValueError(f"Unknown attribute_type: {attribute_type}")
 
 
+def trend_label_from_pvalues(p_inc, p_dec, show_ns=True):
+    """
+    Return a compact one-sided trend label.
+
+    Examples:
+        ↑*
+        ↓**
+        ↑***
+        ns
+    """
+    if p_inc is None or p_dec is None:
+        return "ns" if show_ns else ""
+
+    if math.isnan(p_inc) or math.isnan(p_dec):
+        return "ns" if show_ns else ""
+
+    if p_inc <= p_dec:
+        stars = p_to_stars(p_inc)
+        return f"↑{stars}" if stars else ("ns" if show_ns else "")
+    else:
+        stars = p_to_stars(p_dec)
+        return f"↓{stars}" if stars else ("ns" if show_ns else "")
+
+
+def make_trend_legend_handles(attribute_type, significance):
+    """
+    Build a compact legend showing trend significance for the two
+    attribute curves and the delta curve in one panel.
+    """
+    attr_style = get_attribute_style(attribute_type)
+
+    handles = []
+
+    short_name = {
+        "Female": "F",
+        "Male": "M",
+        "Black": "B",
+        "White": "W",
+    }
+
+    for attribute_value in attr_style["order"]:
+        color = attr_style["colors"][attribute_value]
+
+        p_inc = significance.get(attribute_value, {}).get("p_value_one_inc", float("nan"))
+        p_dec = significance.get(attribute_value, {}).get("p_value_one_dec", float("nan"))
+        trend_text = trend_label_from_pvalues(p_inc, p_dec, show_ns=True)
+
+        handles.append(
+            Line2D(
+                [0], [0],
+                color=color,
+                marker="o",
+                markerfacecolor=color,
+                markeredgecolor=color,
+                markeredgewidth=0.9,
+                linewidth=1.15,
+                linestyle="-",
+                markersize=4.0,
+                label=f"{trend_text}",
+            )
+        )
+
+    p_inc_delta = significance.get("delta", {}).get("p_value_one_inc", float("nan"))
+    p_dec_delta = significance.get("delta", {}).get("p_value_one_dec", float("nan"))
+    delta_trend_text = trend_label_from_pvalues(p_inc_delta, p_dec_delta, show_ns=True)
+
+    handles.append(
+        Line2D(
+            [0], [0],
+            color=DELTA_COLOR,
+            marker="^",
+            markerfacecolor=DELTA_COLOR,
+            markeredgecolor=DELTA_COLOR,
+            markeredgewidth=0.8,
+            linewidth=1.10,
+            linestyle="--",
+            markersize=4.0,
+            label=rf"{delta_trend_text}",
+        )
+    )
+
+    return handles
+
+
 # ============================================================
 # Statistical helpers
 # ============================================================
@@ -559,6 +643,30 @@ def plot_model_panel(
         ax_delta.spines["right"].set_linewidth(0.7)
         ax_delta.spines["left"].set_visible(False)
         ax_delta.spines["bottom"].set_visible(False)
+
+    # ------------------------------------------------------------
+    # Per-panel trend legend
+    # ------------------------------------------------------------
+    trend_handles = make_trend_legend_handles(attribute_type, significance)
+
+    trend_legend = ax_main.legend(
+        handles=trend_handles,
+        loc="upper right",
+        bbox_to_anchor=(0.98, 0.98),
+        frameon=True,
+        framealpha=0.92,
+        facecolor="white",
+        edgecolor="0.75",
+        fontsize=6.4,
+        title_fontsize=6.6,
+        borderpad=0.25,
+        labelspacing=0.25,
+        handlelength=1.4,
+        handletextpad=0.45,
+        borderaxespad=0.2,
+    )
+
+    trend_legend.get_frame().set_linewidth(0.6)
 
 
 # ============================================================
