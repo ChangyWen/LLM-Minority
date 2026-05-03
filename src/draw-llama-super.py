@@ -950,7 +950,7 @@ def draw_combined_llama_figure(
     fig.text(
         soc_x0 - ylabel_offset,
         soc_y_center,
-        "Mean score",
+        "Score",
         ha="center",
         va="center",
         rotation=90,
