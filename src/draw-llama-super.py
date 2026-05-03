@@ -17,7 +17,7 @@ type_to_minority_attributes = {
     "Sexual Orientation": ["Homosexual", "Bisexual", "Asexual"],
 }
 FIG_FONT_SIZE = 12
-MARKER_SIZE = 4.8
+MARKER_SIZE = 4.0
 
 # ============================================================
 # Statistical helpers
@@ -443,7 +443,7 @@ def plot_societal_panel(
             elinewidth=0.8,
             linestyle="",
             color=color,
-            markerfacecolor="white",
+            markerfacecolor=color,
             markeredgecolor=color,
             markeredgewidth=1.0,
             zorder=3,
@@ -465,7 +465,7 @@ def plot_societal_panel(
             elinewidth=0.8,
             linestyle="",
             color=color,
-            markerfacecolor="white",
+            markerfacecolor=color,
             markeredgecolor=color,
             markeredgewidth=1.0,
             zorder=3,
@@ -769,7 +769,7 @@ def draw_combined_llama_figure(
                     yerr=yerr,
                     fmt=style["marker"] + "-",
                     color=style["color"],
-                    markerfacecolor="white",
+                    markerfacecolor=style["color"],
                     markeredgecolor=style["color"],
                     markeredgewidth=1.0,
                     markersize=MARKER_SIZE,
@@ -1077,7 +1077,7 @@ def draw_combined_llama_figure(
             [0], [0],
             marker="D",
             linestyle="",
-            markerfacecolor="white",
+            markerfacecolor="black",
             markeredgecolor="black",
             markeredgewidth=1.0,
             markersize=5.0,
@@ -1087,7 +1087,7 @@ def draw_combined_llama_figure(
             [0], [0],
             marker="^",
             linestyle="",
-            markerfacecolor="white",
+            markerfacecolor="black",
             markeredgecolor="black",
             markeredgewidth=1.0,
             markersize=5.0,
@@ -1118,11 +1118,11 @@ def draw_combined_llama_figure(
             [0],
             color=contextual_model_style["Llama-3.1-8B"]["color"],
             marker=contextual_model_style["Llama-3.1-8B"]["marker"],
-            markerfacecolor="white",
+            markerfacecolor=contextual_model_style["Llama-3.1-8B"]["color"],
             markeredgecolor=contextual_model_style["Llama-3.1-8B"]["color"],
             markeredgewidth=1.0,
             linewidth=1.25,
-            markersize=4.5,
+            markersize=5.0,
             label="Llama-3.1-8B",
         ),
         Line2D(
@@ -1130,11 +1130,11 @@ def draw_combined_llama_figure(
             [0],
             color=contextual_model_style["Llama-3.1-8B-Instruct"]["color"],
             marker=contextual_model_style["Llama-3.1-8B-Instruct"]["marker"],
-            markerfacecolor="white",
+            markerfacecolor=contextual_model_style["Llama-3.1-8B-Instruct"]["color"],
             markeredgecolor=contextual_model_style["Llama-3.1-8B-Instruct"]["color"],
             markeredgewidth=1.0,
             linewidth=1.25,
-            markersize=4.5,
+            markersize=5.0,
             label="Llama-3.1-8B-Instruct",
         ),
     ]

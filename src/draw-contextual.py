@@ -547,9 +547,10 @@ def plot_model_panel(
 
     ax_main.tick_params(
         axis="x",
-        direction="out",
-        length=3.0,
-        width=0.7,
+        # direction="out",
+        length=0.0,
+        width=0.0,
+        # color="black",
         color="black",
         labelcolor="black",
         labelsize=LABEL_SIZE,   # x-axis tick-number size
@@ -559,9 +560,10 @@ def plot_model_panel(
 
     ax_main.tick_params(
         axis="y",
-        direction="out",
-        length=3.0,
-        width=0.7,
+        # direction="out",
+        length=0.0,
+        width=0.0,
+        # color="black",
         color="black",
         labelcolor="black",
         labelsize=LABEL_SIZE,   # main y-axis tick-number size
@@ -626,9 +628,10 @@ def plot_model_panel(
         ax_delta.tick_params(
             axis="y",
             which="major",
-            direction="out",
-            length=3.0,
-            width=0.7,
+            # direction="out",
+            length=0.0,
+            width=0.0,
+            # color="black",
             color="black",
             labelcolor="black",
             labelsize=LABEL_SIZE,   # twin y-axis tick-number size

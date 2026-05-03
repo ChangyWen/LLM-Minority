@@ -443,7 +443,7 @@ def draw_combined_gender_race_by_application(
                         yerr=yerr,
                         fmt=style["marker"] + "-",
                         color=style["color"],
-                        markerfacecolor="white",
+                        markerfacecolor=style["color"],
                         markeredgecolor=style["color"],
                         markeredgewidth=1.0,
                         markersize=4.0,
@@ -523,9 +523,10 @@ def draw_combined_gender_race_by_application(
 
                 ax.tick_params(
                     axis="both",
-                    direction="out",
-                    length=3.0,
-                    width=0.7,
+                    # direction="out",
+                    length=0.0,
+                    width=0.0,
+                    # color="black",
                 )
 
         # ------------------------------------------------------------------
@@ -550,7 +551,7 @@ def draw_combined_gender_race_by_application(
                 [0], [0],
                 color=context_style[cs]["color"],
                 marker=context_style[cs]["marker"],
-                markerfacecolor="white",
+                markerfacecolor=context_style[cs]["color"],
                 markeredgecolor=context_style[cs]["color"],
                 markeredgewidth=1.0,
                 linewidth=1.25,
