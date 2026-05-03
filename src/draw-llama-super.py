@@ -530,8 +530,8 @@ def plot_societal_panel(
     # Axis formatting
     ax.set_xticks(x_base)
     attribute_tick_labels = {
-        "Gender Identity": "Gender\nidentity",
-        "Sexual Orientation": "Sexual\norientation",
+        "Gender Identity": "GI",
+        "Sexual Orientation": "SO",
     }
     ax.set_xticklabels(
         [attribute_tick_labels.get(a, a) for a in attribute_types]
@@ -547,10 +547,10 @@ def plot_societal_panel(
 
     ax.tick_params(
         axis="both",
-        direction="out",
-        length=3.0,
-        width=0.7,
-        color="black",
+        # direction="out",
+        length=0.0,
+        width=0.0,
+        # color="black",
         labelcolor="black",
     )
 
@@ -638,21 +638,21 @@ def draw_combined_llama_figure(
         right=0.985,
         bottom=0.175,
         top=0.870,
-        wspace=0.218,
+        wspace=0.18,
     )
 
     societal_gs = outer_gs[0, 0].subgridspec(
         len(applications),
         len(model_names),
         wspace=0.16,
-        hspace=0.85,
+        hspace=0.65,
     )
 
     contextual_gs = outer_gs[0, 1].subgridspec(
         len(applications),
         len(contextual_attribute_types),
         wspace=0.16,
-        hspace=0.85,
+        hspace=0.65,
     )
 
     societal_axes = np.empty((len(applications), len(model_names)), dtype=object)
@@ -865,10 +865,10 @@ def draw_combined_llama_figure(
 
             ax.tick_params(
                 axis="both",
-                direction="out",
-                length=3.0,
-                width=0.7,
-                color="black",
+                # direction="out",
+                length=0.0,
+                width=0.0,
+                # color="black",
                 labelcolor="black",
             )
 
@@ -944,7 +944,7 @@ def draw_combined_llama_figure(
         fontweight="bold",
     )
 
-    ylabel_offset = 0.050
+    ylabel_offset = 0.045
 
     # Block y-axis labels
     fig.text(
@@ -967,7 +967,7 @@ def draw_combined_llama_figure(
         fontsize=FIG_FONT_SIZE,
     )
 
-    shared_x_label_y = min(soc_y0, ctx_y0) - 0.066
+    shared_x_label_y = min(soc_y0, ctx_y0) - 0.045
 
     # Societal x-axis label
     fig.text(
@@ -1073,6 +1073,23 @@ def draw_combined_llama_figure(
     # Legend for panel a: societal
     # -----------------------------
     societal_legend_handles = [
+        # text-only entries for model names
+        Line2D(
+            [0], [0],
+            linestyle="",
+            marker=None,
+            markersize=0.0,
+            color="#009E73",
+            label="GI: Gender identity",
+        ),
+        Line2D(
+            [0], [0],
+            linestyle="",
+            marker=None,
+            markersize=0.0,
+            color="#CC79A7",
+            label="SO: Sexual orientation",
+        ),
         Line2D(
             [0], [0],
             marker="D",
@@ -1097,10 +1114,10 @@ def draw_combined_llama_figure(
 
     shared_legend_y = shared_x_label_y - 0.08
 
-    fig.legend(
+    leg = fig.legend(
         handles=societal_legend_handles,
         loc="lower center",
-        bbox_to_anchor=(soc_x_center, shared_legend_y),
+        bbox_to_anchor=(soc_x_center - 0.03, shared_legend_y - 0.035),
         ncol=2,
         frameon=False,
         handlelength=1.5,
@@ -1108,6 +1125,15 @@ def draw_combined_llama_figure(
         handletextpad=0.40,
         fontsize=FIG_FONT_SIZE,
     )
+
+    # Hide the first two dummy handles
+    for h in leg.legend_handles[:2]:
+        h.set_visible(False)
+
+    # Color the first two legend texts
+    legend_texts = leg.get_texts()
+    legend_texts[0].set_color("#009E73")   # GI text
+    legend_texts[1].set_color("#CC79A7")   # SO text
 
     # -----------------------------
     # Legend for panel b: contextual
@@ -1142,7 +1168,7 @@ def draw_combined_llama_figure(
     fig.legend(
         handles=contextual_legend_handles,
         loc="lower center",
-        bbox_to_anchor=(ctx_x_center, shared_legend_y),
+        bbox_to_anchor=(ctx_x_center, shared_legend_y - 0.02),
         ncol=2,
         frameon=False,
         handlelength=1.5,
