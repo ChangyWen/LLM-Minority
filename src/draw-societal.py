@@ -1,13 +1,14 @@
 import json
-import sys
 import math
+import os
+from collections import defaultdict
+
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-import numpy as np
-import os
 from scipy import stats
 from matplotlib.lines import Line2D
-from matplotlib.legend_handler import HandlerBase
+from matplotlib.ticker import MaxNLocator, FuncFormatter
 
 
 type_to_minority_attributes = {
@@ -15,12 +16,19 @@ type_to_minority_attributes = {
     "Sexual Orientation": ["Homosexual", "Bisexual", "Asexual"],
 }
 
+FIG_FONT_SIZE = 9.5
+MARKER_SIZE = 4.2
+
+
+# ============================================================
+# Statistical helpers
+# ============================================================
 
 def p_to_stars(p):
     """
     Convert p-value to significance stars.
     """
-    if math.isnan(p):
+    if p is None or np.isnan(p):
         return ""
     if p < 0.001:
         return "***"
@@ -29,20 +37,36 @@ def p_to_stars(p):
     elif p < 0.05:
         return "*"
     else:
-        return ""
+        return "ns"
 
 
 def t_ci(scores, confidence=0.95):
+    scores = np.asarray(scores, dtype=float)
+
     mean = np.mean(scores)
     sem = stats.sem(scores)
     df = len(scores) - 1
+
+    if df <= 0 or np.isnan(sem):
+        return mean, mean, mean
+
     t_crit = stats.t.ppf((1 + confidence) / 2, df)
     lower = mean - t_crit * sem
     upper = mean + t_crit * sem
-    return (mean, lower, upper)
+
+    return mean, lower, upper
 
 
 def compute_results(attribute_type, file_name):
+    """
+    Compute mean scores and 95% CIs for minority and majority groups.
+
+    The p-value tests:
+        H0: minority and majority score distributions are the same
+        H1: minority and majority score distributions are different
+
+    Test: two-sided Mann-Whitney U test.
+    """
     minority_scores = []
     majority_scores = []
 
@@ -59,17 +83,19 @@ def compute_results(attribute_type, file_name):
             else:
                 majority_scores.append(score)
 
-    minority_scores = np.array(minority_scores)
-    majority_scores = np.array(majority_scores)
+    minority_scores = np.asarray(minority_scores, dtype=float)
+    majority_scores = np.asarray(majority_scores, dtype=float)
 
-    # Guard against empty groups
     if len(minority_scores) == 0 or len(majority_scores) == 0:
         return None
 
     minority_mean, minority_ci_low, minority_ci_high = t_ci(minority_scores)
     majority_mean, majority_ci_low, majority_ci_high = t_ci(majority_scores)
+
     stat, p_value = stats.mannwhitneyu(
-        minority_scores, majority_scores, alternative="two-sided"
+        minority_scores,
+        majority_scores,
+        alternative="two-sided",
     )
 
     return {
@@ -87,354 +113,465 @@ def compute_results(attribute_type, file_name):
     }
 
 
-def lighten_color(color, amount=0.45):
+# ============================================================
+# Style helpers
+# ============================================================
+
+def set_nature_style():
     """
-    Lighten a color by blending it with white.
-    color: tuple (r,g,b) in 0-1 range
-    amount: higher = lighter
+    Compact, clean plotting style suitable for Nature-style multi-panel figures.
     """
-    return tuple((1 - amount) * c + amount for c in color)
-
-
-class HandlerVerticalErrorbar(HandlerBase):
-    """Custom legend handler: vertical error bar with caps + marker."""
-    def create_artists(
-        self, legend, orig_handle,
-        xdescent, ydescent, width, height, fontsize, trans
-    ):
-        # CENTER of legend entry
-        x = xdescent + width / 2.0
-
-        # EXTEND vertical line by a scale factor
-        scale = 1.9   # increase for longer error bar in legend
-        mid = ydescent + height / 2.0
-        half = (height / 2.0) * scale
-        y0 = mid - half
-        y1 = mid + half
-
-        # Extract styles
-        linestyle = orig_handle.get_linestyle()
-        color = orig_handle.get_color()
-        lw = orig_handle.get_linewidth()
-        marker = orig_handle.get_marker()
-        markersize = orig_handle.get_markersize()
-
-        # ------- Vertical line -------
-        vline = Line2D(
-            [x, x], [y0, y1],
-            linestyle=linestyle,
-            color=color,
-            linewidth=lw,
-        )
-
-        # ------- Caps (horizontal ticks) -------
-        cap_width = width * 0.25   # adjust cap width here
-        x0 = x - cap_width / 2
-        x1 = x + cap_width / 2
-
-        top_cap = Line2D(
-            [x0, x1], [y1, y1],     # horizontal top cap
-            color=color,
-            linewidth=lw,
-            linestyle="-",
-        )
-
-        bot_cap = Line2D(
-            [x0, x1], [y0, y0],     # horizontal bottom cap
-            color=color,
-            linewidth=lw,
-            linestyle="-",
-        )
-
-        # ------- Marker at center -------
-        marker_artist = Line2D(
-            [x], [mid],
-            marker=marker,
-            markersize=markersize,
-            markerfacecolor=orig_handle.get_markerfacecolor(),
-            markeredgecolor=orig_handle.get_markeredgecolor(),
-            linestyle="none",
-        )
-
-        # Apply transform
-        for artist in (vline, top_cap, bot_cap, marker_artist):
-            artist.set_transform(trans)
-
-        return [vline, top_cap, bot_cap, marker_artist]
-
-
-def plot_model_panel_societal(
-    ax_main,
-    attribute_types_present,
-    all_results,
-    model_name,
-    palette_dict,
-    show_legend=False,
-    is_top_row=False,
-):
-    """
-    Draw one model's societal-bias panel on ax_main.
-    - attribute_types_present: list of attribute types that have data for this model
-    - all_results: dict[attr_type] -> result (minority/majority + p_value)
-    - palette_dict: dict[attr_type] -> color
-    - show_legend: whether to draw the legend in this panel
-    - is_top_row: if True, x-labels show only stars (no attribute text)
-    """
-
-    # Horizontal positions per attribute
-    n_attr = len(attribute_types_present)
-    x_base = np.arange(n_attr)  # 0,1,2,...
-    delta = 0.12
-
-    x_min = x_base - delta
-    x_maj = x_base + delta
-
-    # Markers
-    minority_marker = "o"
-    majority_marker = "s"
-
-    xlabels = []
-
-    for i, attr in enumerate(attribute_types_present):
-        res = all_results[attr]
-        res_min = res["minority"]
-        res_maj = res["majority"]
-        p_value = res["p_value"]
-
-        stars = p_to_stars(p_value)
-
-        # --- X tick label logic ---
-        if is_top_row:
-            # First row: keep only stars (no attribute text)
-            label_text = stars
-        else:
-            # Lower row(s): attribute name + stars (if any)
-            label_text = f"{attr}\n{stars}" if stars else attr
-
-        xlabels.append(label_text)
-
-        base_color = palette_dict[attr]
-        minority_color = base_color
-        majority_color = base_color
-
-        # ----- Minority -----
-        m_mean = res_min["mean"]
-        m_low = res_min["ci_low"]
-        m_high = res_min["ci_high"]
-
-        line_minority, cap_minority, bar_minority = ax_main.errorbar(
-            x_min[i],
-            m_mean,
-            yerr=[[m_mean - m_low], [m_high - m_mean]],
-            marker=minority_marker,
-            markersize=5.5,
-            capsize=5,
-            capthick=1.2,
-            linewidth=1.5,
-            linestyle="--",               # dashed error bar line for minority
-            dash_capstyle='round',        # nicer dashed appearance
-            color=minority_color,
-            markeredgecolor=minority_color,
-            markeredgewidth=0.7,
-        )
-
-        for bar in bar_minority:
-            bar.set_linestyle("--")
-
-        # ----- Majority -----
-        g_mean = res_maj["mean"]
-        g_low = res_maj["ci_low"]
-        g_high = res_maj["ci_high"]
-
-        line_majority, cap_majority, bar_majority = ax_main.errorbar(
-            x_maj[i],
-            g_mean,
-            yerr=[[g_mean - g_low], [g_high - g_mean]],
-            marker=majority_marker,
-            markersize=5.5,
-            capsize=5,
-            capthick=1.2,
-            linewidth=1.5,
-            linestyle="solid",           # solid error bar line for majority
-            color=majority_color,
-            markeredgecolor=majority_color,
-            markeredgewidth=0.7,
-        )
-
-        # ---- Numeric labels ----
-        ax_main.text(
-            x_min[i] - 0.03, m_mean,
-            f"{m_mean:.2f}",
-            ha="right", va="center",
-            fontsize=8, fontweight="bold",
-            color=minority_color,
-        )
-        ax_main.text(
-            x_maj[i] + 0.03, g_mean,
-            f"{g_mean:.2f}",
-            ha="left", va="center",
-            fontsize=8, fontweight="bold",
-            color=majority_color,
-        )
-
-    # -----------------------------
-    # Axis Formatting (per panel)
-    # -----------------------------
-    ax_main.set_xticks(x_base)
-    ax_main.set_xlim(x_base[0] - 0.6, x_base[-1] + 0.6)
-    ax_main.set_xticklabels(xlabels, rotation=0, ha="center")
-
-    # Color xticklabels by attribute (even if only stars)
-    for i, tick in enumerate(ax_main.get_xticklabels()):
-        attr = attribute_types_present[i]
-        tick.set_color(palette_dict[attr])
-        tick.set_fontweight("bold")
-
-    # Title per model
-    model_clean = model_name.replace("msra-", "")
-    ax_main.set_title(model_clean, fontweight="bold")
-
-    ax_main.grid(axis="y", linestyle=":", linewidth=0.7, alpha=0.6)
-    ax_main.set_axisbelow(True)
-
-    # Legend (only if requested, e.g., top-left panel)
-    if show_legend:
-        minority_handle = Line2D(
-            [0], [0],
-            marker=minority_marker,
-            linestyle="--",
-            color="black",
-            markersize=2,
-            markerfacecolor="black",
-            markeredgecolor="black",
-            linewidth=1,
-            label="Minority",
-        )
-
-        majority_handle = Line2D(
-            [0], [0],
-            marker=majority_marker,
-            linestyle="solid",
-            color="black",
-            markersize=2,
-            markerfacecolor="black",
-            markeredgecolor="black",
-            linewidth=1,
-            label="Majority",
-        )
-
-        legend_fontsize = 18   # larger font
-        legend_markersize = 3.5  # bigger markers
-
-        ax_main.legend(
-            handles=[minority_handle, majority_handle],
-            loc="best",
-            frameon=True,
-            framealpha=0.55,
-            borderpad=0.4,
-            handler_map={
-                minority_handle: HandlerVerticalErrorbar(),
-                majority_handle: HandlerVerticalErrorbar(),
-            },
-            fontsize=legend_fontsize,
-            handlelength=2.2,
-            markerscale=legend_markersize,
-        )
-
-    # Remove top + right spines
-    for spine in ["top", "right"]:
-        ax_main.spines[spine].set_visible(False)
-
-
-def draw_results_grid_societal(application, attribute_types, model_names):
-    """
-    Create one big figure (2x4 grid) for societal-bias results across models.
-    Each panel is one model.
-    """
-
     plt.rcParams.update({
-        "font.size": 11,
-        "axes.titlesize": 13,
-        "axes.labelsize": 11,
-        "xtick.labelsize": 10,
-        "ytick.labelsize": 10,
-        "axes.edgecolor": "gray",
-        "axes.linewidth": 0.8,
+        "font.family": "sans-serif",
+        "font.sans-serif": ["Arial", "Helvetica", "DejaVu Sans"],
+
+        # Keep text editable in Illustrator / Inkscape
+        "pdf.fonttype": 42,
+        "ps.fonttype": 42,
+
+        "figure.dpi": 150,
+        "savefig.dpi": 600,
+
+        "axes.linewidth": 0.7,
+        "axes.edgecolor": "0.15",
+        "axes.spines.top": False,
+        "axes.spines.right": False,
+
+        "axes.titlesize": 8.5,
+        "axes.labelsize": 8.5,
+        "xtick.labelsize": 7.5,
+        "ytick.labelsize": 7.5,
+        "legend.fontsize": 8.5,
+
+        "xtick.major.width": 0.7,
+        "ytick.major.width": 0.7,
+        "xtick.major.size": 3.0,
+        "ytick.major.size": 3.0,
+
+        "lines.linewidth": 1.25,
     })
 
-    # Palette consistent across models: one color per attribute type
-    palette = sns.color_palette("husl", len(attribute_types))
-    palette_dict = {attr: palette[i] for i, attr in enumerate(attribute_types)}
 
-    fig, axes = plt.subplots(
-        2, 4,
-        dpi=1024,
-        figsize=(18, 8),
-        sharex=False,
-        sharey=False,  # <-- each subfigure uses its own y-axis range
+def pretty_model_name(model_key):
+    """
+    Shorter display names for compact multi-panel figures.
+    """
+    mapping = {
+        "msra-gpt-4o": "GPT-4o",
+        "gpt-oss-120b": "GPT-OSS-120B",
+        "Qwen3-235B-A22B-Instruct-2507": "Qwen3-235B-A22B",
+        "Qwen3-Next-80B-A3B-Instruct": "Qwen3-Next-80B-A3B",
+        "GLM-4.5-Air": "GLM-4.5-Air",
+        "gemma-3-27b-it": "Gemma-3-27B-IT",
+        "Llama-3.3-70B-Instruct": "Llama-3.3-70B-Instruct",
+        "NVIDIA-Nemotron-Nano-12B-v2": "Nemotron-Nano-12B-v2",
+    }
+    return mapping.get(model_key, model_key.replace("msra-", ""))
+
+
+def add_sig_bracket(
+    ax,
+    x1,
+    x2,
+    y,
+    text,
+    bar_height,
+    text_offset,
+    linewidth=0.8,
+):
+    """
+    Add a significance bracket between two x positions.
+    """
+    ax.plot(
+        [x1, x1, x2, x2],
+        [y, y + bar_height, y + bar_height, y],
+        color="black",
+        linewidth=linewidth,
+        clip_on=False,
+        zorder=5,
     )
 
-    fig.suptitle(f"{application} - Societal Minority vs Majority Scores", fontweight="bold", y=0.97)
-
-    fig.subplots_adjust(
-        left=0.06,
-        right=0.96,
-        bottom=0.08,
-        top=0.90,
-        wspace=0.28,
-        hspace=0.30,
+    ax.text(
+        (x1 + x2) / 2,
+        y + bar_height + text_offset,
+        text,
+        ha="center",
+        va="bottom",
+        fontsize=8.0,
+        color="black",
+        clip_on=False,
+        zorder=6,
     )
 
-    # --- REMOVE all sub-figure ylabels ---
-    for ax_row in axes:
-        for ax in ax_row:
-            ax.set_ylabel(None)
 
-    # Plot each model
-    for idx, model_name in enumerate(model_names):
-        row = idx // 4
-        col = idx % 4
-        ax_main = axes[row, col]
+# ============================================================
+# Panel plotting
+# ============================================================
 
-        all_results = {}
-        for attribute_type in attribute_types:
-            file_name = f"outputs/{application}/societal/{attribute_type}/{model_name}.jsonl"
-            if os.path.exists(file_name):
-                res = compute_results(attribute_type, file_name)
-                if res is not None:
-                    all_results[attribute_type] = res
+def plot_model_panel_societal(
+    ax,
+    application,
+    model_name,
+    attribute_types,
+    attribute_to_color,
+):
+    """
+    Draw one panel:
+        one application x one model.
 
-        if not all_results:
-            print(f"[Warning] No results found for model {model_name}, skipping this panel.")
-            ax_main.set_visible(False)
+    X-axis:
+        Gender Identity, Sexual Orientation
+
+    For each attribute:
+        minority and majority scores with 95% CI.
+    """
+    minority_marker = "D"
+    majority_marker = "^"
+
+    x_gap = 0.42
+    x_base = np.arange(len(attribute_types), dtype=float) * x_gap
+    dodge = 0.07
+
+    x_minority = x_base - dodge
+    x_majority = x_base + dodge
+
+    panel_low_values = []
+    panel_high_values = []
+    bracket_info = []
+
+    attribute_tick_labels = {
+        "Gender Identity": "Gender\nidentity",
+        "Sexual Orientation": "Sexual\norientation",
+    }
+
+    for i, attribute_type in enumerate(attribute_types):
+        file_name = f"outputs/{application}/societal/{attribute_type}/{model_name}.jsonl"
+
+        if not os.path.exists(file_name):
+            print(f"[Warning] Missing file: {file_name}")
             continue
 
-        attribute_types_present = [a for a in attribute_types if a in all_results]
+        res = compute_results(attribute_type, file_name)
 
-        plot_model_panel_societal(
-            ax_main=ax_main,
-            attribute_types_present=attribute_types_present,
-            all_results=all_results,
-            model_name=model_name,
-            palette_dict=palette_dict,
-            show_legend=(idx == 0),        # legend only on top-left panel
-            is_top_row=(row == 0),         # first row: x-labels = stars only
+        if res is None:
+            print(f"[Warning] No valid result: {application}, {attribute_type}, {model_name}")
+            continue
+
+        color = attribute_to_color[attribute_type]
+
+        min_res = res["minority"]
+        maj_res = res["majority"]
+
+        # Minority
+        min_mean = float(min_res["mean"])
+        min_low = float(min_res["ci_low"])
+        min_high = float(min_res["ci_high"])
+
+        ax.errorbar(
+            x_minority[i],
+            min_mean,
+            yerr=[[min_mean - min_low], [min_high - min_mean]],
+            marker=minority_marker,
+            markersize=MARKER_SIZE,
+            capsize=2.2,
+            capthick=0.8,
+            elinewidth=0.8,
+            linestyle="",
+            color=color,
+            markerfacecolor=color,
+            markeredgecolor=color,
+            markeredgewidth=1.0,
+            zorder=3,
         )
 
-    # Global labels
-    fig.supxlabel("Attribute Type", fontsize=12, fontweight="bold")
-    fig.supylabel("Mean Score (±95% CI)", fontsize=12, fontweight="bold")
+        # Majority
+        maj_mean = float(maj_res["mean"])
+        maj_low = float(maj_res["ci_low"])
+        maj_high = float(maj_res["ci_high"])
 
-    # Save one big figure
-    save_file = f"outputs/societal/societal_grid_{application}.png"
-    os.makedirs(os.path.dirname(save_file), exist_ok=True)
-    print(f"Saving figure to: {save_file}")
-    fig.savefig(save_file, bbox_inches="tight")
+        ax.errorbar(
+            x_majority[i],
+            maj_mean,
+            yerr=[[maj_mean - maj_low], [maj_high - maj_mean]],
+            marker=majority_marker,
+            markersize=MARKER_SIZE,
+            capsize=2.2,
+            capthick=0.8,
+            elinewidth=0.8,
+            linestyle="",
+            color=color,
+            markerfacecolor=color,
+            markeredgecolor=color,
+            markeredgewidth=1.0,
+            zorder=3,
+        )
+
+        panel_low_values.extend([min_low, maj_low])
+        panel_high_values.extend([min_high, maj_high])
+
+        p_value = float(res["p_value"])
+        stars = p_to_stars(p_value)
+
+        y_pair_top = max(min_high, maj_high)
+        bracket_info.append({
+            "x1": x_minority[i],
+            "x2": x_majority[i],
+            "y_top": y_pair_top,
+            "stars": stars,
+        })
+
+        print(
+            f"{application} | {model_name} | {attribute_type}: "
+            f"minority vs majority, two-sided P={p_value:.4g}"
+        )
+
+    # Panel-specific y-limits with space for brackets
+    if panel_high_values:
+        data_min = min(panel_low_values)
+        data_max = max(panel_high_values)
+    else:
+        data_min, data_max = 0.0, 1.0
+
+    data_span = max(data_max - data_min, 0.5)
+
+    bracket_offset = 0.08 * data_span
+    bracket_height = 0.035 * data_span
+    text_offset = 0.020 * data_span
+
+    bracket_tops = []
+
+    for b in bracket_info:
+        y_bracket = b["y_top"] + bracket_offset
+
+        add_sig_bracket(
+            ax=ax,
+            x1=b["x1"],
+            x2=b["x2"],
+            y=y_bracket,
+            text=b["stars"],
+            bar_height=bracket_height,
+            text_offset=text_offset,
+        )
+
+        bracket_tops.append(y_bracket + bracket_height + text_offset)
+
+    y_lower = data_min - 0.12 * data_span
+    y_upper = max([data_max] + bracket_tops) + 0.14 * data_span
+    ax.set_ylim(y_lower, y_upper)
+
+    # Axis formatting
+    ax.set_xticks(x_base)
+    ax.set_xticklabels([attribute_tick_labels.get(a, a) for a in attribute_types])
+    ax.set_xlim(x_base[0] - 0.17, x_base[-1] + 0.17)
+
+    for tick_label, attribute_type in zip(ax.get_xticklabels(), attribute_types):
+        tick_label.set_color(attribute_to_color[attribute_type])
+
+    ax.yaxis.set_major_locator(MaxNLocator(nbins=4))
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"{v:.1f}"))
+
+    ax.tick_params(
+        axis="both",
+        direction="out",
+        length=3.0,
+        width=0.7,
+        color="black",
+        labelcolor="black",
+    )
+
+    # Re-apply x tick colors after tick_params
+    for tick_label, attribute_type in zip(ax.get_xticklabels(), attribute_types):
+        tick_label.set_color(attribute_to_color[attribute_type])
+
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.set_axisbelow(True)
+
+
+# ============================================================
+# Big figure drawing
+# ============================================================
+
+def draw_societal_super_figure(
+    applications,
+    attribute_types,
+    model_names,
+    output_dir="outputs/societal",
+):
+    """
+    Draw one big Nature-style figure:
+
+        Hiring
+        Loan approval
+        Scholarship
+
+    Each application block contains eight model panels arranged as 2 x 4.
+    """
+    set_nature_style()
+    sns.set_theme(style="white")
+    os.makedirs(output_dir, exist_ok=True)
+
+    application_title_map = {
+        "hiring": "Hiring",
+        "loan": "Loan approval",
+        "edu": "Scholarship",
+    }
+
+    attribute_to_color = {
+        "Gender Identity": "#009E73",     # green
+        "Sexual Orientation": "#CC79A7",  # purple
+    }
+
+    fig = plt.figure(figsize=(9.5, 10.0))
+
+    outer_gs = fig.add_gridspec(
+        3,
+        1,
+        left=0.105,
+        right=0.990,
+        bottom=0.110,
+        top=0.955,
+        hspace=0.40,
+    )
+
+    all_axes = {}
+
+    for app_idx, application in enumerate(applications):
+        inner_gs = outer_gs[app_idx].subgridspec(
+            2,
+            4,
+            wspace=0.28,
+            hspace=0.38,
+        )
+
+        axes = np.empty((2, 4), dtype=object)
+        all_axes[application] = axes
+
+        for idx, model_name in enumerate(model_names):
+            row = idx // 4
+            col = idx % 4
+
+            ax = fig.add_subplot(inner_gs[row, col])
+            axes[row, col] = ax
+
+            plot_model_panel_societal(
+                ax=ax,
+                application=application,
+                model_name=model_name,
+                attribute_types=attribute_types,
+                attribute_to_color=attribute_to_color,
+            )
+
+            ax.set_title(
+                pretty_model_name(model_name),
+                loc="center",
+                pad=4,
+                fontsize=FIG_FONT_SIZE,
+            )
+
+    # ------------------------------------------------------------
+    # Shared labels
+    # ------------------------------------------------------------
+    fig.supxlabel(
+        "Attribute",
+        fontsize=FIG_FONT_SIZE,
+        y=0.055,
+    )
+
+    fig.supylabel(
+        "Score",
+        fontsize=FIG_FONT_SIZE,
+        x=0.045,
+    )
+
+    # ------------------------------------------------------------
+    # Application block titles
+    # ------------------------------------------------------------
+    panel_letters = ["a", "b", "c"]
+
+    for i, application in enumerate(applications):
+        axes = all_axes[application]
+
+        pos_left = axes[0, 0].get_position()
+        pos_right = axes[0, 3].get_position()
+
+        x0 = pos_left.x0
+        x1 = pos_right.x1
+        y1 = pos_left.y1
+
+        fig.text(
+            x0 - 0.030,
+            y1 + 0.020,
+            panel_letters[i],
+            ha="left",
+            va="bottom",
+            fontsize=FIG_FONT_SIZE,
+            fontweight="bold",
+        )
+
+        fig.text(
+            (x0 + x1) / 2,
+            y1 + 0.020,
+            application_title_map[application],
+            ha="center",
+            va="bottom",
+            fontsize=FIG_FONT_SIZE,
+            fontweight="bold",
+        )
+
+    # ------------------------------------------------------------
+    # Shared legend
+    # ------------------------------------------------------------
+    legend_handles = [
+        Line2D(
+            [0], [0],
+            marker="D",
+            linestyle="",
+            markerfacecolor="black",
+            markeredgecolor="black",
+            markeredgewidth=1.0,
+            markersize=5.0,
+            label="Minority",
+        ),
+        Line2D(
+            [0], [0],
+            marker="^",
+            linestyle="",
+            markerfacecolor="black",
+            markeredgecolor="black",
+            markeredgewidth=1.0,
+            markersize=5.0,
+            label="Majority",
+        ),
+    ]
+
+    fig.legend(
+        handles=legend_handles,
+        loc="lower center",
+        bbox_to_anchor=(0.5, 0.012),
+        ncol=2,
+        frameon=False,
+        handlelength=1.5,
+        columnspacing=0.9,
+        handletextpad=0.40,
+        fontsize=FIG_FONT_SIZE,
+    )
+
+    # Save
+    base = "societal_all_applications_nature_style"
+    pdf_path = os.path.join(output_dir, base + ".pdf")
+
+    fig.savefig(pdf_path, bbox_inches="tight")
+    print(f"Saved: {pdf_path}")
+
     plt.close(fig)
 
 
-if __name__ == "__main__":
+# ============================================================
+# Main
+# ============================================================
 
+if __name__ == "__main__":
     applications = ["hiring", "loan", "edu"]
 
     attribute_types = [
@@ -442,7 +579,6 @@ if __name__ == "__main__":
         "Sexual Orientation",
     ]
 
-    # Fixed order of models in the 2x4 grid
     model_names = [
         "msra-gpt-4o",
         "gpt-oss-120b",
@@ -454,5 +590,9 @@ if __name__ == "__main__":
         "NVIDIA-Nemotron-Nano-12B-v2",
     ]
 
-    for application in applications:
-        draw_results_grid_societal(application, attribute_types, model_names)
+    draw_societal_super_figure(
+        applications=applications,
+        attribute_types=attribute_types,
+        model_names=model_names,
+        output_dir="outputs/societal",
+    )
