@@ -345,7 +345,7 @@ def draw_combined_gender_race_by_application(
         # ------------------------------------------------------------------
         # Nested GridSpec layout
         # ------------------------------------------------------------------
-        fig = plt.figure(figsize=(7.45, 8.25))
+        fig = plt.figure(figsize=(7.45, 7.9))
 
         outer_gs = fig.add_gridspec(
             2, 1,
@@ -353,7 +353,7 @@ def draw_combined_gender_race_by_application(
             right=0.995,
             bottom=0.105,
             top=0.935,
-            hspace=0.28,   # larger gap between Gender and Race blocks
+            hspace=0.25,   # larger gap between Gender and Race blocks
         )
 
         gender_gs = outer_gs[0].subgridspec(
@@ -541,7 +541,7 @@ def draw_combined_gender_race_by_application(
         fig.supylabel(
             "Normalized absolute selection-rate difference (%)",
             fontsize=9.2,
-            x=0.02,
+            x=0.033,
         )
 
         legend_handles = [
