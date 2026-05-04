@@ -313,13 +313,13 @@ def draw_combined_gender_race_by_application(
     # Colorblind-safe Okabe-Ito palette
     context_style = {
         5: {
-            "color": "#0ddbf5",
-            "marker": "o",
+            "color": "#83bce0",
+            "marker": "^",
             "label": "Pool size 5",
         },
         10: {
-            "color": "#1d9bf7",
-            "marker": "s",
+            "color": "#2c4ca0",
+            "marker": "o",
             "label": "Pool size 10",
         },
     }
