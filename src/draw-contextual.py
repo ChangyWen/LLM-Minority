@@ -664,7 +664,7 @@ def plot_model_panel(
             xticks,
             labels=[f"{(c + 1) / len(xticks) * 100:.0f}" for c in xticks],
         )
-        ax_main.set_xlim(-0.12, len(xticks) - 1 + 0.12)
+        ax_main.set_xlim(-0.25, len(xticks) - 1 + 0.25)
 
     ax_main.set_axisbelow(True)
 
