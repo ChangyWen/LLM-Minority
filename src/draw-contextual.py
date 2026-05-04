@@ -211,6 +211,20 @@ def make_trend_legend_handles(attribute_type, significance):
     return handles
 
 
+def expand_lower_ylim(ax, lower_frac=0.22, upper_frac=0.04):
+    """
+    Add extra empty space below the current y-range.
+    Useful when an in-panel legend is placed near the bottom.
+    """
+    ymin, ymax = ax.get_ylim()
+    yrange = ymax - ymin
+
+    ax.set_ylim(
+        ymin - lower_frac * yrange,
+        ymax + upper_frac * yrange,
+    )
+
+
 # ============================================================
 # Statistical helpers
 # ============================================================
@@ -477,6 +491,7 @@ def plot_model_panel(
         delta in selection rate.
     """
 
+    ax_delta = None
     attr_style = get_attribute_style(attribute_type)
     attribute_order = attr_style["order"]
     attribute_colors = attr_style["colors"]
@@ -648,22 +663,26 @@ def plot_model_panel(
         ax_delta.spines["left"].set_visible(False)
         ax_delta.spines["bottom"].set_visible(False)
 
+
+    # ------------------------------------------------------------
+    # Add lower space for the in-panel legend
+    # ------------------------------------------------------------
+    expand_lower_ylim(ax_main, lower_frac=0.20, upper_frac=0.04)
+
+    if ax_delta is not None:
+        expand_lower_ylim(ax_delta, lower_frac=0.20, upper_frac=0.04)
+
+
     # ------------------------------------------------------------
     # Per-panel trend legend
     # ------------------------------------------------------------
     trend_handles = make_trend_legend_handles(attribute_type, significance)
 
-    if application == "loan":
-        loc = "lower right"
-        bbox_to_anchor = (0.98, 0.02)
-    else:
-        loc = "upper right"
-        bbox_to_anchor = (0.98, 0.98)
-
     trend_legend = ax_main.legend(
         handles=trend_handles,
-        loc=loc,
-        bbox_to_anchor=bbox_to_anchor,
+        loc="lower center",
+        bbox_to_anchor=(0.5, 0.02),  # center bottom inside each chart
+        ncol=3,                      # three columns
         frameon=True,
         framealpha=0.92,
         facecolor="white",
@@ -672,8 +691,9 @@ def plot_model_panel(
         title_fontsize=7.8,
         borderpad=0.25,
         labelspacing=0.25,
-        handlelength=1.4,
-        handletextpad=0.45,
+        handlelength=1.2,
+        handletextpad=0.35,
+        columnspacing=0.65,
         borderaxespad=0.2,
     )
 
