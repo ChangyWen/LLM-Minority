@@ -9,6 +9,7 @@ import seaborn as sns
 
 from matplotlib.lines import Line2D
 from matplotlib.ticker import MaxNLocator, FuncFormatter
+from scipy.stats import binomtest
 
 
 type_to_minority_attributes = {
@@ -81,6 +82,22 @@ def format_percent_tick(v, pos):
     return f"{v * 100:.0f}"
 
 
+def p_to_stars(p):
+    """
+    Convert p-value to significance stars.
+    """
+    if p is None or np.isnan(p):
+        return ""
+    if p < 0.001:
+        return "***"
+    elif p < 0.01:
+        return "**"
+    elif p < 0.05:
+        return "*"
+    else:
+        return ""
+
+
 # ============================================================
 # Statistical helpers
 # ============================================================
@@ -104,9 +121,16 @@ def wilson_ci(k, n, z=1.96):
 
 def compute_results(file_name, attribute_type, max_n_trials=100000):
     """
-    Compute overall selection rates for Minority and Majority
-    for one model under one application, one attribute type,
-    and one candidate-pool size.
+    Compute overall selection rates for Minority and Majority.
+
+    Also performs a two-sided binomial test:
+
+        H0: p_Minority = p_Majority = 0.5
+        H1: p_Minority != p_Majority
+
+    Since each selected candidate is either Minority or Majority,
+    this is equivalent to testing whether the number of Minority
+    selections differs from half of all selections.
     """
     attr_value_to_hit_count = defaultdict(int)
     n_trials = 0
@@ -135,17 +159,41 @@ def compute_results(file_name, attribute_type, max_n_trials=100000):
 
             attr_value_to_hit_count[suggested_candidate_attr_value] += 1
 
+    # Ensure both keys exist, even if one group is never selected.
+    minority_count = attr_value_to_hit_count["Minority"]
+    majority_count = attr_value_to_hit_count["Majority"]
+
     results = {}
 
-    for attr_value, hit_count in attr_value_to_hit_count.items():
+    for attr_value, hit_count in [
+        ("Minority", minority_count),
+        ("Majority", majority_count),
+    ]:
         hit_rate = hit_count / n_trials
         ci_low, ci_high = wilson_ci(hit_count, n_trials)
 
         results[attr_value] = {
+            "hit_count": hit_count,
+            "total_count": n_trials,
             "hit_rate": hit_rate,
             "ci_low": ci_low,
             "ci_high": ci_high,
         }
+
+    # Two-sided significance test: Minority vs Majority selection rates.
+    test = binomtest(
+        k=minority_count,
+        n=n_trials,
+        p=0.5,
+        alternative="two-sided",
+    )
+
+    results["significance"] = {
+        "p_value": float(test.pvalue),
+        "minority_count": minority_count,
+        "majority_count": majority_count,
+        "total_count": n_trials,
+    }
 
     return results
 
@@ -153,6 +201,7 @@ def compute_results(file_name, attribute_type, max_n_trials=100000):
 # ============================================================
 # Panel plotting
 # ============================================================
+
 
 def plot_model_panel(
     ax,
@@ -167,7 +216,14 @@ def plot_model_panel(
 ):
     """
     Draw one model panel.
-    Style aligned with your previous contextual figures.
+
+    Stars above each x-position indicate whether the Minority and
+    Majority selection rates are significantly different at that
+    candidate-pool size.
+
+        *   P < 0.05
+        **  P < 0.01
+        *** P < 0.001
     """
 
     minority_marker = "o"
@@ -177,6 +233,7 @@ def plot_model_panel(
 
     y_min, lo_min, hi_min = [], [], []
     y_maj, lo_maj, hi_maj = [], [], []
+    p_values = []
 
     for rc in resume_counts:
         file_path = (
@@ -207,6 +264,8 @@ def plot_model_panel(
         lo_maj.append(results["Majority"]["ci_low"])
         hi_maj.append(results["Majority"]["ci_high"])
 
+        p_values.append(results["significance"]["p_value"])
+
     y_min = np.asarray(y_min, dtype=float)
     lo_min = np.asarray(lo_min, dtype=float)
     hi_min = np.asarray(hi_min, dtype=float)
@@ -214,6 +273,8 @@ def plot_model_panel(
     y_maj = np.asarray(y_maj, dtype=float)
     lo_maj = np.asarray(lo_maj, dtype=float)
     hi_maj = np.asarray(hi_maj, dtype=float)
+
+    p_values = np.asarray(p_values, dtype=float)
 
     yerr_min = np.vstack([y_min - lo_min, hi_min - y_min])
     yerr_maj = np.vstack([y_maj - lo_maj, hi_maj - y_maj])
@@ -253,6 +314,44 @@ def plot_model_panel(
         capthick=0.75,
         zorder=3,
     )
+
+    # ------------------------------------------------------------
+    # Significance stars
+    # ------------------------------------------------------------
+    panel_low = min(np.min(lo_min), np.min(lo_maj))
+    panel_high = max(np.max(hi_min), np.max(hi_maj))
+    panel_span = max(panel_high - panel_low, 0.05)
+
+    star_offset = 0.065 * panel_span
+    star_positions = []
+
+    for x, p, h_min_i, h_maj_i in zip(xs, p_values, hi_min, hi_maj):
+        stars = p_to_stars(p)
+
+        if stars:
+            y_star = max(h_min_i, h_maj_i) + star_offset
+            star_positions.append(y_star)
+
+            ax.text(
+                x,
+                y_star,
+                stars,
+                ha="center",
+                va="bottom",
+                fontsize=7.0,
+                color="0.10",
+                clip_on=False,
+                zorder=5,
+            )
+
+    # Add enough vertical space for significance stars.
+    if star_positions:
+        y_upper = max(max(star_positions), panel_high) + 0.12 * panel_span
+    else:
+        y_upper = panel_high + 0.12 * panel_span
+
+    y_lower = max(0.0, panel_low - 0.10 * panel_span)
+    ax.set_ylim(y_lower, y_upper)
 
     # Axes formatting
     ax.set_xticks(xs)
