@@ -338,7 +338,7 @@ def plot_model_panel(
                 stars,
                 ha="center",
                 va="bottom",
-                fontsize=7.0,
+                fontsize=FONT_SIZE,
                 color="0.10",
                 clip_on=False,
                 zorder=5,
@@ -356,7 +356,7 @@ def plot_model_panel(
     # Axes formatting
     ax.set_xticks(xs)
     ax.set_xticklabels([str(x) for x in resume_counts])
-    ax.set_xlim(xs[0] - 0.4, xs[-1] + 0.4)
+    ax.set_xlim(xs[0] - 0.5, xs[-1] + 0.5)
 
     ax.yaxis.set_major_locator(MaxNLocator(nbins=4))
     ax.yaxis.set_major_formatter(FuncFormatter(format_percent_tick))
@@ -457,7 +457,7 @@ def draw_attribute_big_figure(
         inner_gs = outer_gs[app_idx].subgridspec(
             2,
             4,
-            wspace=0.32,
+            wspace=0.2,
             hspace=0.36,
         )
 
