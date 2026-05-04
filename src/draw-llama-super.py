@@ -396,7 +396,7 @@ def plot_societal_panel(
     """
 
     minority_marker = "D"
-    majority_marker = "^"
+    majority_marker = "o"
 
     x_gap = 0.40
     x_base = np.arange(len(attribute_types), dtype=float) * x_gap
@@ -1098,17 +1098,17 @@ def draw_combined_llama_figure(
             markeredgecolor="black",
             markeredgewidth=1.0,
             markersize=5.0,
-            label="Minority",
+            label="Societal minority",
         ),
         Line2D(
             [0], [0],
-            marker="^",
+            marker="o",
             linestyle="",
             markerfacecolor="black",
             markeredgecolor="black",
             markeredgewidth=1.0,
             markersize=5.0,
-            label="Majority",
+            label="Societal majority",
         ),
     ]
 

@@ -226,8 +226,8 @@ def plot_model_panel(
         *** P < 0.001
     """
 
-    minority_marker = "o"
-    majority_marker = "s"
+    minority_marker = "D"
+    majority_marker = "o"
 
     xs = np.array(resume_counts, dtype=float)
 
@@ -548,25 +548,25 @@ def draw_attribute_big_figure(
             [0],
             [0],
             color=minority_color,
-            marker="o",
+            marker="D",
             markerfacecolor=minority_color,
             markeredgecolor=minority_color,
             markeredgewidth=1.0,
             linewidth=1.20,
             markersize=4.0,
-            label="Minority",
+            label="Societal minority",
         ),
         Line2D(
             [0],
             [0],
             color=majority_color,
-            marker="s",
+            marker="o",
             markerfacecolor=majority_color,
             markeredgecolor=majority_color,
             markeredgewidth=1.0,
             linewidth=1.20,
             markersize=4.0,
-            label="Majority",
+            label="Societal majority",
         ),
     ]
 

@@ -226,7 +226,7 @@ def plot_model_panel_societal(
         minority and majority scores with 95% CI.
     """
     minority_marker = "D"
-    majority_marker = "^"
+    majority_marker = "o"
 
     x_gap = 0.2
     x_base = np.arange(len(attribute_types), dtype=float) * x_gap
@@ -538,17 +538,17 @@ def draw_societal_super_figure(
             markeredgecolor="black",
             markeredgewidth=1.0,
             markersize=5.0,
-            label="Minority",
+            label="Societal minority",
         ),
         Line2D(
             [0], [0],
-            marker="^",
+            marker="o",
             linestyle="",
             markerfacecolor="black",
             markeredgecolor="black",
             markeredgewidth=1.0,
             markersize=5.0,
-            label="Majority",
+            label="Societal majority",
         ),
     ]
 
