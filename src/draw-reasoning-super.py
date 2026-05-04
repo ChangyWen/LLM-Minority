@@ -586,7 +586,7 @@ def draw_reasoning_block(
                     [y],
                     yerr=yerr,
                     fmt=mode_to_marker[r["mode"]],
-                    markersize=6.0,
+                    markersize=4.0,
                     capsize=3.2,
                     elinewidth=1.0,
                     markeredgecolor=base_to_color[r["model"]],
