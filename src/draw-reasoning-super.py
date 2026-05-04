@@ -586,7 +586,7 @@ def draw_reasoning_block(
                     [y],
                     yerr=yerr,
                     fmt=mode_to_marker[r["mode"]],
-                    markersize=4.0,
+                    markersize=4.5,
                     capsize=3.2,
                     elinewidth=1.0,
                     markeredgecolor=base_to_color[r["model"]],
@@ -764,8 +764,8 @@ def draw_reasoning_super_figure(
 
     # Professional, colorblind-safe colors
     base_to_color = {
-        "GLM": "#0072B2",
-        "Nemotron": "#D55E00",
+        "GLM": "#f599a1",
+        "Nemotron": "#a577ad",
     }
 
     mode_to_marker = {
@@ -818,14 +818,14 @@ def draw_reasoning_super_figure(
             [0], [0],
             linestyle="",
             marker=None,
-            color="#0072B2",
+            color="#f599a1",
             label="GLM: GLM-4.5-Air",
         ),
         Line2D(
             [0], [0],
             linestyle="",
             marker=None,
-            color="#D55E00",
+            color="#a577ad",
             label="Nemotron: Nemotron-Nano-12B-v2",
         ),
 
@@ -837,7 +837,7 @@ def draw_reasoning_super_figure(
             color="black",
             markerfacecolor="black",
             markeredgecolor="black",
-            markersize=8.0,
+            markersize=6.0,
             label="Non-reasoning",
         ),
         Line2D(
@@ -847,7 +847,7 @@ def draw_reasoning_super_figure(
             color="black",
             markerfacecolor="black",
             markeredgecolor="black",
-            markersize=8.0,
+            markersize=6.0,
             label="Reasoning",
         ),
     ]
@@ -869,8 +869,8 @@ def draw_reasoning_super_figure(
 
     # Color the first two legend texts
     legend_texts = leg.get_texts()
-    legend_texts[0].set_color("#0072B2")   # GLM text
-    legend_texts[1].set_color("#D55E00")   # Nemotron text
+    legend_texts[0].set_color("#f599a1")   # GLM text
+    legend_texts[1].set_color("#a577ad")   # Nemotron text
 
     pdf_path = os.path.join(output_dir, "reasoning_contextual_societal_super_figure.pdf")
 

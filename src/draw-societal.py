@@ -225,7 +225,7 @@ def plot_model_panel_societal(
     For each attribute:
         minority and majority scores with 95% CI.
     """
-    minority_marker = "D"
+    minority_marker = "^"
     majority_marker = "o"
 
     x_gap = 0.2
@@ -419,8 +419,8 @@ def draw_societal_super_figure(
     }
 
     attribute_to_color = {
-        "Gender Identity": "#009E73",     # green
-        "Sexual Orientation": "#CC79A7",  # purple
+        "Gender Identity": "#fa782d",     # green
+        "Sexual Orientation": "#0634a0",  # purple
     }
 
     fig = plt.figure(figsize=(8.5, 9.0))
@@ -518,7 +518,7 @@ def draw_societal_super_figure(
             linestyle="",
             marker=None,
             markersize=0.0,
-            color="#009E73",
+            color="#fa782d",
             label="GI: Gender identity",
         ),
         Line2D(
@@ -526,13 +526,13 @@ def draw_societal_super_figure(
             linestyle="",
             marker=None,
             markersize=0.0,
-            color="#CC79A7",
+            color="#0634a0",
             label="SO: Sexual orientation",
         ),
 
         Line2D(
             [0], [0],
-            marker="D",
+            marker="^",
             linestyle="",
             markerfacecolor="black",
             markeredgecolor="black",
@@ -570,8 +570,8 @@ def draw_societal_super_figure(
 
     # Color the first two legend texts
     legend_texts = leg.get_texts()
-    legend_texts[0].set_color("#009E73")   # GI text
-    legend_texts[1].set_color("#CC79A7")   # SO text
+    legend_texts[0].set_color("#fa782d")   # GI text
+    legend_texts[1].set_color("#0634a0")   # SO text
 
     # Save
     base = "societal_all_applications_nature_style"

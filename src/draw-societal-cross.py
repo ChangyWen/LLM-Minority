@@ -226,7 +226,7 @@ def plot_model_panel(
         *** P < 0.001
     """
 
-    minority_marker = "D"
+    minority_marker = "^"
     majority_marker = "o"
 
     xs = np.array(resume_counts, dtype=float)
@@ -436,8 +436,8 @@ def draw_attribute_big_figure(
     }
 
     # Use the same professional color style as your previous figures
-    minority_color = "#D55E00"   # vermillion
-    majority_color = "#0072B2"   # blue
+    minority_color = "#f296ac"   # vermillion
+    majority_color = "#b53289"   # blue
 
     fig = plt.figure(figsize=(9.5, 10))
 
@@ -548,7 +548,7 @@ def draw_attribute_big_figure(
             [0],
             [0],
             color=minority_color,
-            marker="D",
+            marker="^",
             markerfacecolor=minority_color,
             markeredgecolor=minority_color,
             markeredgewidth=1.0,

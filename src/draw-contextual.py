@@ -18,10 +18,10 @@ from matplotlib.lines import Line2D
 # Global style
 # ============================================================
 
-DELTA_COLOR = "#75b8b3"  # dark gray, more professional than pure blue
+DELTA_COLOR = "#ffa21c"  # dark gray, more professional than pure blue
 FONT_SIZE = 9.5
 LABEL_SIZE = 8.0
-CI_ALPHA = 0.25
+CI_ALPHA = 0.35
 
 def set_nature_style():
     """
@@ -106,8 +106,8 @@ def get_attribute_style(attribute_type):
         return {
             "order": ["Female", "Male"],
             "colors": {
-                "Female": "#D55E00",  # vermillion
-                "Male": "#0072B2",    # blue
+                "Female": "#ff2d86",  # vermillion
+                "Male": "#7550ff",    # blue
             },
             "delta_label": r"Selection-rate difference (Female - Male)",
             "right_ylabel": r"Selection-rate difference",
@@ -117,8 +117,8 @@ def get_attribute_style(attribute_type):
         return {
             "order": ["Black", "White"],
             "colors": {
-                "Black": "#D55E00",   # vermillion
-                "White": "#0072B2",   # blue
+                "Black": "#ff2d86",   # vermillion
+                "White": "#7550ff",   # blue
             },
             "delta_label": r"Selection-rate difference (Black - White)",
             "right_ylabel": r"Selection-rate difference",
