@@ -85,7 +85,7 @@ def p_to_stars(p):
     elif p < 0.05:
         return "*"
     else:
-        return ""
+        return "ns"
 
 
 def format_percent_tick(v, pos):
@@ -243,6 +243,33 @@ def wilson_ci(k, n, z=1.96):
     return lower, upper
 
 
+def two_proportion_z_test(h1, n1, h2, n2):
+    """
+    Two-sided z-test for equality of two proportions.
+
+    H0: p1 = p2
+    H1: p1 != p2
+    """
+    if n1 == 0 or n2 == 0:
+        return float("nan"), float("nan")
+
+    p1 = h1 / n1
+    p2 = h2 / n2
+    p_pool = (h1 + h2) / (n1 + n2)
+
+    se = math.sqrt(p_pool * (1 - p_pool) * (1 / n1 + 1 / n2))
+
+    if se == 0:
+        if p1 == p2:
+            return float("nan"), 1.0
+        return float("nan"), 0.0
+
+    z = (p1 - p2) / se
+    p_two = 2 * (1 - norm.cdf(abs(z)))
+
+    return z, p_two
+
+
 def chi2_test_same_attr_effect(attr_counts):
     table = []
     levels = sorted(attr_counts.keys())
@@ -348,6 +375,72 @@ def trend_test_delta_counts(attr_counts_A, attr_counts_B):
     return z, p_two, p_inc, p_dec
 
 
+def add_pairwise_significance_stars(
+    ax,
+    attribute_type,
+    all_results,
+    significance,
+    fontsize=7.2,
+):
+    """
+    Add per-x significance stars for pairwise tests between the two
+    attribute-specific selection rates.
+
+    Race:   Black vs White
+    Gender: Female vs Male
+    """
+    pairwise = significance.get("pairwise", {})
+    if not pairwise:
+        return
+
+    attr_style = get_attribute_style(attribute_type)
+    attribute_order = attr_style["order"]
+
+    ymin, ymax = ax.get_ylim()
+    yrange = max(ymax - ymin, 1e-12)
+
+    star_offset = 0.055 * yrange
+    extra_headroom = 0.080 * yrange
+
+    max_star_y = ymax
+
+    for c in sorted(pairwise.keys()):
+        p_value = pairwise[c].get("p_value_two_sided", float("nan"))
+        stars = p_to_stars(p_value)
+
+        # Do not show ns, to keep panels clean.
+        if not stars:
+            continue
+
+        y_candidates = []
+
+        for attribute_value in attribute_order:
+            if attribute_value in all_results and c in all_results[attribute_value]:
+                y_candidates.append(all_results[attribute_value][c]["ci_high"])
+
+        if not y_candidates:
+            continue
+
+        y_star = max(y_candidates) + star_offset
+
+        ax.text(
+            c,
+            y_star,
+            stars,
+            ha="center",
+            va="bottom",
+            fontsize=fontsize,
+            color="0.10",
+            clip_on=False,
+            zorder=8,
+        )
+
+        max_star_y = max(max_star_y, y_star + extra_headroom)
+
+    if max_star_y > ymax:
+        ax.set_ylim(ymin, max_star_y)
+
+
 # ============================================================
 # Data computation
 # ============================================================
@@ -440,6 +533,24 @@ def compute_results(file_name, attribute_type, max_n_trials=1000000):
         "p_value_one_inc": p_inc,
         "p_value_one_dec": p_dec,
     }
+
+    # ------------------------------------------------------------
+    # Pairwise tests at each focal-group proportion
+    # Race:   Black vs White
+    # Gender: Female vs Male
+    # ------------------------------------------------------------
+    significance["pairwise"] = {}
+
+    for c in sorted(set(attr_counts_A) & set(attr_counts_B)):
+        hA, nA = attr_counts_A[c]
+        hB, nB = attr_counts_B[c]
+
+        z_pair, p_pair = two_proportion_z_test(hA, nA, hB, nB)
+
+        significance["pairwise"][c] = {
+            "z": z_pair,
+            "p_value_two_sided": p_pair,
+        }
 
     results["delta"] = {}
 
@@ -559,6 +670,17 @@ def plot_model_panel(
 
     ax_main.yaxis.set_major_locator(MaxNLocator(nbins=4))
     ax_main.yaxis.set_major_formatter(FuncFormatter(format_percent_tick))
+
+    # ------------------------------------------------------------
+    # Pairwise significance at each focal-group proportion
+    # ------------------------------------------------------------
+    add_pairwise_significance_stars(
+        ax=ax_main,
+        attribute_type=attribute_type,
+        all_results=all_results,
+        significance=significance,
+        fontsize=7.2,
+    )
 
     ax_main.tick_params(
         axis="x",
