@@ -395,7 +395,7 @@ def plot_societal_panel(
         minority and majority scores with 95% CI.
     """
 
-    minority_marker = "D"
+    minority_marker = "^"
     majority_marker = "o"
 
     x_gap = 0.40
@@ -612,19 +612,19 @@ def draw_combined_llama_figure(
 
     # Use different palettes for the two conceptual parts
     societal_attr_color = {
-        "Gender Identity": "#009E73",        # green
-        "Sexual Orientation": "#CC79A7",     # purple
+        "Gender Identity": "#BE0E23",        # green
+        "Sexual Orientation": "#0634a0",     # purple
     }
 
     contextual_model_style = {
         "Llama-3.1-8B": {
-            "color": "#f296ac",              # blue
-            "marker": "o",
+            "color": "#a0d292",              # blue
+            "marker": "^",
             "label": "Llama-3.1-8B",
         },
         "Llama-3.1-8B-Instruct": {
-            "color": "#b53289",              # orange
-            "marker": "s",
+            "color": "#44a05c",              # orange
+            "marker": "o",
             "label": "Llama-3.1-8B-Instruct",
         },
     }
@@ -1079,7 +1079,7 @@ def draw_combined_llama_figure(
             linestyle="",
             marker=None,
             markersize=0.0,
-            color="#009E73",
+            color="#BE0E23",
             label="GI: Gender identity",
         ),
         Line2D(
@@ -1087,12 +1087,12 @@ def draw_combined_llama_figure(
             linestyle="",
             marker=None,
             markersize=0.0,
-            color="#CC79A7",
+            color="#0634a0",
             label="SO: Sexual orientation",
         ),
         Line2D(
             [0], [0],
-            marker="D",
+            marker="^",
             linestyle="",
             markerfacecolor="black",
             markeredgecolor="black",
@@ -1132,8 +1132,8 @@ def draw_combined_llama_figure(
 
     # Color the first two legend texts
     legend_texts = leg.get_texts()
-    legend_texts[0].set_color("#009E73")   # GI text
-    legend_texts[1].set_color("#CC79A7")   # SO text
+    legend_texts[0].set_color("#BE0E23")   # GI text
+    legend_texts[1].set_color("#0634a0")   # SO text
 
     # -----------------------------
     # Legend for panel b: contextual

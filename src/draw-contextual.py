@@ -178,7 +178,7 @@ def make_trend_legend_handles(attribute_type, significance):
             Line2D(
                 [0], [0],
                 color=color,
-                marker="o",
+                marker="s" if attribute_value == "Female" or attribute_value == "Black" else "o",
                 markerfacecolor=color,
                 markeredgecolor=color,
                 markeredgewidth=0.9,

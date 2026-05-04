@@ -764,13 +764,13 @@ def draw_reasoning_super_figure(
 
     # Professional, colorblind-safe colors
     base_to_color = {
-        "GLM": "#f599a1",
-        "Nemotron": "#a577ad",
+        "GLM": "#FB6542",
+        "Nemotron": "#2673EF",
     }
 
     mode_to_marker = {
         "reasoning": "o",
-        "non-reasoning": "X",
+        "non-reasoning": "^",
     }
 
     fig = plt.figure(figsize=(7.45, 6.5))
@@ -832,7 +832,7 @@ def draw_reasoning_super_figure(
         # marker entries for reasoning modes
         Line2D(
             [0], [0],
-            marker="X",
+            marker="^",
             linestyle="",
             color="black",
             markerfacecolor="black",
@@ -869,8 +869,8 @@ def draw_reasoning_super_figure(
 
     # Color the first two legend texts
     legend_texts = leg.get_texts()
-    legend_texts[0].set_color("#f599a1")   # GLM text
-    legend_texts[1].set_color("#a577ad")   # Nemotron text
+    legend_texts[0].set_color("#FB6542")   # GLM text
+    legend_texts[1].set_color("#2673EF")   # Nemotron text
 
     pdf_path = os.path.join(output_dir, "reasoning_contextual_societal_super_figure.pdf")
 

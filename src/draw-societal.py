@@ -419,7 +419,7 @@ def draw_societal_super_figure(
     }
 
     attribute_to_color = {
-        "Gender Identity": "#fa782d",     # green
+        "Gender Identity": "#BE0E23",     # green
         "Sexual Orientation": "#0634a0",  # purple
     }
 
@@ -518,7 +518,7 @@ def draw_societal_super_figure(
             linestyle="",
             marker=None,
             markersize=0.0,
-            color="#fa782d",
+            color="#BE0E23",
             label="GI: Gender identity",
         ),
         Line2D(
@@ -570,7 +570,7 @@ def draw_societal_super_figure(
 
     # Color the first two legend texts
     legend_texts = leg.get_texts()
-    legend_texts[0].set_color("#fa782d")   # GI text
+    legend_texts[0].set_color("#BE0E23")   # GI text
     legend_texts[1].set_color("#0634a0")   # SO text
 
     # Save
