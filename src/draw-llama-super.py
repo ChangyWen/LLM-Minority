@@ -618,12 +618,12 @@ def draw_combined_llama_figure(
 
     contextual_model_style = {
         "Llama-3.1-8B": {
-            "color": "#a0d292",              # blue
+            "color": "#f296ac",              # blue
             "marker": "^",
             "label": "Llama-3.1-8B",
         },
         "Llama-3.1-8B-Instruct": {
-            "color": "#44a05c",              # orange
+            "color": "#b53289",              # orange
             "marker": "o",
             "label": "Llama-3.1-8B-Instruct",
         },

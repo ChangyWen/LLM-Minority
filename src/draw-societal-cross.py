@@ -436,8 +436,8 @@ def draw_attribute_big_figure(
     }
 
     # Use the same professional color style as your previous figures
-    minority_color = "#f296ac"   # vermillion
-    majority_color = "#b53289"   # blue
+    minority_color = "#83bce0"   # vermillion
+    majority_color = "#2c4ca0"   # blue
 
     fig = plt.figure(figsize=(9.5, 10))
 
