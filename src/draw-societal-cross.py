@@ -448,7 +448,7 @@ def draw_attribute_big_figure(
         right=0.875,
         bottom=0.090,
         top=0.940,
-        hspace=0.30,
+        hspace=0.25,
     )
 
     all_axes = {}
@@ -508,7 +508,7 @@ def draw_attribute_big_figure(
     fig.supxlabel(
         "Number of candidates",
         fontsize=FONT_SIZE,
-        y=0.047,
+        y=0.055,
     )
 
     fig.supylabel(
@@ -573,7 +573,7 @@ def draw_attribute_big_figure(
     fig.legend(
         handles=legend_handles,
         loc="lower center",
-        bbox_to_anchor=(0.5, 0.010),
+        bbox_to_anchor=(0.5, 0.020),
         ncol=2,
         frameon=False,
         handlelength=1.7,
