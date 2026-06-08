@@ -144,6 +144,10 @@ def trend_label_from_pvalues(p_inc, p_dec, show_ns=True):
         ↓**
         ↑***
         ns
+
+    Important:
+        If the trend is not statistically significant, return "ns"
+        without any arrow.
     """
     if p_inc is None or p_dec is None:
         return "ns" if show_ns else ""
@@ -151,70 +155,81 @@ def trend_label_from_pvalues(p_inc, p_dec, show_ns=True):
     if math.isnan(p_inc) or math.isnan(p_dec):
         return "ns" if show_ns else ""
 
+    # Increasing trend is stronger
     if p_inc <= p_dec:
-        stars = p_to_stars(p_inc)
-        return f"↑{stars}" if stars else ("ns" if show_ns else "")
+        if p_inc < 0.001:
+            return "↑***"
+        elif p_inc < 0.01:
+            return "↑**"
+        elif p_inc < 0.05:
+            return "↑*"
+        else:
+            return "ns" if show_ns else ""
+
+    # Decreasing trend is stronger
     else:
-        stars = p_to_stars(p_dec)
-        return f"↓{stars}" if stars else ("ns" if show_ns else "")
+        if p_dec < 0.001:
+            return "↓***"
+        elif p_dec < 0.01:
+            return "↓**"
+        elif p_dec < 0.05:
+            return "↓*"
+        else:
+            return "ns" if show_ns else ""
 
 
 def make_trend_legend_handles(attribute_type, significance):
     """
-    Build a compact legend showing trend significance for the two
-    attribute curves and the delta curve in one panel.
+    Build a compact in-panel legend showing the direction and significance
+    of each group-specific selection-rate trend.
+
+    The arrows always refer to the plotted x-axis:
+        Gender: increasing proportion of Female candidates.
+        Race:   increasing proportion of Black candidates.
+
+    Examples:
+        ↑*** means the target group's selection rate significantly increases
+              as the proportion of Female/Black candidates increases.
+
+        ↓*** means the target group's selection rate significantly decreases
+              as the proportion of Female/Black candidates increases.
     """
     attr_style = get_attribute_style(attribute_type)
-
     handles = []
-
-    short_name = {
-        "Female": "F",
-        "Male": "M",
-        "Black": "B",
-        "White": "W",
-    }
 
     for attribute_value in attr_style["order"]:
         color = attr_style["colors"][attribute_value]
 
-        p_inc = significance.get(attribute_value, {}).get("p_value_one_inc", float("nan"))
-        p_dec = significance.get(attribute_value, {}).get("p_value_one_dec", float("nan"))
-        trend_text = trend_label_from_pvalues(p_inc, p_dec, show_ns=True)
+        p_inc = significance.get(attribute_value, {}).get(
+            "p_value_one_inc",
+            float("nan"),
+        )
+        p_dec = significance.get(attribute_value, {}).get(
+            "p_value_one_dec",
+            float("nan"),
+        )
+
+        trend_text = trend_label_from_pvalues(
+            p_inc=p_inc,
+            p_dec=p_dec,
+            show_ns=True,
+        )
 
         handles.append(
             Line2D(
-                [0], [0],
+                [0],
+                [0],
                 color=color,
-                marker="s" if attribute_value == "Female" or attribute_value == "Black" else "o",
+                marker="s" if attribute_value in ["Female", "Black"] else "o",
                 markerfacecolor=color,
                 markeredgecolor=color,
                 markeredgewidth=0.9,
                 linewidth=1.15,
                 linestyle="-",
                 markersize=4.0,
-                label=f"{trend_text}",
+                label=trend_text,
             )
         )
-
-    p_inc_delta = significance.get("delta", {}).get("p_value_one_inc", float("nan"))
-    p_dec_delta = significance.get("delta", {}).get("p_value_one_dec", float("nan"))
-    delta_trend_text = trend_label_from_pvalues(p_inc_delta, p_dec_delta, show_ns=True)
-
-    handles.append(
-        Line2D(
-            [0], [0],
-            color=DELTA_COLOR,
-            marker="^",
-            markerfacecolor=DELTA_COLOR,
-            markeredgecolor=DELTA_COLOR,
-            markeredgewidth=0.8,
-            linewidth=1.10,
-            linestyle="--",
-            markersize=4.0,
-            label=rf"{delta_trend_text}",
-        )
-    )
 
     return handles
 
@@ -454,6 +469,41 @@ def add_pairwise_significance_stars(
         ax.set_ylim(ymin, max_star_y)
 
 
+def build_focal_axis_counts(attr_counts, attribute_value, attr_style, pool_size):
+    """
+    Re-index target-group counts by the plotted x-axis.
+
+    New plotted x-axis:
+        Gender: proportion of Female candidates in the pool.
+        Race:   proportion of Black candidates in the pool.
+
+    For the focal group, e.g., Female/Black:
+        raw same_attr_count increases as the plotted x-axis increases.
+
+    For the reference group, e.g., Male/White:
+        raw same_attr_count decreases as the plotted x-axis increases.
+        Therefore, we transform the count to the corresponding focal-group
+        proportion before applying the trend test.
+
+    Returns:
+        dict mapping x_percent -> (hit_count, total_count)
+    """
+    focal_axis_counts = {}
+
+    for same_attr_count, count_pair in attr_counts.items():
+        group_count = same_attr_count + 1
+
+        if attribute_value == attr_style["focal"]:
+            focal_count = group_count
+        else:
+            focal_count = pool_size - group_count
+
+        x_percent = 100.0 * focal_count / pool_size
+        focal_axis_counts[x_percent] = count_pair
+
+    return dict(sorted(focal_axis_counts.items(), key=lambda item: item[0]))
+
+
 # ============================================================
 # Data computation
 # ============================================================
@@ -541,15 +591,30 @@ def compute_results(file_name, attribute_type, max_n_trials=1000000, pool_size=N
         attr_value_to_counts[attr_value] = attr_counts
 
         if len(attr_counts) >= 2:
+            # Omnibus test: whether the target group's selection rate differs
+            # across pool-composition settings.
             chi2, p_global, dof, levels = chi2_test_same_attr_effect(attr_counts)
             significance[attr_value]["global_test_p_value"] = p_global
 
-            z, p_two, p_inc, p_dec = cochran_armitage_trend(attr_counts)
+            # Directional trend test on the plotted x-axis:
+            #   Gender: Female proportion increases.
+            #   Race:   Black proportion increases.
+            focal_axis_counts = build_focal_axis_counts(
+                attr_counts=attr_counts,
+                attribute_value=attr_value,
+                attr_style=attr_style,
+                pool_size=pool_size,
+            )
+
+            z, p_two, p_inc, p_dec = cochran_armitage_trend(focal_axis_counts)
+
+            significance[attr_value]["trend_z"] = z
             significance[attr_value]["p_value_two_sided"] = p_two
             significance[attr_value]["p_value_one_inc"] = p_inc
             significance[attr_value]["p_value_one_dec"] = p_dec
         else:
             significance[attr_value]["global_test_p_value"] = float("nan")
+            significance[attr_value]["trend_z"] = float("nan")
             significance[attr_value]["p_value_two_sided"] = float("nan")
             significance[attr_value]["p_value_one_inc"] = float("nan")
             significance[attr_value]["p_value_one_dec"] = float("nan")
@@ -572,6 +637,7 @@ def compute_results(file_name, attribute_type, max_n_trials=1000000, pool_size=N
 
     for focal_count in range(1, pool_size):
         focal_same_attr_count = focal_count - 1
+
         reference_count = pool_size - focal_count
         reference_same_attr_count = reference_count - 1
 
@@ -643,10 +709,14 @@ def plot_model_panel(
     Draw one model panel.
 
     Revised design:
-        - Only show group-specific selection-rate curves.
-        - Remove selection-rate difference curve.
-        - Remove right y-axis.
-        - Add a dashed horizontal uniform-random selection-rate baseline.
+        - Show group-specific selection-rate curves.
+        - Keep the uniform-random selection-rate baseline.
+        - Do not show the selection-rate difference curve.
+        - Add an in-panel trend legend for the two group-specific curves.
+
+    Trend arrows:
+        Gender: trends are tested as Female proportion increases.
+        Race:   trends are tested as Black proportion increases.
     """
     attr_style = get_attribute_style(attribute_type)
     attribute_order = attr_style["order"]
@@ -684,6 +754,7 @@ def plot_model_panel(
                 "ci_low": res[same_attr_count]["ci_low"],
                 "ci_high": res[same_attr_count]["ci_high"],
             }
+
             rows.append(row)
             plotted_results[attribute_value][x_percent] = row
 
@@ -769,6 +840,47 @@ def plot_model_panel(
         fontsize=7.2,
     )
 
+    # ------------------------------------------------------------
+    # Add lower space for the in-panel trend legend
+    # ------------------------------------------------------------
+    expand_lower_ylim(
+        ax_main,
+        lower_frac=0.20,
+        upper_frac=0.04,
+    )
+
+    # ------------------------------------------------------------
+    # Per-panel trend legend
+    # ------------------------------------------------------------
+    trend_handles = make_trend_legend_handles(
+        attribute_type=attribute_type,
+        significance=significance,
+    )
+
+    trend_legend = ax_main.legend(
+        handles=trend_handles,
+        loc="lower center",
+        bbox_to_anchor=(0.5, 0.02),
+        ncol=2,
+        frameon=True,
+        framealpha=0.92,
+        facecolor="white",
+        edgecolor="0.75",
+        fontsize=7.4,
+        title_fontsize=7.4,
+        borderpad=0.25,
+        labelspacing=0.25,
+        handlelength=1.2,
+        handletextpad=0.35,
+        columnspacing=0.65,
+        borderaxespad=0.2,
+    )
+
+    trend_legend.get_frame().set_linewidth(0.6)
+
+    # ------------------------------------------------------------
+    # Tick and spine styling
+    # ------------------------------------------------------------
     ax_main.tick_params(
         axis="x",
         length=0.0,
@@ -798,6 +910,7 @@ def plot_model_panel(
         ax_main.spines[spine].set_visible(True)
         ax_main.spines[spine].set_linewidth(0.7)
         ax_main.spines[spine].set_color("0.15")
+
 
 # ============================================================
 # Big figure drawing

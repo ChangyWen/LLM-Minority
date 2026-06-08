@@ -338,7 +338,7 @@ def plot_model_panel(
                 stars,
                 ha="center",
                 va="bottom",
-                fontsize=FONT_SIZE,
+                fontsize=7,
                 color="0.10",
                 clip_on=False,
                 zorder=5,
