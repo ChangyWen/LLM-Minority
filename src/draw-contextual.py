@@ -854,7 +854,7 @@ def draw_attribute_big_figure(
         inner_gs = outer_gs[app_idx].subgridspec(
             2,
             4,
-            wspace=0.32,
+            wspace=0.16,
             hspace=0.36,
         )
 
