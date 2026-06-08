@@ -19,6 +19,8 @@ from matplotlib.lines import Line2D
 # ============================================================
 
 DELTA_COLOR = "#ffa21c"  # dark gray, more professional than pure blue
+RANDOM_RATE_COLOR = "0.35"
+
 FONT_SIZE = 9.5
 LABEL_SIZE = 8.0
 CI_ALPHA = 0.35
@@ -99,29 +101,35 @@ def format_signed_percent_tick(v, pos):
 def get_attribute_style(attribute_type):
     """
     Consistent Nature-style color mapping.
-    For Gender: Female - Male
-    For Race: Black - White
+
+    Gender:
+        x-axis = proportion of Female candidates in the pool.
+
+    Race:
+        x-axis = proportion of Black candidates in the pool.
     """
     if attribute_type == "Gender":
         return {
             "order": ["Female", "Male"],
+            "focal": "Female",
+            "reference": "Male",
             "colors": {
-                "Female": "#ff2d86",  # vermillion
-                "Male": "#7550ff",    # blue
+                "Female": "#ff2d86",
+                "Male": "#7550ff",
             },
-            "delta_label": r"Selection-rate difference (Female - Male)",
-            "right_ylabel": r"Selection-rate difference",
+            "x_label": "Proportion of female in candidate pool (%)",
         }
 
     if attribute_type == "Race":
         return {
             "order": ["Black", "White"],
+            "focal": "Black",
+            "reference": "White",
             "colors": {
-                "Black": "#ff2d86",   # vermillion
-                "White": "#7550ff",   # blue
+                "Black": "#ff2d86",
+                "White": "#7550ff",
             },
-            "delta_label": r"Selection-rate difference (Black - White)",
-            "right_ylabel": r"Selection-rate difference",
+            "x_label": "Proportion of Black in candidate pool (%)",
         }
 
     raise ValueError(f"Unknown attribute_type: {attribute_type}")
@@ -378,7 +386,7 @@ def trend_test_delta_counts(attr_counts_A, attr_counts_B):
 def add_pairwise_significance_stars(
     ax,
     attribute_type,
-    all_results,
+    plotted_results,
     significance,
     fontsize=7.2,
 ):
@@ -386,8 +394,9 @@ def add_pairwise_significance_stars(
     Add per-x significance stars for pairwise tests between the two
     attribute-specific selection rates.
 
-    Race:   Black vs White
-    Gender: Female vs Male
+    The x-axis is now the focal-group proportion:
+        Gender: proportion of Female candidates
+        Race: proportion of Black candidates
     """
     pairwise = significance.get("pairwise", {})
     if not pairwise:
@@ -404,19 +413,23 @@ def add_pairwise_significance_stars(
 
     max_star_y = ymax
 
-    for c in sorted(pairwise.keys()):
-        p_value = pairwise[c].get("p_value_two_sided", float("nan"))
+    for x_percent in sorted(pairwise.keys()):
+        p_value = pairwise[x_percent].get("p_value_two_sided", float("nan"))
         stars = p_to_stars(p_value)
 
-        # Do not show ns, to keep panels clean.
         if not stars:
             continue
 
         y_candidates = []
 
         for attribute_value in attribute_order:
-            if attribute_value in all_results and c in all_results[attribute_value]:
-                y_candidates.append(all_results[attribute_value][c]["ci_high"])
+            if (
+                attribute_value in plotted_results
+                and x_percent in plotted_results[attribute_value]
+            ):
+                y_candidates.append(
+                    plotted_results[attribute_value][x_percent]["ci_high"]
+                )
 
         if not y_candidates:
             continue
@@ -424,7 +437,7 @@ def add_pairwise_significance_stars(
         y_star = max(y_candidates) + star_offset
 
         ax.text(
-            c,
+            x_percent,
             y_star,
             stars,
             ha="center",
@@ -445,13 +458,14 @@ def add_pairwise_significance_stars(
 # Data computation
 # ============================================================
 
-def compute_results(file_name, attribute_type, max_n_trials=1000000):
+def compute_results(file_name, attribute_type, max_n_trials=1000000, pool_size=None):
     attr_value_to_results = defaultdict(lambda: {
         "same_attr_count_to_count": defaultdict(int),
         "same_attr_count_to_hit_count": defaultdict(int),
     })
 
     n_trials = 0
+    observed_max_same_attr_count = 0
 
     with open(file_name, "r") as f:
         for line in f:
@@ -469,19 +483,31 @@ def compute_results(file_name, attribute_type, max_n_trials=1000000):
 
             n_trials += 1
 
+            if pool_size is None:
+                pool_size = len(attributes)
+
             for inner_idx, attr_value in enumerate(attributes):
                 same_attr_count = attributes.count(attr_value) - 1
+                observed_max_same_attr_count = max(
+                    observed_max_same_attr_count,
+                    same_attr_count,
+                )
 
                 attr_value_to_results[attr_value]["same_attr_count_to_count"][same_attr_count] += 1
                 attr_value_to_results[attr_value]["same_attr_count_to_hit_count"][same_attr_count] += (
                     1 if inner_idx == suggested_candidate_id else 0
                 )
 
+    if pool_size is None:
+        pool_size = observed_max_same_attr_count + 1
+
+    attr_style = get_attribute_style(attribute_type)
+    focal_attr = attr_style["focal"]
+    reference_attr = attr_style["reference"]
+
     results = {}
     significance = {}
-
-    attr_counts_A = None
-    attr_counts_B = None
+    attr_value_to_counts = {}
 
     for attr_value, attr_value_results in attr_value_to_results.items():
         results[attr_value] = {}
@@ -506,81 +532,101 @@ def compute_results(file_name, attribute_type, max_n_trials=1000000):
                 "hit_rate": hit_rate,
                 "ci_low": ci_low,
                 "ci_high": ci_high,
+                "hit_count": hit_count,
+                "count": count,
             }
 
             attr_counts[same_attr_count] = (hit_count, count)
 
-        chi2, p_global, dof, levels = chi2_test_same_attr_effect(attr_counts)
-        significance[attr_value]["global_test_p_value"] = p_global
+        attr_value_to_counts[attr_value] = attr_counts
 
-        z, p_two, p_inc, p_dec = cochran_armitage_trend(attr_counts)
-        significance[attr_value]["p_value_two_sided"] = p_two
-        significance[attr_value]["p_value_one_inc"] = p_inc
-        significance[attr_value]["p_value_one_dec"] = p_dec
+        if len(attr_counts) >= 2:
+            chi2, p_global, dof, levels = chi2_test_same_attr_effect(attr_counts)
+            significance[attr_value]["global_test_p_value"] = p_global
 
-        if attr_value in ["Black", "Female"]:
-            attr_counts_A = attr_counts
+            z, p_two, p_inc, p_dec = cochran_armitage_trend(attr_counts)
+            significance[attr_value]["p_value_two_sided"] = p_two
+            significance[attr_value]["p_value_one_inc"] = p_inc
+            significance[attr_value]["p_value_one_dec"] = p_dec
         else:
-            attr_counts_B = attr_counts
-
-    if attr_counts_A is None or attr_counts_B is None:
-        return results, significance, n_trials
-
-    z, p_two, p_inc, p_dec = trend_test_delta_counts(attr_counts_A, attr_counts_B)
-
-    significance["delta"] = {
-        "p_value_two_sided": p_two,
-        "p_value_one_inc": p_inc,
-        "p_value_one_dec": p_dec,
-    }
+            significance[attr_value]["global_test_p_value"] = float("nan")
+            significance[attr_value]["p_value_two_sided"] = float("nan")
+            significance[attr_value]["p_value_one_inc"] = float("nan")
+            significance[attr_value]["p_value_one_dec"] = float("nan")
 
     # ------------------------------------------------------------
-    # Pairwise tests at each focal-group proportion
-    # Race:   Black vs White
-    # Gender: Female vs Male
+    # Pairwise tests at each focal-group proportion.
+    #
+    # Gender:
+    #   compare Female when #Female = k
+    #   with Male when #Female = k, i.e., #Male = pool_size - k.
+    #
+    # Race:
+    #   compare Black when #Black = k
+    #   with White when #Black = k, i.e., #White = pool_size - k.
     # ------------------------------------------------------------
     significance["pairwise"] = {}
 
-    for c in sorted(set(attr_counts_A) & set(attr_counts_B)):
-        hA, nA = attr_counts_A[c]
-        hB, nB = attr_counts_B[c]
+    focal_counts = attr_value_to_counts.get(focal_attr, {})
+    reference_counts = attr_value_to_counts.get(reference_attr, {})
 
-        z_pair, p_pair = two_proportion_z_test(hA, nA, hB, nB)
+    for focal_count in range(1, pool_size):
+        focal_same_attr_count = focal_count - 1
+        reference_count = pool_size - focal_count
+        reference_same_attr_count = reference_count - 1
 
-        significance["pairwise"][c] = {
+        if (
+            focal_same_attr_count not in focal_counts
+            or reference_same_attr_count not in reference_counts
+        ):
+            continue
+
+        h_focal, n_focal = focal_counts[focal_same_attr_count]
+        h_ref, n_ref = reference_counts[reference_same_attr_count]
+
+        z_pair, p_pair = two_proportion_z_test(
+            h_focal,
+            n_focal,
+            h_ref,
+            n_ref,
+        )
+
+        x_percent = 100.0 * focal_count / pool_size
+
+        significance["pairwise"][x_percent] = {
             "z": z_pair,
             "p_value_two_sided": p_pair,
         }
 
-    results["delta"] = {}
-
-    for c in sorted(set(attr_counts_A) & set(attr_counts_B)):
-        hA, nA = attr_counts_A[c]
-        hB, nB = attr_counts_B[c]
-
-        pA = hA / nA
-        pB = hB / nB
-
-        delta = pA - pB
-
-        ciA_low, ciA_high = wilson_ci(hA, nA)
-        ciB_low, ciB_high = wilson_ci(hB, nB)
-
-        ci_low = ciA_low - ciB_high
-        ci_high = ciA_high - ciB_low
-
-        results["delta"][c] = {
-            "delta": delta,
-            "ci_low": ci_low,
-            "ci_high": ci_high,
-        }
-
     return results, significance, n_trials
-
 
 # ============================================================
 # Panel plotting
 # ============================================================
+
+def _x_percent_for_attribute(attribute_value, same_attr_count, attr_style, pool_size):
+    """
+    Convert the original same-attribute count into the new x-axis value.
+
+    New x-axis:
+        Gender: proportion of Female candidates
+        Race: proportion of Black candidates
+
+    For the focal group itself, e.g., Female/Black:
+        x = #focal / pool_size
+
+    For the reference group, e.g., Male/White:
+        x = #focal / pool_size = 1 - #reference / pool_size
+    """
+    group_count = same_attr_count + 1
+
+    if attribute_value == attr_style["focal"]:
+        focal_count = group_count
+    else:
+        focal_count = pool_size - group_count
+
+    return 100.0 * focal_count / pool_size
+
 
 def plot_model_panel(
     ax_main,
@@ -588,6 +634,7 @@ def plot_model_panel(
     all_results,
     significance,
     model_name,
+    pool_size,
     show_left_ticks=True,
     show_right_ticks=True,
     application=None,
@@ -595,20 +642,18 @@ def plot_model_panel(
     """
     Draw one model panel.
 
-    Left y-axis:
-        selection rates for the two attribute values.
-
-    Right y-axis:
-        delta in selection rate.
+    Revised design:
+        - Only show group-specific selection-rate curves.
+        - Remove selection-rate difference curve.
+        - Remove right y-axis.
+        - Add a dashed horizontal uniform-random selection-rate baseline.
     """
-
-    ax_delta = None
     attr_style = get_attribute_style(attribute_type)
     attribute_order = attr_style["order"]
     attribute_colors = attr_style["colors"]
 
     all_barlines = []
-    xticks = []
+    plotted_results = defaultdict(dict)
 
     # ------------------------------------------------------------
     # Main selection-rate curves
@@ -618,21 +663,45 @@ def plot_model_panel(
             continue
 
         res = all_results[attribute_value]
-
-        xs = sorted(res.keys())
-        xticks = xs
-
-        ys = [res[x]["hit_rate"] for x in xs]
-        lower_err = [res[x]["hit_rate"] - res[x]["ci_low"] for x in xs]
-        upper_err = [res[x]["ci_high"] - res[x]["hit_rate"] for x in xs]
-
         color = attribute_colors[attribute_value]
+
+        rows = []
+
+        for same_attr_count in sorted(res.keys()):
+            x_percent = _x_percent_for_attribute(
+                attribute_value=attribute_value,
+                same_attr_count=same_attr_count,
+                attr_style=attr_style,
+                pool_size=pool_size,
+            )
+
+            if x_percent < 0 or x_percent > 100:
+                continue
+
+            row = {
+                "x_percent": x_percent,
+                "hit_rate": res[same_attr_count]["hit_rate"],
+                "ci_low": res[same_attr_count]["ci_low"],
+                "ci_high": res[same_attr_count]["ci_high"],
+            }
+            rows.append(row)
+            plotted_results[attribute_value][x_percent] = row
+
+        rows = sorted(rows, key=lambda x: x["x_percent"])
+
+        if not rows:
+            continue
+
+        xs = [r["x_percent"] for r in rows]
+        ys = [r["hit_rate"] for r in rows]
+        lower_err = [r["hit_rate"] - r["ci_low"] for r in rows]
+        upper_err = [r["ci_high"] - r["hit_rate"] for r in rows]
 
         line, caplines, barlines = ax_main.errorbar(
             xs,
             ys,
             yerr=[lower_err, upper_err],
-            marker="s" if attribute_value == "Female" or attribute_value == "Black" else "o",
+            marker="s" if attribute_value in ["Female", "Black"] else "o",
             markersize=4.0,
             linewidth=1.15,
             linestyle="-",
@@ -646,7 +715,6 @@ def plot_model_panel(
             zorder=3,
         )
 
-        # Make CI bars and caps transparent
         for cap in caplines:
             cap.set_alpha(CI_ALPHA)
 
@@ -659,12 +727,31 @@ def plot_model_panel(
         bar.set_linestyle("-")
         bar.set_linewidth(0.75)
 
-    if len(xticks) > 0:
-        ax_main.set_xticks(
-            xticks,
-            labels=[f"{(c + 1) / len(xticks) * 100:.0f}" for c in xticks],
-        )
-        ax_main.set_xlim(-0.25, len(xticks) - 1 + 0.25)
+    # ------------------------------------------------------------
+    # Uniform-random selection-rate baseline
+    # ------------------------------------------------------------
+    uniform_random_rate = 1.0 / pool_size
+
+    ax_main.axhline(
+        uniform_random_rate,
+        color=RANDOM_RATE_COLOR,
+        linestyle="--",
+        linewidth=0.95,
+        alpha=0.85,
+        zorder=1,
+    )
+
+    # ------------------------------------------------------------
+    # Axes
+    # ------------------------------------------------------------
+    x_ticks = [100.0 * k / pool_size for k in range(0, pool_size + 1)]
+    x_step = 100.0 / pool_size
+
+    ax_main.set_xticks(
+        x_ticks,
+        labels=[f"{x:.0f}" for x in x_ticks],
+    )
+    ax_main.set_xlim(-0.35 * x_step, 100 + 0.35 * x_step)
 
     ax_main.set_axisbelow(True)
 
@@ -677,36 +764,33 @@ def plot_model_panel(
     add_pairwise_significance_stars(
         ax=ax_main,
         attribute_type=attribute_type,
-        all_results=all_results,
+        plotted_results=plotted_results,
         significance=significance,
         fontsize=7.2,
     )
 
     ax_main.tick_params(
         axis="x",
-        # direction="out",
         length=0.0,
         width=0.0,
-        # color="black",
         color="black",
         labelcolor="black",
-        labelsize=LABEL_SIZE,   # x-axis tick-number size
+        labelsize=LABEL_SIZE,
         bottom=True,
         labelbottom=True,
     )
 
     ax_main.tick_params(
         axis="y",
-        # direction="out",
         length=0.0,
         width=0.0,
-        # color="black",
         color="black",
         labelcolor="black",
-        labelsize=LABEL_SIZE,   # main y-axis tick-number size
+        labelsize=LABEL_SIZE,
         left=True,
         labelleft=True,
     )
+
     ax_main.spines["top"].set_visible(False)
     ax_main.spines["right"].set_visible(False)
 
@@ -714,113 +798,6 @@ def plot_model_panel(
         ax_main.spines[spine].set_visible(True)
         ax_main.spines[spine].set_linewidth(0.7)
         ax_main.spines[spine].set_color("0.15")
-
-    # ------------------------------------------------------------
-    # Delta curve on right y-axis
-    # ------------------------------------------------------------
-    if "delta" in all_results:
-        ax_delta = ax_main.twinx()
-
-        delta_res = all_results["delta"]
-
-        xs_delta = sorted(delta_res.keys())
-        ys_delta = [delta_res[c]["delta"] for c in xs_delta]
-
-        lower_err_delta = [
-            ys_delta[i] - delta_res[c]["ci_low"]
-            for i, c in enumerate(xs_delta)
-        ]
-        upper_err_delta = [
-            delta_res[c]["ci_high"] - ys_delta[i]
-            for i, c in enumerate(xs_delta)
-        ]
-
-        line_delta, cap_delta, bar_delta = ax_delta.errorbar(
-            xs_delta,
-            ys_delta,
-            yerr=[lower_err_delta, upper_err_delta],
-            marker="^",
-            markersize=4.0,
-            linestyle="--",
-            linewidth=1.10,
-            color=DELTA_COLOR,
-            markerfacecolor=DELTA_COLOR,
-            markeredgecolor=DELTA_COLOR,
-            markeredgewidth=0.8,
-            capsize=2.0,
-            capthick=0.75,
-            elinewidth=0.75,
-            zorder=4,
-        )
-
-        for cap in cap_delta:
-            cap.set_alpha(CI_ALPHA)
-
-        for bar in bar_delta:
-            bar.set_alpha(CI_ALPHA)
-
-        ax_delta.yaxis.set_major_locator(MaxNLocator(nbins=4))
-        ax_delta.yaxis.set_major_formatter(FuncFormatter(format_signed_percent_tick))
-
-        ax_delta.tick_params(
-            axis="y",
-            which="major",
-            # direction="out",
-            length=0.0,
-            width=0.0,
-            # color="black",
-            color="black",
-            labelcolor="black",
-            labelsize=LABEL_SIZE,   # twin y-axis tick-number size
-            right=True,
-            labelright=True,
-            left=False,
-            labelleft=False,
-        )
-
-        ax_delta.spines["top"].set_visible(False)
-        ax_delta.spines["right"].set_visible(True)
-        ax_delta.spines["right"].set_color("black")
-        ax_delta.spines["right"].set_linewidth(0.7)
-        ax_delta.spines["left"].set_visible(False)
-        ax_delta.spines["bottom"].set_visible(False)
-
-
-    # ------------------------------------------------------------
-    # Add lower space for the in-panel legend
-    # ------------------------------------------------------------
-    expand_lower_ylim(ax_main, lower_frac=0.20, upper_frac=0.04)
-
-    if ax_delta is not None:
-        expand_lower_ylim(ax_delta, lower_frac=0.20, upper_frac=0.04)
-
-
-    # ------------------------------------------------------------
-    # Per-panel trend legend
-    # ------------------------------------------------------------
-    trend_handles = make_trend_legend_handles(attribute_type, significance)
-
-    trend_legend = ax_main.legend(
-        handles=trend_handles,
-        loc="lower center",
-        bbox_to_anchor=(0.5, 0.02),  # center bottom inside each chart
-        ncol=3,                      # three columns
-        frameon=True,
-        framealpha=0.92,
-        facecolor="white",
-        edgecolor="0.75",
-        fontsize=7.8,
-        title_fontsize=7.8,
-        borderpad=0.25,
-        labelspacing=0.25,
-        handlelength=1.2,
-        handletextpad=0.35,
-        columnspacing=0.65,
-        borderaxespad=0.2,
-    )
-
-    trend_legend.get_frame().set_linewidth(0.6)
-
 
 # ============================================================
 # Big figure drawing
@@ -864,8 +841,8 @@ def draw_attribute_big_figure(
     outer_gs = fig.add_gridspec(
         3,
         1,
-        left=0.125,    # more room for the main y-axis label
-        right=0.875,   # more room for the twin y-axis label
+        left=0.110,
+        right=0.965,
         bottom=0.090,
         top=0.940,
         hspace=0.3,
@@ -877,7 +854,7 @@ def draw_attribute_big_figure(
         inner_gs = outer_gs[app_idx].subgridspec(
             2,
             4,
-            wspace=0.32,    # larger horizontal gap between model panels
+            wspace=0.32,
             hspace=0.36,
         )
 
@@ -914,6 +891,7 @@ def draw_attribute_big_figure(
                 file_name=file_name,
                 attribute_type=attribute_type,
                 max_n_trials=max_n_trials,
+                pool_size=resume_count,
             )
 
             plot_model_panel(
@@ -922,8 +900,9 @@ def draw_attribute_big_figure(
                 all_results=results,
                 significance=significance,
                 model_name=model_name,
+                pool_size=resume_count,
                 show_left_ticks=(col == 0),
-                show_right_ticks=(col == 3),
+                show_right_ticks=False,
                 application=application,
             )
 
@@ -931,7 +910,7 @@ def draw_attribute_big_figure(
     # Shared labels
     # ------------------------------------------------------------
     fig.supxlabel(
-        "Proportion of focal group in candidate pool (%)",
+        attr_style["x_label"],
         fontsize=FONT_SIZE,
         y=0.047,
     )
@@ -939,22 +918,11 @@ def draw_attribute_big_figure(
     fig.supylabel(
         "Selection rate (%)",
         fontsize=FONT_SIZE,
-        x=0.08,   # farther from the left edge of the panels
-    )
-
-    fig.text(
-        0.915,     # farther from the right edge of the panels
-        0.515,
-        attr_style["right_ylabel"] + " (pp)",
-        va="center",
-        ha="center",
-        rotation=270,
-        fontsize=FONT_SIZE,
-        color="black",
+        x=0.070,
     )
 
     # ------------------------------------------------------------
-    # Application row titles and Nature-style letters
+    # Application row titles
     # ------------------------------------------------------------
     for application in applications:
         axes = all_axes[application]
@@ -987,7 +955,7 @@ def draw_attribute_big_figure(
                 [0],
                 [0],
                 color=attr_style["colors"][attribute_value],
-                marker="s" if attribute_value == "Female" or attribute_value == "Black" else "o",
+                marker="s" if attribute_value in ["Female", "Black"] else "o",
                 markerfacecolor=attr_style["colors"][attribute_value],
                 markeredgecolor=attr_style["colors"][attribute_value],
                 markeredgewidth=0.9,
@@ -1001,14 +969,10 @@ def draw_attribute_big_figure(
         Line2D(
             [0],
             [0],
-            color=DELTA_COLOR,
-            marker="^",
-            markerfacecolor=DELTA_COLOR,
-            markeredgecolor=DELTA_COLOR,
-            linewidth=1.20,
+            color=RANDOM_RATE_COLOR,
             linestyle="--",
-            markersize=4.0,
-            label=attr_style["delta_label"],
+            linewidth=1.20,
+            label="Uniform-random selection rate",
         )
     )
 
@@ -1021,17 +985,16 @@ def draw_attribute_big_figure(
         handlelength=1.7,
         columnspacing=1.4,
         handletextpad=0.55,
-        fontsize=FONT_SIZE,   # legend text size
+        fontsize=FONT_SIZE,
     )
 
-    base = f"{safe_slug(attribute_type)}_all_applications_contextual_nature_style"
+    base = f"{safe_slug(attribute_type)}_all_applications_contextual_selection_rate_random_baseline"
     pdf_path = os.path.join(output_dir, base + ".pdf")
 
     fig.savefig(pdf_path, bbox_inches="tight")
     print(f"Saved: {pdf_path}")
 
     plt.close(fig)
-
 
 # ============================================================
 # Main
