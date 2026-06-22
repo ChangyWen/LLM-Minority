@@ -487,10 +487,6 @@ def plot_difference_panel(
     ax.set_yticks(y_positions)
     ax.set_yticklabels([pretty_model_name(m) for m in model_names])
 
-    # Color model names according to the model palette.
-    for tick_label, model_name in zip(ax.get_yticklabels(), model_names):
-        tick_label.set_color(model_color_map[model_name])
-
     if show_model_labels:
         ax.tick_params(axis="y", labelleft=True)
     else:
