@@ -15,6 +15,13 @@ type_to_minority_attributes = {
 
 FIG_FONT_SIZE = 9.5
 MARKER_SIZE = 4.8
+STAR_FONT_SIZE = 7.0
+STAR_Y_OFFSET = 0.24
+MODEL_ROW_SPACING = 1.8
+
+ATTRIBUTE_TITLE_PAD = 8
+APPLICATION_TITLE_OFFSET = 0.030
+ROW_HSPACE = 0.6
 
 # Match current Fig. 2 caption:
 # H1: minority scores exceed majority scores.
@@ -365,7 +372,7 @@ def get_panel_xlim(results_for_panel):
     x_min = min(lows)
     x_max = max(highs)
 
-    x_min = min(x_min, 0.0)
+    # x_min = min(x_min, 0.0)
     x_max = max(x_max, 0.0)
 
     span = max(x_max - x_min, 0.1)
@@ -401,20 +408,7 @@ def plot_difference_panel(
         x > 0 means societal minority candidates receive higher scores.
     """
     n_models = len(model_names)
-    y_positions = np.arange(n_models)[::-1]
-
-    # Reference line: no minority-majority difference
-    ax.axvline(
-        0,
-        color="0.25",
-        linewidth=0.8,
-        linestyle="-",
-        zorder=1,
-    )
-
-    valid_count = 0
-    positive_count = 0
-    sig_count = 0
+    y_positions = np.arange(n_models)[::-1] * MODEL_ROW_SPACING
 
     for idx, model_name in enumerate(model_names):
         y = y_positions[idx]
@@ -428,25 +422,14 @@ def plot_difference_panel(
         ci_low = res["ci_low"]
         ci_high = res["ci_high"]
         p_value = res["p_value"]
+        stars = p_to_stars(p_value)
 
         xerr = np.array([
             [diff - ci_low],
             [ci_high - diff],
         ])
 
-        is_sig = p_value < 0.05
-
-        valid_count += 1
-        if diff > 0:
-            positive_count += 1
-        if is_sig:
-            sig_count += 1
-
         color = model_color_map[model_name]
-
-        # Significant points are filled; non-significant points are open.
-        markerfacecolor = color if is_sig else "white"
-        markeredgecolor = color
 
         ax.errorbar(
             diff,
@@ -454,8 +437,8 @@ def plot_difference_panel(
             xerr=xerr,
             fmt="o",
             markersize=MARKER_SIZE,
-            markerfacecolor=markerfacecolor,
-            markeredgecolor=markeredgecolor,
+            markerfacecolor=color,
+            markeredgecolor=color,
             markeredgewidth=0.9,
             ecolor=color,
             elinewidth=0.85,
@@ -465,34 +448,40 @@ def plot_difference_panel(
             zorder=3,
         )
 
-    # Panel summary
-    if valid_count > 0:
+        # ------------------------------------------------------------
+        # Add significance label above each dot
+        # ------------------------------------------------------------
         ax.text(
-            0.98,
-            0.06,
-            f"Δ>0: {positive_count}/{valid_count}\nP<0.05: {sig_count}/{valid_count}",
-            transform=ax.transAxes,
-            ha="right",
+            diff,
+            y + STAR_Y_OFFSET,
+            stars,
+            ha="center",
             va="bottom",
-            fontsize=7.4,
-            color="0.20",
+            fontsize=STAR_FONT_SIZE,
+            color="black",
+            clip_on=False,
+            zorder=4,
         )
 
     # ------------------------------------------------------------
     # y-axis: model labels
-    # Important:
-    # Do not use ax.set_yticklabels([]) for right-hand panels when sharey=True.
-    # It can remove labels from the shared left-hand panels as well.
     # ------------------------------------------------------------
     ax.set_yticks(y_positions)
     ax.set_yticklabels([pretty_model_name(m) for m in model_names])
 
     if show_model_labels:
         ax.tick_params(axis="y", labelleft=True)
+
+        for tick_label, model_name in zip(ax.get_yticklabels(), model_names):
+            tick_label.set_color(model_color_map[model_name])
     else:
         ax.tick_params(axis="y", labelleft=False)
 
-    ax.set_ylim(-0.7, n_models - 0.3)
+    # Slightly larger top margin so stars above the top dot are not clipped
+    ax.set_ylim(
+        -0.65 * MODEL_ROW_SPACING,
+        (n_models - 1) * MODEL_ROW_SPACING + 0.75 * MODEL_ROW_SPACING,
+    )
 
     if xlim is None:
         xlim = get_panel_xlim(results_for_panel)
@@ -518,6 +507,7 @@ def plot_difference_panel(
         labelcolor="black",
     )
 
+    # Re-apply y-label visibility and colors after general tick_params
     if show_model_labels:
         ax.tick_params(axis="y", labelleft=True)
 
@@ -578,7 +568,7 @@ def draw_societal_difference_figure(
     fig, axes = plt.subplots(
         nrows=len(applications),
         ncols=len(attribute_types),
-        figsize=(7.6, 5.9),
+        figsize=(7.6, 8),
         sharex=USE_GLOBAL_XLIM,
         sharey=True,
     )
@@ -610,56 +600,57 @@ def draw_societal_difference_figure(
                     attribute_title_map.get(attribute_type, attribute_type),
                     fontsize=FIG_FONT_SIZE,
                     fontweight="bold",
-                    pad=6,
+                    pad=ATTRIBUTE_TITLE_PAD,
                 )
 
 
     fig.supxlabel(
         "Score difference: societal minority − societal majority",
         fontsize=FIG_FONT_SIZE,
-        y=0.080,
+        x=0.65,   # move right; default is 0.5
+        y=0.09,
     )
 
-    # Legend
-    legend_handles = [
-        Line2D(
-            [0], [0],
-            marker="o",
-            linestyle="",
-            markersize=MARKER_SIZE,
-            markerfacecolor="0.25",
-            markeredgecolor="0.25",
-            label="P < 0.05",
-        ),
-        Line2D(
-            [0], [0],
-            marker="o",
-            linestyle="",
-            markersize=MARKER_SIZE,
-            markerfacecolor="white",
-            markeredgecolor="0.25",
-            label="ns",
-        ),
-        Line2D(
-            [0], [0],
-            color="0.25",
-            linestyle="-",
-            linewidth=0.8,
-            label="No difference",
-        ),
-    ]
+    # # Legend
+    # legend_handles = [
+    #     Line2D(
+    #         [0], [0],
+    #         marker="o",
+    #         linestyle="",
+    #         markersize=MARKER_SIZE,
+    #         markerfacecolor="0.25",
+    #         markeredgecolor="0.25",
+    #         label="P < 0.05",
+    #     ),
+    #     Line2D(
+    #         [0], [0],
+    #         marker="o",
+    #         linestyle="",
+    #         markersize=MARKER_SIZE,
+    #         markerfacecolor="white",
+    #         markeredgecolor="0.25",
+    #         label="ns",
+    #     ),
+    #     Line2D(
+    #         [0], [0],
+    #         color="0.25",
+    #         linestyle="-",
+    #         linewidth=0.8,
+    #         label="No difference",
+    #     ),
+    # ]
 
-    fig.legend(
-        handles=legend_handles,
-        loc="lower center",
-        bbox_to_anchor=(0.5, 0.010),
-        ncol=3,
-        frameon=False,
-        handlelength=1.8,
-        columnspacing=1.3,
-        handletextpad=0.45,
-        fontsize=8.0,
-    )
+    # fig.legend(
+    #     handles=legend_handles,
+    #     loc="lower center",
+    #     bbox_to_anchor=(0.5, 0.010),
+    #     ncol=3,
+    #     frameon=False,
+    #     handlelength=1.8,
+    #     columnspacing=1.3,
+    #     handletextpad=0.45,
+    #     fontsize=8.0,
+    # )
 
     fig.subplots_adjust(
         left=0.295,
@@ -667,7 +658,7 @@ def draw_societal_difference_figure(
         bottom=0.155,
         top=0.925,
         wspace=0.130,
-        hspace=0.310,
+        hspace=ROW_HSPACE,
     )
 
     # ------------------------------------------------------------
@@ -684,7 +675,7 @@ def draw_societal_difference_figure(
 
         fig.text(
             x_center,
-            y_top + 0.018,
+            y_top + APPLICATION_TITLE_OFFSET,
             application_title_map.get(application, application),
             ha="center",
             va="bottom",
