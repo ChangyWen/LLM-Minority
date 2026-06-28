@@ -4,6 +4,6 @@ archive/
 _*
 !__init__.py
 __pycache__/
-outputs
+outputs*
 figures
 Resume.csv
