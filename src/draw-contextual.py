@@ -947,9 +947,36 @@ def draw_attribute_big_figure(
         "edu": "Scholarship application",
     }
 
+    attribute_panel_title_map = {
+        "Gender": ("a", "Evaluation results by gender"),
+        "Race": ("b", "Evaluation results by race"),
+    }
+
     attr_style = get_attribute_style(attribute_type)
 
     fig = plt.figure(figsize=(9.5, 10))
+
+    panel_letter, panel_title = attribute_panel_title_map[attribute_type]
+
+    fig.text(
+        0.07,
+        0.970,
+        panel_letter,
+        ha="left",
+        va="top",
+        fontsize=FONT_SIZE + 1.0,
+        fontweight="bold",
+    )
+
+    fig.text(
+        0.07 + 0.025,
+        0.970,
+        panel_title,
+        ha="left",
+        va="top",
+        fontsize=FONT_SIZE + 1.0,
+        fontweight="bold",
+    )
 
     outer_gs = fig.add_gridspec(
         3,
@@ -957,7 +984,7 @@ def draw_attribute_big_figure(
         left=0.110,
         right=0.965,
         bottom=0.090,
-        top=0.940,
+        top=0.915,
         hspace=0.3,
     )
 

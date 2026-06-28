@@ -444,11 +444,38 @@ def draw_attribute_big_figure(
         "edu": "Scholarship application",
     }
 
+    attribute_panel_title_map = {
+        "Gender Identity": ("a", "Evaluation results by gender identity"),
+        "Sexual Orientation": ("b", "Evaluation results by sexual orientation"),
+    }
+
     # Use the same professional color style as your previous figures
     minority_color = "orange"   # vermillion
     majority_color = "blue"   # blue
 
     fig = plt.figure(figsize=(9.5, 10))
+
+    panel_letter, panel_title = attribute_panel_title_map[attribute_type]
+
+    fig.text(
+        0.08,
+        0.970,
+        panel_letter,
+        ha="left",
+        va="top",
+        fontsize=FONT_SIZE + 1.0,
+        fontweight="bold",
+    )
+
+    fig.text(
+        0.08 + 0.025,
+        0.970,
+        panel_title,
+        ha="left",
+        va="top",
+        fontsize=FONT_SIZE + 1.0,
+        fontweight="bold",
+    )
 
     outer_gs = fig.add_gridspec(
         3,
@@ -456,7 +483,7 @@ def draw_attribute_big_figure(
         left=0.125,
         right=0.875,
         bottom=0.090,
-        top=0.940,
+        top=0.915,
         hspace=0.25,
     )
 
