@@ -15,13 +15,13 @@ type_to_minority_attributes = {
 
 FIG_FONT_SIZE = 9.5
 MARKER_SIZE = 4.8
-STAR_FONT_SIZE = 7.0
+STAR_FONT_SIZE = 8.0
 STAR_Y_OFFSET = 0.24
 MODEL_ROW_SPACING = 1.8
 
 ATTRIBUTE_TITLE_PAD = 8
 APPLICATION_TITLE_OFFSET = 0.030
-ROW_HSPACE = 0.6
+ROW_HSPACE = 0.5
 
 # Match current Fig. 2 caption:
 # H1: minority scores exceed majority scores.
@@ -458,7 +458,7 @@ def plot_difference_panel(
             ha="center",
             va="bottom",
             fontsize=STAR_FONT_SIZE,
-            color="black",
+            color=color,
             clip_on=False,
             zorder=4,
         )
@@ -491,9 +491,9 @@ def plot_difference_panel(
     ax.xaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"{v:.2f}"))
 
     ax.grid(
-        axis="x",
-        color="0.90",
-        linewidth=0.55,
+        axis="both",
+        color="0.92",
+        linewidth=0.45,
         linestyle="-",
         zorder=0,
     )
@@ -595,13 +595,12 @@ def draw_societal_difference_figure(
                 xlim=panel_xlim,
             )
 
-            if row_idx == 0:
-                ax.set_title(
-                    attribute_title_map.get(attribute_type, attribute_type),
-                    fontsize=FIG_FONT_SIZE,
-                    fontweight="bold",
-                    pad=ATTRIBUTE_TITLE_PAD,
-                )
+            ax.set_title(
+                attribute_title_map.get(attribute_type, attribute_type),
+                fontsize=FIG_FONT_SIZE,
+                # fontweight="bold",
+                pad=ATTRIBUTE_TITLE_PAD,
+            )
 
 
     fig.supxlabel(

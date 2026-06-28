@@ -355,12 +355,12 @@ def draw_scale_block(
             else:
                 corr_text = r"$r=\mathrm{NA}$" + "\n" + r"$P=\mathrm{NA}$"
 
-            if row_idx == 0:
-                ax.set_title(
-                    panel_titles[application],
-                    pad=8,
-                    fontsize=18,
-                )
+            # if row_idx == 0:
+            ax.set_title(
+                panel_titles[application],
+                pad=8,
+                fontsize=18,
+            )
 
             ax.text(
                 0.03,
@@ -588,11 +588,12 @@ def draw_super_scale_figure(
             markeredgecolor="none",
             markersize=12.0,
             label=pretty_model_name(m),
+            color=model_to_color[m],
         )
         for m in model_names
     ]
 
-    fig.legend(
+    legend = fig.legend(
         handles=legend_handles,
         loc="lower center",
         bbox_to_anchor=(0.5, 0.065),
@@ -602,6 +603,9 @@ def draw_super_scale_figure(
         handletextpad=0.45,
         columnspacing=1.35,
     )
+
+    for text, handle in zip(legend.get_texts(), legend_handles):
+        text.set_color(handle.get_markerfacecolor())
 
     base = "scale_super_figure_societal_contextual_parameter_compute_nature_style"
 
