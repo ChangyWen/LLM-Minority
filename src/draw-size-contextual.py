@@ -535,7 +535,7 @@ def draw_combined_gender_race_by_application(
 
         # Keep this removed if you do not want the shared x-label.
         fig.supxlabel(
-            "Proportion of focal group in candidate pool (%)",
+            "Target-group proportion in candidate pool (%)",
             fontsize=9.2,
             y=0.04,
         )
