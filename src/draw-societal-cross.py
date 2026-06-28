@@ -20,7 +20,7 @@ type_to_minority_attributes = {
 FONT_SIZE = 9.5
 LABEL_SIZE = 8.0
 MARKER_SIZE = 4.0
-
+CI_ALPHA = 0.35
 
 # ============================================================
 # Shared style
@@ -290,7 +290,7 @@ def plot_model_panel(
     yerr_maj = np.vstack([y_maj - lo_maj, hi_maj - y_maj])
 
     # Minority
-    ax.errorbar(
+    line_min, caplines_min, barlines_min = ax.errorbar(
         xs,
         y_min,
         yerr=yerr_min,
@@ -308,7 +308,7 @@ def plot_model_panel(
     )
 
     # Majority
-    ax.errorbar(
+    line_maj, caplines_maj, barlines_maj = ax.errorbar(
         xs,
         y_maj,
         yerr=yerr_maj,
@@ -324,6 +324,12 @@ def plot_model_panel(
         capthick=0.75,
         zorder=3,
     )
+
+    for cap in caplines_min + caplines_maj:
+        cap.set_alpha(CI_ALPHA)
+
+    for bar in barlines_min + barlines_maj:
+        bar.set_alpha(CI_ALPHA)
 
     # ------------------------------------------------------------
     # Significance stars
@@ -439,8 +445,8 @@ def draw_attribute_big_figure(
     }
 
     # Use the same professional color style as your previous figures
-    minority_color = "#D55E00"   # vermillion
-    majority_color = "#0072B2"   # blue
+    minority_color = "orange"   # vermillion
+    majority_color = "blue"   # blue
 
     fig = plt.figure(figsize=(9.5, 10))
 
@@ -557,7 +563,7 @@ def draw_attribute_big_figure(
             markeredgewidth=1.0,
             linewidth=1.20,
             markersize=4.0,
-            label="Societal minority",
+            label="Selection rate (societal minority)",
         ),
         Line2D(
             [0],
@@ -569,15 +575,23 @@ def draw_attribute_big_figure(
             markeredgewidth=1.0,
             linewidth=1.20,
             markersize=4.0,
-            label="Societal majority",
+            label="Selection rate (societal majority)",
         ),
+        Line2D(
+            [0],
+            [0],
+            color="0.35",
+            linestyle="--",
+            linewidth=1.20,
+            label="Uniform-random selection rate (50%)",
+        )
     ]
 
     fig.legend(
         handles=legend_handles,
         loc="lower center",
         bbox_to_anchor=(0.5, 0.020),
-        ncol=2,
+        ncol=3,
         frameon=False,
         handlelength=1.7,
         columnspacing=1.4,

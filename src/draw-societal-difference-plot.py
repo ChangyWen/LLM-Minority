@@ -372,7 +372,8 @@ def get_panel_xlim(results_for_panel):
     x_min = min(lows)
     x_max = max(highs)
 
-    # x_min = min(x_min, 0.0)
+    # Always include zero so the no-difference reference line is visible.
+    x_min = min(x_min, 0.0)
     x_max = max(x_max, 0.0)
 
     span = max(x_max - x_min, 0.1)
@@ -409,6 +410,15 @@ def plot_difference_panel(
     """
     n_models = len(model_names)
     y_positions = np.arange(n_models)[::-1] * MODEL_ROW_SPACING
+
+    # Reference line: no minority-majority difference
+    ax.axvline(
+        0,
+        color="0.35",
+        linewidth=0.8,
+        linestyle="--",
+        zorder=1,
+    )
 
     for idx, model_name in enumerate(model_names):
         y = y_positions[idx]
@@ -609,47 +619,6 @@ def draw_societal_difference_figure(
         x=0.65,   # move right; default is 0.5
         y=0.09,
     )
-
-    # # Legend
-    # legend_handles = [
-    #     Line2D(
-    #         [0], [0],
-    #         marker="o",
-    #         linestyle="",
-    #         markersize=MARKER_SIZE,
-    #         markerfacecolor="0.25",
-    #         markeredgecolor="0.25",
-    #         label="P < 0.05",
-    #     ),
-    #     Line2D(
-    #         [0], [0],
-    #         marker="o",
-    #         linestyle="",
-    #         markersize=MARKER_SIZE,
-    #         markerfacecolor="white",
-    #         markeredgecolor="0.25",
-    #         label="ns",
-    #     ),
-    #     Line2D(
-    #         [0], [0],
-    #         color="0.25",
-    #         linestyle="-",
-    #         linewidth=0.8,
-    #         label="No difference",
-    #     ),
-    # ]
-
-    # fig.legend(
-    #     handles=legend_handles,
-    #     loc="lower center",
-    #     bbox_to_anchor=(0.5, 0.010),
-    #     ncol=3,
-    #     frameon=False,
-    #     handlelength=1.8,
-    #     columnspacing=1.3,
-    #     handletextpad=0.45,
-    #     fontsize=8.0,
-    # )
 
     fig.subplots_adjust(
         left=0.295,

@@ -220,7 +220,7 @@ def make_trend_legend_handles(attribute_type, significance):
                 [0],
                 [0],
                 color=color,
-                marker="s" if attribute_value in ["Female", "Black"] else "o",
+                marker="^" if attribute_value in ["Female", "Black"] else "o",
                 markerfacecolor=color,
                 markeredgecolor=color,
                 markeredgewidth=0.9,
@@ -772,7 +772,7 @@ def plot_model_panel(
             xs,
             ys,
             yerr=[lower_err, upper_err],
-            marker="s" if attribute_value in ["Female", "Black"] else "o",
+            marker="^" if attribute_value in ["Female", "Black"] else "o",
             markersize=4.0,
             linewidth=1.15,
             linestyle="-",
@@ -1068,7 +1068,7 @@ def draw_attribute_big_figure(
                 [0],
                 [0],
                 color=attr_style["colors"][attribute_value],
-                marker="s" if attribute_value in ["Female", "Black"] else "o",
+                marker="^" if attribute_value in ["Female", "Black"] else "o",
                 markerfacecolor=attr_style["colors"][attribute_value],
                 markeredgecolor=attr_style["colors"][attribute_value],
                 markeredgewidth=0.9,
@@ -1085,7 +1085,7 @@ def draw_attribute_big_figure(
             color=RANDOM_RATE_COLOR,
             linestyle="--",
             linewidth=1.20,
-            label="Uniform-random selection rate",
+            label="Uniform-random selection rate (20%)",
         )
     )
 
