@@ -231,6 +231,16 @@ def plot_model_panel(
 
     xs = np.array(resume_counts, dtype=float)
 
+    # Add 50% parity reference line
+    ax.axhline(
+        0.5,
+        color="0.35",
+        linestyle="--",
+        linewidth=0.95,
+        alpha=0.85,
+        zorder=1,
+    )
+
     y_min, lo_min, hi_min = [], [], []
     y_maj, lo_maj, hi_maj = [], [], []
     p_values = []
@@ -391,13 +401,6 @@ def plot_model_panel(
         ax.spines[spine].set_linewidth(0.7)
         ax.spines[spine].set_color("0.15")
 
-    ax.grid(
-        axis="y",
-        color="0.88",
-        linewidth=0.6,
-        linestyle="-",
-        zorder=0,
-    )
     ax.set_axisbelow(True)
 
 
@@ -436,8 +439,8 @@ def draw_attribute_big_figure(
     }
 
     # Use the same professional color style as your previous figures
-    minority_color = "#83bce0"   # vermillion
-    majority_color = "#2c4ca0"   # blue
+    minority_color = "#D55E00"   # vermillion
+    majority_color = "#0072B2"   # blue
 
     fig = plt.figure(figsize=(9.5, 10))
 
