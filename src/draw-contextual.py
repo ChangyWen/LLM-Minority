@@ -1056,7 +1056,7 @@ def draw_attribute_big_figure(
     )
 
     fig.supylabel(
-        "Selection rate (%)",
+        "Candidate-level selection rate (%)",
         fontsize=FONT_SIZE,
         x=0.070,
     )

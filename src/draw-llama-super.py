@@ -960,7 +960,7 @@ def draw_combined_llama_figure(
     fig.text(
         ctx_x0 - ylabel_offset,
         ctx_y_center,
-        "Normalized absolute selection-rate difference (%)",
+        "Normalized absolute candidate-level selection-rate difference (%)",
         ha="center",
         va="center",
         rotation=90,
@@ -983,7 +983,7 @@ def draw_combined_llama_figure(
     fig.text(
         ctx_x_center,
         shared_x_label_y,
-        "Proportion of focal group in candidate pool (%)",
+        "Target-group proportion in candidate pool (%)",
         ha="center",
         va="top",
         fontsize=FIG_FONT_SIZE,

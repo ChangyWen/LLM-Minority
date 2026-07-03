@@ -548,7 +548,7 @@ def draw_attribute_big_figure(
     )
 
     fig.supylabel(
-        "Selection rate (%)",
+        "Group-level selection rate (%)",
         fontsize=FONT_SIZE,
         x=0.08,
     )
