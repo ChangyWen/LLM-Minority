@@ -542,7 +542,7 @@ def draw_combined_delta_figure(
     application_title_map = {
         "hiring": "Hiring",
         "loan": "Loan approval",
-        "edu": "Scholarship application",
+        "edu": "Scholarship allocation",
     }
 
     model_to_style = build_model_styles(model_names)

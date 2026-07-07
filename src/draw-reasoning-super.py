@@ -479,7 +479,7 @@ def draw_reasoning_block(
     """
 
     panel_titles = {
-        "edu": "Scholarship application",
+        "edu": "Scholarship allocation",
         "hiring": "Hiring",
         "loan": "Loan approval",
     }
@@ -637,12 +637,12 @@ def draw_reasoning_block(
             y_upper = max(max(bracket_tops), data_max) + 0.18 * data_span
             ax.set_ylim(y_lower, y_upper)
 
-            if row_idx == 0:
-                ax.set_title(
-                    panel_titles[application],
-                    fontsize=9,
-                    pad=2,
-                )
+            # if row_idx == 0:
+            ax.set_title(
+                panel_titles[application],
+                fontsize=9,
+                pad=2,
+            )
 
             ax.set_xticks([model_to_x[m] for m in model_order])
             ax.set_xticklabels(model_order)

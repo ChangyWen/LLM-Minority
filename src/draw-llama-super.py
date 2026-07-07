@@ -614,7 +614,7 @@ def draw_combined_llama_figure(
     application_title_map = {
         "hiring": "Hiring",
         "loan": "Loan approval",
-        "edu": "Scholarship",
+        "edu": "Scholarship allocation",
     }
 
     # Use different palettes for the two conceptual parts

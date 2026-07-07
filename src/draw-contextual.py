@@ -944,7 +944,7 @@ def draw_attribute_big_figure(
     application_title_map = {
         "hiring": "Hiring",
         "loan": "Loan approval",
-        "edu": "Scholarship application",
+        "edu": "Scholarship allocation",
     }
 
     attribute_panel_title_map = {

@@ -267,7 +267,7 @@ def draw_scale_block(
 
     applications = ["hiring", "loan", "edu"]
     panel_titles = {
-        "edu": "Scholarship application",
+        "edu": "Scholarship allocation",
         "hiring": "Hiring",
         "loan": "Loan approval",
     }

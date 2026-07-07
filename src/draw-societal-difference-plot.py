@@ -558,7 +558,7 @@ def draw_societal_difference_figure(
     application_title_map = {
         "hiring": "Hiring",
         "loan": "Loan approval",
-        "edu": "Scholarship application",
+        "edu": "Scholarship allocation",
     }
 
     attribute_title_map = {
