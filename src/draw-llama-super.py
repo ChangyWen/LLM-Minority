@@ -102,7 +102,7 @@ def two_sided_p_for_delta_difference(d1, se1, d2, se2):
         H0: delta_1 = delta_2
         H1: delta_1 != delta_2
 
-    Here delta is the normalized absolute selection-rate difference.
+    Here delta is the raw absolute candidate-level selection-rate difference.
     """
     se = math.sqrt(se1 ** 2 + se2 ** 2)
 
@@ -202,7 +202,13 @@ def compute_societal_results(attribute_type, file_name):
 def compute_contextual_results(file_name, context_size, max_n_trials=1000000):
     """
     Returns: dict like { "20%": {"delta":..., "ci_low":..., "ci_high":...}, ...}
-    delta is normalized by random rate (1/context_size), consistent with your original code.
+
+    delta is the raw absolute candidate-level selection-rate difference:
+        |S_A(q) - S_B(q)|
+    where S_A(q) and S_B(q) are candidate-level selection rates.
+
+    Values are stored as proportions. They are multiplied by 100 only when
+    formatting the y-axis as percentages.
     """
     attr_value_to_results = defaultdict(lambda: {
         "same_attr_count_to_count": defaultdict(int),
@@ -271,11 +277,12 @@ def compute_contextual_results(file_name, context_size, max_n_trials=1000000):
         ratio_str = f"{ratio * 100:.0f}%"
         if ratio_str in ["20%", "40%", "60%", "80%"]:
             results_delta[ratio_str] = {
+                # Kept for reference only; the plotted value below is NOT normalized.
                 "random_selection_rate": random_selection_rate,
-                "delta": delta / random_selection_rate,
-                "ci_low": ci_low / random_selection_rate,
-                "ci_high": ci_high / random_selection_rate,
-                "se": raw_se / random_selection_rate,
+                "delta": delta,
+                "ci_low": ci_low,
+                "ci_high": ci_high,
+                "se": raw_se,
             }
 
     return results_delta
@@ -960,7 +967,7 @@ def draw_combined_llama_figure(
     fig.text(
         ctx_x0 - ylabel_offset,
         ctx_y_center,
-        "Normalized absolute candidate-level selection-rate difference (%)",
+        "Absolute candidate-level selection-rate difference (pp)",
         ha="center",
         va="center",
         rotation=90,

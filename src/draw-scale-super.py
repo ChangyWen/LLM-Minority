@@ -276,7 +276,7 @@ def draw_scale_block(
         2,
         3,
         wspace=0.12,
-        hspace=0.90,
+        hspace=1.2,
     )
 
     axes = np.empty((2, 3), dtype=object)
@@ -458,7 +458,7 @@ def draw_scale_block(
 
     if ylabel is not None:
         fig.text(
-            block_x0 - 0.03,
+            block_x0 - 0.04,
             block_y_center,
             ylabel,
             ha="center",
@@ -506,7 +506,7 @@ def draw_super_scale_figure(
         bottom=0.22,
         top=0.910,
         wspace=0.08,
-        hspace=0.73,
+        hspace=0.8,
     )
 
     # ------------------------------------------------------------
@@ -559,7 +559,7 @@ def draw_super_scale_figure(
         panel_letter="c",
         block_title="Contextual minority bias vs. model parameters",
         xlabel=r"$\log_{10}$(Model parameters / $10^9$)",
-        ylabel="Absolute selection-rate difference (%)",
+        ylabel="Absolute candidate-level selection-rate difference (pp)",
     )
 
     # d. Contextual results vs training compute

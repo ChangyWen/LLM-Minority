@@ -806,7 +806,7 @@ def draw_reasoning_super_figure(
         applications=applications,
         panel_letter="b",
         block_title="Contextual minority bias vs. reasoning",
-        ylabel="Absolute selection-rate difference (%)",
+        ylabel="Absolute candidate-level selection-rate difference (pp)",
         base_to_color=base_to_color,
         mode_to_marker=mode_to_marker,
     )
