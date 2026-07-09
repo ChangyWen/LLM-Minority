@@ -369,6 +369,12 @@ BEHAVIOR_ORDER = [
 MINORITY_BG = "#EEF7F4"
 MAJORITY_BG = "#FBF0F2"
 
+# Manual y-axis limits for panels that need extra space for annotations.
+# Key format: (attribute_type, application).
+PANEL_YLIM_OVERRIDES = {
+    ("Gender Identity", "hiring"): (-10.0, 10.0),
+}
+
 
 def build_model_styles(model_names):
     """
@@ -688,6 +694,7 @@ def plot_delta_application_panel(
             ha="left",
             va="center",
             fontsize=LABEL_SIZE + 0.4,
+            fontweight="bold",
             fontstyle="italic",
             color=BEHAVIOR_COLORS["Minority favored"],
         )
@@ -699,6 +706,7 @@ def plot_delta_application_panel(
             ha="left",
             va="center",
             fontsize=LABEL_SIZE + 0.4,
+            fontweight="bold",
             fontstyle="italic",
             color=BEHAVIOR_COLORS["Majority favored"],
         )
@@ -796,6 +804,11 @@ def draw_combined_delta_figure(
                 min_pos=2.0,
                 min_neg=2.0,
                 pad_frac=0.12,
+            )
+
+            subplot_ylim = PANEL_YLIM_OVERRIDES.get(
+                (attribute_type, application),
+                subplot_ylim,
             )
 
             plot_delta_application_panel(
