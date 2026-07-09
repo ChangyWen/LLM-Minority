@@ -349,31 +349,193 @@ def compute_subplot_ylim(
 # Plotting
 # ============================================================
 
+# Reviewer-style semantic colors.
+# Lines are colored by the qualitative pattern, while markers/linestyles
+# identify models. This makes the main story readable without 48 small panels.
+BEHAVIOR_COLORS = {
+    "Minority favored": "#1B9E77",
+    "Reverses as pool grows": "#E68613",
+    "Majority favored": "#C9253C",
+    "Near parity": "#9E9E9E",
+}
+
+BEHAVIOR_ORDER = [
+    "Minority favored",
+    "Reverses as pool grows",
+    "Majority favored",
+    "Near parity",
+]
+
+MINORITY_BG = "#EEF7F4"
+MAJORITY_BG = "#FBF0F2"
+
+
 def build_model_styles(model_names):
     """
-    Assign each model both a color and marker.
-    """
-    colors = [
-        "#4E79A7",  # blue
-        "#F28E2B",  # orange
-        "#59A14F",  # green
-        "#E15759",  # red
-        "#B07AA1",  # purple
-        "#76B7B2",  # teal
-        "#9C755F",  # brown
-        "#79706E",  # gray
-    ]
+    Assign each model a distinct marker/linestyle.
 
+    In the revised figure, color encodes the behavioral pattern rather than
+    model identity. Model identity is encoded by marker and line style.
+    """
     markers = ["o", "s", "^", "D", "v", "P", "X", "*"]
+    linestyles = [
+        "-",
+        "--",
+        "-.",
+        ":",
+        "-",
+        "--",
+        "-.",
+        (0, (1.0, 2.0)),
+    ]
 
     model_to_style = {}
     for idx, model_name in enumerate(model_names):
         model_to_style[model_name] = {
-            "color": colors[idx % len(colors)],
             "marker": markers[idx % len(markers)],
+            "linestyle": linestyles[idx % len(linestyles)],
         }
 
     return model_to_style
+
+
+def classify_behavior(
+    y,
+    near_mean_threshold=1.0,
+    near_max_threshold=2.0,
+    favored_point_threshold=1.0,
+):
+    """
+    Classify one model line into a reviewer-style qualitative category.
+
+    Parameters are in percentage points. The defaults are intentionally mild:
+    - near parity: small average and maximum absolute deviations;
+    - reverses: clear sign change as the pool grows;
+    - minority/majority favored: most points lie above/below zero.
+
+    You can override any individual classification via behavior_overrides in
+    draw_combined_delta_figure().
+    """
+    y = np.asarray(y, dtype=float)
+    y = y[np.isfinite(y)]
+
+    if len(y) == 0:
+        return "Near parity"
+
+    mean_abs = float(np.mean(np.abs(y)))
+    max_abs = float(np.max(np.abs(y)))
+    mean_y = float(np.mean(y))
+
+    if mean_abs <= near_mean_threshold and max_abs <= near_max_threshold:
+        return "Near parity"
+
+    first = float(y[0])
+    last = float(y[-1])
+
+    clear_positive_start = first > favored_point_threshold
+    clear_negative_start = first < -favored_point_threshold
+    clear_positive_end = last > favored_point_threshold
+    clear_negative_end = last < -favored_point_threshold
+
+    if (clear_positive_start and clear_negative_end) or (
+        clear_negative_start and clear_positive_end
+    ):
+        return "Reverses as pool grows"
+
+    positive_frac = float(np.mean(y > favored_point_threshold))
+    negative_frac = float(np.mean(y < -favored_point_threshold))
+
+    if positive_frac >= 0.60 and mean_y > 0:
+        return "Minority favored"
+
+    if negative_frac >= 0.60 and mean_y < 0:
+        return "Majority favored"
+
+    # Mixed lines that cross zero but not strongly enough for the stricter
+    # rule above are still useful to highlight as reversals.
+    if np.nanmin(y) < -favored_point_threshold and np.nanmax(y) > favored_point_threshold:
+        return "Reverses as pool grows"
+
+    if mean_y > favored_point_threshold:
+        return "Minority favored"
+
+    if mean_y < -favored_point_threshold:
+        return "Majority favored"
+
+    return "Near parity"
+
+
+def get_behavior_for_line(
+    attribute_type,
+    application,
+    model_name,
+    y,
+    behavior_overrides=None,
+):
+    """
+    Return the behavior category for one line.
+
+    behavior_overrides can be used for exact manual control, e.g.,
+        behavior_overrides = {
+            ("Gender Identity", "hiring", "msra-gpt-4o"): "Reverses as pool grows",
+        }
+    """
+    key = (attribute_type, application, model_name)
+    if behavior_overrides is not None and key in behavior_overrides:
+        return behavior_overrides[key]
+    return classify_behavior(y)
+
+
+def compute_subplot_ylim_reviewer(
+    delta_data,
+    attribute_type,
+    application,
+    model_names,
+    include_ci=False,
+    step=2.5,
+    min_pos=2.0,
+    min_neg=2.0,
+    pad_frac=0.12,
+):
+    """
+    Compute reviewer-style, non-symmetric y-limits for one subplot.
+
+    The original delta figure used symmetric y-limits around zero. The reviewer
+    illustration uses non-symmetric ranges to save space, while keeping zero
+    visible and leaving enough room for both positive and negative shaded zones.
+    """
+    values = []
+
+    for model_name in model_names:
+        item = delta_data[(attribute_type, application, model_name)]
+        if include_ci:
+            values.extend(item["ci_low"])
+            values.extend(item["ci_high"])
+        else:
+            values.extend(item["delta"])
+
+    values = np.asarray(values, dtype=float)
+    values = values[np.isfinite(values)]
+
+    if len(values) == 0:
+        return (-min_neg, min_pos)
+
+    vmin = float(np.min(values))
+    vmax = float(np.max(values))
+    span = max(vmax - vmin, 1.0)
+
+    lower = min(vmin - pad_frac * span, -min_neg)
+    upper = max(vmax + pad_frac * span, min_pos)
+
+    lower = math.floor(lower / step) * step
+    upper = math.ceil(upper / step) * step
+
+    if lower >= 0:
+        lower = -min_neg
+    if upper <= 0:
+        upper = min_pos
+
+    return (lower, upper)
 
 
 def plot_delta_application_panel(
@@ -386,21 +548,30 @@ def plot_delta_application_panel(
     resume_counts,
     ylim,
     show_errorbars=False,
+    behavior_overrides=None,
+    annotate_favored_regions=False,
 ):
     """
     Draw one subplot: one attribute x one application.
 
-    Each line corresponds to one model.
+    Each line corresponds to one model. Line color encodes the qualitative
+    behavioral pattern; marker/linestyle encodes the model.
     """
     xs = np.asarray(resume_counts, dtype=float)
+
+    ax.set_ylim(*ylim)
+
+    # Positive/negative regions.
+    ax.axhspan(0, ylim[1], color=MINORITY_BG, zorder=0)
+    ax.axhspan(ylim[0], 0, color=MAJORITY_BG, zorder=0)
 
     # Horizontal parity line.
     ax.axhline(
         0,
-        color="0.25",
-        linewidth=0.75,
-        linestyle=(0, (3.0, 2.0)),
-        zorder=1,
+        color="0.10",
+        linewidth=0.85,
+        linestyle=(0, (3.0, 2.2)),
+        zorder=2,
     )
 
     for model_name in model_names:
@@ -409,12 +580,20 @@ def plot_delta_application_panel(
         y = item["delta"]
         ci_low = item["ci_low"]
         ci_high = item["ci_high"]
-
         valid = np.isfinite(y)
 
         if not np.any(valid):
             continue
 
+        behavior = get_behavior_for_line(
+            attribute_type=attribute_type,
+            application=application,
+            model_name=model_name,
+            y=y,
+            behavior_overrides=behavior_overrides,
+        )
+
+        color = BEHAVIOR_COLORS[behavior]
         style = model_to_style[model_name]
 
         if show_errorbars:
@@ -427,9 +606,10 @@ def plot_delta_application_panel(
                 xs[valid],
                 y[valid],
                 yerr=yerr[:, valid],
-                fmt=style["marker"] + "-",
-                color=style["color"],
-                markerfacecolor=style["color"],
+                fmt=style["marker"],
+                linestyle=style["linestyle"],
+                color=color,
+                markerfacecolor=color,
                 markeredgecolor="white",
                 markeredgewidth=0.35,
                 markersize=MARKER_SIZE,
@@ -437,29 +617,27 @@ def plot_delta_application_panel(
                 elinewidth=0.45,
                 capsize=1.6,
                 capthick=0.45,
-                alpha=LINE_ALPHA,
+                alpha=0.95,
                 zorder=3,
             )
         else:
             ax.plot(
                 xs[valid],
                 y[valid],
-                linestyle="-",
+                linestyle=style["linestyle"],
                 linewidth=LINE_WIDTH,
-                color=style["color"],
+                color=color,
                 marker=style["marker"],
-                markerfacecolor=style["color"],
+                markerfacecolor=color,
                 markeredgecolor="white",
                 markeredgewidth=0.35,
                 markersize=MARKER_SIZE,
-                alpha=LINE_ALPHA,
+                alpha=0.95,
                 zorder=3,
             )
 
     # Axes formatting.
-    ax.set_xlim(xs[0] - 0.45, xs[-1] + 0.45)
-    ax.set_ylim(*ylim)
-
+    ax.set_xlim(xs[0] - 0.40, xs[-1] + 0.40)
     ax.set_xticks(xs)
     ax.set_xticklabels([str(int(x)) for x in xs])
 
@@ -470,8 +648,6 @@ def plot_delta_application_panel(
         axis="x",
         length=0.0,
         width=0.0,
-        color="black",
-        labelcolor="black",
         labelsize=LABEL_SIZE,
         bottom=True,
         labelbottom=True,
@@ -481,8 +657,6 @@ def plot_delta_application_panel(
         axis="y",
         length=0.0,
         width=0.0,
-        color="black",
-        labelcolor="black",
         labelsize=LABEL_SIZE,
         left=True,
         labelleft=True,
@@ -498,12 +672,36 @@ def plot_delta_application_panel(
 
     ax.grid(
         axis="y",
-        color="0.89",
-        linewidth=0.55,
+        color="white",
+        linewidth=0.75,
         linestyle="-",
-        zorder=0,
+        zorder=1,
     )
     ax.set_axisbelow(True)
+
+    if annotate_favored_regions:
+        ax.text(
+            0.06,
+            0.90,
+            "societal minority favored",
+            transform=ax.transAxes,
+            ha="left",
+            va="center",
+            fontsize=LABEL_SIZE + 0.4,
+            fontstyle="italic",
+            color=BEHAVIOR_COLORS["Minority favored"],
+        )
+        ax.text(
+            0.06,
+            0.09,
+            "societal majority favored",
+            transform=ax.transAxes,
+            ha="left",
+            va="center",
+            fontsize=LABEL_SIZE + 0.4,
+            fontstyle="italic",
+            color=BEHAVIOR_COLORS["Majority favored"],
+        )
 
 
 def draw_combined_delta_figure(
@@ -514,20 +712,24 @@ def draw_combined_delta_figure(
     max_n_trials=1000000,
     output_dir="outputs/societal",
     show_errorbars=False,
+    behavior_overrides=None,
 ):
     """
-    Draw the revised Figure 3.
+    Draw the reviewer-style revised Figure 3.
 
     Layout:
-        Panel a: Gender identity
-            Hiring | Loan approval | Scholarship application
-
-        Panel b: Sexual orientation
-            Hiring | Loan approval | Scholarship application
+        Rows:    gender identity, sexual orientation
+        Columns: hiring, loan approval, scholarship allocation
 
     Y-axis:
         Delta selection rate in percentage points:
         Delta = SelectionRate_Minority - SelectionRate_Majority
+
+    Visual encoding:
+        Color:       qualitative behavior category
+        Marker/line: model identity
+        Background:  positive = societal minority favored;
+                     negative = societal majority favored
     """
     set_nature_style()
     os.makedirs(output_dir, exist_ok=True)
@@ -545,6 +747,12 @@ def draw_combined_delta_figure(
         "edu": "Scholarship allocation",
     }
 
+    application_subtitle_map = {
+        "hiring": "mixed; preference often\nweakens or reverses",
+        "loan": "majority favored,\ngrowing with pool size",
+        "edu": "minority favored,\npersists under comparison",
+    }
+
     model_to_style = build_model_styles(model_names)
 
     delta_data = collect_delta_data(
@@ -560,34 +768,34 @@ def draw_combined_delta_figure(
     fig, axes = plt.subplots(
         2,
         3,
-        figsize=(9.2, 4.9),
+        figsize=(9.4, 4.95),
         sharex=True,
         sharey=False,
     )
 
     plt.subplots_adjust(
-        left=0.085,
+        left=0.090,
         right=0.985,
-        top=0.865,
+        top=0.800,
         bottom=0.245,
-        wspace=0.18,
-        hspace=0.50,
+        wspace=0.24,
+        hspace=0.34,
     )
 
     for row_idx, attribute_type in enumerate(attribute_types):
         for col_idx, application in enumerate(applications):
             ax = axes[row_idx, col_idx]
 
-            subplot_ylim = compute_subplot_ylim(
+            subplot_ylim = compute_subplot_ylim_reviewer(
                 delta_data=delta_data,
                 attribute_type=attribute_type,
                 application=application,
                 model_names=model_names,
                 include_ci=show_errorbars,
-                step=2.0,
-                min_abs=2.0,
+                step=2.5,
+                min_pos=2.0,
+                min_neg=2.0,
                 pad_frac=0.12,
-                symmetric=True,
             )
 
             plot_delta_application_panel(
@@ -600,81 +808,107 @@ def draw_combined_delta_figure(
                 resume_counts=resume_counts,
                 ylim=subplot_ylim,
                 show_errorbars=show_errorbars,
+                behavior_overrides=behavior_overrides,
+                annotate_favored_regions=(row_idx == 0 and col_idx == 0),
             )
 
-            ax.set_title(
-                application_title_map[application],
-                fontsize=FONT_SIZE,
-                fontweight="bold",
-                pad=5,
-            )
+            if row_idx == 0:
+                ax.set_title(
+                    application_title_map[application],
+                    fontsize=FONT_SIZE + 2.0,
+                    fontweight="bold",
+                    pad=47,
+                )
 
-    # Shared axis labels.
-    fig.supxlabel(
-        "Number of candidates",
-        fontsize=FONT_SIZE,
-        y=0.145,
-    )
+                ax.text(
+                    0.5,
+                    1.155,
+                    application_subtitle_map[application],
+                    transform=ax.transAxes,
+                    ha="center",
+                    va="bottom",
+                    fontsize=FONT_SIZE - 0.8,
+                    fontstyle="italic",
+                    color="0.35",
+                    linespacing=1.05,
+                )
 
-    fig.supylabel(
-        r"$\Delta$ selection rate "
-        r"(societal minority $-$ societal majority, percentage points)",
-        fontsize=FONT_SIZE,
-        x=0.035,
-    )
+            if row_idx == 1:
+                ax.set_xlabel(
+                    "Number of candidates in pool",
+                    fontsize=FONT_SIZE,
+                    labelpad=4,
+                )
 
-    # Panel labels.
-    panel_labels = ["a", "b"]
+            if col_idx == 0:
+                ax.set_ylabel(
+                    f"{attribute_title_map[attribute_type]}:\n"
+                    "Selection-rate difference:\n"
+                    "minority − majority (pp)",
+                    fontsize=FONT_SIZE,
+                    labelpad=10,
+                )
 
-    for row_idx, attribute_type in enumerate(attribute_types):
-        row_pos = axes[row_idx, 0].get_position()
-
-        fig.text(
-            row_pos.x0,
-            row_pos.y1 + 0.050,
-            f"{panel_labels[row_idx]}  {attribute_title_map[attribute_type]}",
-            ha="left",
-            va="bottom",
-            fontsize=FONT_SIZE + 0.6,
-            fontweight="bold",
+    # Behavior legend: semantic color meaning.
+    behavior_handles = [
+        Line2D(
+            [0],
+            [0],
+            color=BEHAVIOR_COLORS[name],
+            linestyle="-",
+            linewidth=2.2,
+            label=name,
         )
+        for name in BEHAVIOR_ORDER
+    ]
 
-    # Shared model legend outside plotting area.
-    legend_handles = []
+    fig.legend(
+        handles=behavior_handles,
+        loc="lower center",
+        bbox_to_anchor=(0.5, 0.155),
+        ncol=4,
+        frameon=False,
+        handlelength=1.7,
+        columnspacing=1.35,
+        handletextpad=0.55,
+        title="Behavior category",
+        title_fontsize=FONT_SIZE - 0.3,
+        fontsize=FONT_SIZE - 0.6,
+    )
 
+    # Model legend: marker and line style meaning.
+    model_handles = []
     for model_name in model_names:
         style = model_to_style[model_name]
-
-        legend_handles.append(
+        model_handles.append(
             Line2D(
                 [0],
                 [0],
-                color=style["color"],
+                color="0.35",
                 marker=style["marker"],
-                linestyle="-",
-                linewidth=LINE_WIDTH,
-                markersize=MARKER_SIZE + 0.5,
-                markerfacecolor=style["color"],
+                linestyle=style["linestyle"],
+                linewidth=LINE_WIDTH + 0.25,
+                markersize=MARKER_SIZE + 0.4,
+                markerfacecolor="0.35",
                 markeredgecolor="white",
                 markeredgewidth=0.35,
-                alpha=1.0,
                 label=pretty_model_name(model_name),
             )
         )
 
     fig.legend(
-        handles=legend_handles,
+        handles=model_handles,
         loc="lower center",
-        bbox_to_anchor=(0.5, 0.018),
+        bbox_to_anchor=(0.5, 0.020),
         ncol=4,
         frameon=False,
-        handlelength=1.7,
-        columnspacing=1.25,
-        handletextpad=0.45,
-        fontsize=7.2,
+        handlelength=2.0,
+        columnspacing=1.35,
+        handletextpad=0.55,
+        fontsize=FONT_SIZE - 1.3,
     )
 
-    base = "Figure3_societal_cross_candidate_delta"
+    base = "Figure3_societal_cross_candidate_delta_reviewer_style"
     pdf_path = os.path.join(output_dir, base + ".pdf")
     png_path = os.path.join(output_dir, base + ".png")
 
@@ -715,6 +949,13 @@ if __name__ == "__main__":
 
     resume_counts = [2, 4, 6, 8, 10]
 
+    # Optional manual corrections if you want a line to use a specific reviewer
+    # category after inspecting the generated plot. Leave empty by default.
+    behavior_overrides = {
+        # Example:
+        # ("Gender Identity", "hiring", "msra-gpt-4o"): "Reverses as pool grows",
+    }
+
     draw_combined_delta_figure(
         model_names=model_names_order,
         applications=applications,
@@ -723,4 +964,5 @@ if __name__ == "__main__":
         max_n_trials=max_n_trials,
         output_dir="outputs/societal",
         show_errorbars=False,
+        behavior_overrides=behavior_overrides,
     )
