@@ -676,13 +676,13 @@ def plot_delta_application_panel(
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
 
-    ax.grid(
-        axis="y",
-        color="white",
-        linewidth=0.75,
-        linestyle="-",
-        zorder=1,
-    )
+    # ax.grid(
+    #     axis="y",
+    #     color="white",
+    #     linewidth=0.75,
+    #     linestyle="-",
+    #     zorder=1,
+    # )
     ax.set_axisbelow(True)
 
     if annotate_favored_regions:
@@ -782,7 +782,7 @@ def draw_combined_delta_figure(
     )
 
     plt.subplots_adjust(
-        left=0.090,
+        left=0.125,
         right=0.985,
         top=0.800,
         bottom=0.245,
@@ -846,21 +846,33 @@ def draw_combined_delta_figure(
                     linespacing=1.05,
                 )
 
-            if row_idx == 1:
-                ax.set_xlabel(
-                    "Number of candidates in pool",
-                    fontsize=FONT_SIZE,
-                    labelpad=4,
-                )
+    # Shared axis labels.
+    fig.supxlabel(
+        "Number of candidates in pool",
+        fontsize=FONT_SIZE + 0.3,
+        y=0.205,
+    )
 
-            if col_idx == 0:
-                ax.set_ylabel(
-                    f"{attribute_title_map[attribute_type]}:\n"
-                    "Selection-rate difference:\n"
-                    "minority − majority (pp)",
-                    fontsize=FONT_SIZE,
-                    labelpad=10,
-                )
+    fig.supylabel(
+        f"Group-level selection-rate different: minority − majority (pp)",
+        fontsize=FONT_SIZE + 0.3,
+        x=0.025,
+    )
+
+    # Row labels.
+    for row_idx, row_label in enumerate(["Gender identity", "Sexual orientation"]):
+        row_pos = axes[row_idx, 0].get_position()
+        row_center_y = 0.5 * (row_pos.y0 + row_pos.y1)
+        fig.text(
+            0.077,
+            row_center_y,
+            row_label,
+            ha="center",
+            va="center",
+            rotation=90,
+            fontsize=FONT_SIZE + 0.5,
+            fontweight="bold",
+        )
 
     # Behavior legend: semantic color meaning.
     behavior_handles = [
