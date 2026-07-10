@@ -371,13 +371,13 @@ def compute_subplot_ylim(
 BEHAVIOR_COLORS = {
     "Minority favored": "#1B9E77",
     "Majority favored": "#C9253C",
-    "No statistically supported pattern": "#9E9E9E",
+    "No statistically supported overall preference": "#9E9E9E",
 }
 
 BEHAVIOR_ORDER = [
     "Minority favored",
     "Majority favored",
-    "No statistically supported pattern",
+    "No statistically supported overall preference",
 ]
 
 CLASSIFICATION_ALPHA = 0.05
@@ -748,7 +748,7 @@ def classify_all_model_lines(
 
       - a significantly positive mean difference is "Minority favored";
       - a significantly negative mean difference is "Majority favored";
-      - otherwise, the line is "No statistically supported pattern".
+      - otherwise, the line is "No statistically supported overall preference".
 
     Benjamini-Hochberg adjustment is applied across all line-level
     overall-direction tests. With the default figure design, this family
@@ -821,7 +821,7 @@ def classify_all_model_lines(
         elif direction_significant and result["mean_delta_pp"] < 0:
             behavior = "Majority favored"
         else:
-            behavior = "No statistically supported pattern"
+            behavior = "No statistically supported overall preference"
 
         result["reversal_significant"] = bool(reversal_significant)
         result["direction_significant"] = bool(direction_significant)
@@ -1274,7 +1274,7 @@ def draw_combined_delta_figure(
     fig.supylabel(
         "Group-level selection-rate difference: minority − majority (pp)",
         fontsize=FONT_SIZE + 0.3,
-        x=0.05,
+        x=0.054,
         y=plot_center_y,
     )
 
