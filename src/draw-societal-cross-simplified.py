@@ -978,8 +978,8 @@ def plot_delta_application_panel(
     # Horizontal parity line.
     ax.axhline(
         0,
-        color="0.10",
-        linewidth=0.85,
+        color="0.35",
+        linewidth=0.8,
         linestyle=(0, (3.0, 2.2)),
         zorder=2,
     )
