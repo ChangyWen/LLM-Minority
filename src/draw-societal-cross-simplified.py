@@ -372,14 +372,14 @@ BEHAVIOR_COLORS = {
     "Minority favored": "#1B9E77",
     "Reverses as pool grows": "#E68613",
     "Majority favored": "#C9253C",
-    "Inconclusive": "#9E9E9E",
+    "No statistically-supported pattern": "#9E9E9E",
 }
 
 BEHAVIOR_ORDER = [
     "Minority favored",
     "Reverses as pool grows",
     "Majority favored",
-    "Inconclusive",
+    "No statistically-supported pattern",
 ]
 
 CLASSIFICATION_ALPHA = 0.05
@@ -745,8 +745,18 @@ def classify_all_model_lines(
     """
     Classify all plotted model lines using formal statistical hypotheses.
 
-    Benjamini-Hochberg adjustment is applied jointly to all reversal and
-    overall-direction p-values (2 tests per line). The decision hierarchy is:
+    The reversal and overall-direction hypotheses answer different scientific
+    questions, so their p-values are adjusted in two separate
+    Benjamini-Hochberg families:
+
+      - one family containing all line-level reversal p-values;
+      - one family containing all line-level overall-direction p-values.
+
+    With the default figure design, each family contains 48 tests
+    (8 models x 3 applications x 2 attributes), provided that all tests return
+    finite p-values.
+
+    The decision hierarchy is:
 
       1. statistically supported reversal;
       2. otherwise, statistically supported average direction;
@@ -766,22 +776,27 @@ def classify_all_model_lines(
                     delta_data[key]
                 )
 
-    all_raw_p_values = (
+    # Adjust the two scientifically distinct hypothesis families separately.
+    reversal_raw_p_values = np.asarray(
         [
             classification_results[key]["reversal_p_raw"]
             for key in ordered_keys
-        ]
-        + [
+        ],
+        dtype=float,
+    )
+    direction_raw_p_values = np.asarray(
+        [
             classification_results[key]["direction_p_raw"]
             for key in ordered_keys
-        ]
+        ],
+        dtype=float,
     )
 
-    all_adjusted_p_values = benjamini_hochberg(all_raw_p_values)
-    number_of_lines = len(ordered_keys)
+    reversal_adjusted = benjamini_hochberg(reversal_raw_p_values)
+    direction_adjusted = benjamini_hochberg(direction_raw_p_values)
 
-    reversal_adjusted = all_adjusted_p_values[:number_of_lines]
-    direction_adjusted = all_adjusted_p_values[number_of_lines:]
+    reversal_family_size = int(np.isfinite(reversal_raw_p_values).sum())
+    direction_family_size = int(np.isfinite(direction_raw_p_values).sum())
 
     for idx, key in enumerate(ordered_keys):
         result = classification_results[key]
@@ -789,27 +804,39 @@ def classify_all_model_lines(
         result["reversal_p_adjusted"] = float(reversal_adjusted[idx])
         result["direction_p_adjusted"] = float(direction_adjusted[idx])
 
-        if (
+        reversal_significant = (
             result["reversal_direction"] != "none"
             and np.isfinite(result["reversal_p_adjusted"])
             and result["reversal_p_adjusted"] < alpha
-        ):
-            behavior = "Reverses as pool grows"
-
-        elif (
+        )
+        direction_significant = (
             np.isfinite(result["direction_p_adjusted"])
             and result["direction_p_adjusted"] < alpha
-        ):
+        )
+
+        # Apply the prespecified hierarchical classification rule.
+        if reversal_significant:
+            behavior = "Reverses as pool grows"
+
+        elif direction_significant:
             if result["mean_delta_pp"] > 0:
                 behavior = "Minority favored"
             elif result["mean_delta_pp"] < 0:
                 behavior = "Majority favored"
             else:
-                behavior = "Inconclusive"
+                behavior = "No statistically-supported pattern"
 
         else:
-            behavior = "Inconclusive"
+            behavior = "No statistically-supported pattern"
 
+        result["reversal_significant"] = bool(reversal_significant)
+        result["direction_significant"] = bool(direction_significant)
+        result["classification_alpha"] = float(alpha)
+        result["multiple_testing_method"] = (
+            "Benjamini-Hochberg; separate reversal and direction families"
+        )
+        result["reversal_bh_family_size"] = reversal_family_size
+        result["direction_bh_family_size"] = direction_family_size
         result["behavior"] = behavior
 
     return classification_results
@@ -827,6 +854,12 @@ def export_classification_results(
         "application",
         "model_name",
         "behavior",
+        "classification_alpha",
+        "multiple_testing_method",
+        "reversal_bh_family_size",
+        "direction_bh_family_size",
+        "reversal_significant",
+        "direction_significant",
         "mean_probability",
         "mean_delta_pp",
         "direction_z",
@@ -1120,9 +1153,9 @@ def draw_combined_delta_figure(
     }
 
     application_subtitle_map = {
-        "hiring": "mixed, preference can\nreverse as pool grows",
-        "loan": "majority favored,\ngrowing with pool size",
-        "edu": "minority favored,\npersists under comparison",
+        "hiring": "mixed, model-dependent\npreferences",
+        "loan": "predominantly majority favored,\noften stronger in larger pools",
+        "edu": "predominantly minority favored,\ngenerally persistent across pool sizes",
     }
 
     model_to_style = build_model_styles(model_names)
