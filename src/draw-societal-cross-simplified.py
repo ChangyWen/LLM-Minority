@@ -1,3 +1,4 @@
+import csv
 import json
 import math
 import os
@@ -6,9 +7,9 @@ from collections import defaultdict
 import numpy as np
 import matplotlib.pyplot as plt
 
-from matplotlib.lines import Line2D, lineStyles
+from matplotlib.lines import Line2D
 from matplotlib.ticker import MaxNLocator, FuncFormatter
-from scipy.stats import binomtest
+from scipy.stats import binomtest, norm
 
 
 type_to_minority_attributes = {
@@ -234,7 +235,9 @@ def collect_delta_data(
     """
     Load all data needed for the 2 x 3 delta figure.
 
-    Stored values are in percentage points.
+    Delta values and confidence intervals are stored in percentage points.
+    Raw minority/majority selection counts are retained for the formal
+    behavior-classification tests.
     """
     delta_data = {}
 
@@ -247,6 +250,9 @@ def collect_delta_data(
                 ci_lows = []
                 ci_highs = []
                 p_values = []
+                minority_counts = []
+                majority_counts = []
+                total_counts = []
 
                 for rc in resume_counts:
                     file_path = (
@@ -264,6 +270,9 @@ def collect_delta_data(
                         ci_lows.append(np.nan)
                         ci_highs.append(np.nan)
                         p_values.append(np.nan)
+                        minority_counts.append(np.nan)
+                        majority_counts.append(np.nan)
+                        total_counts.append(np.nan)
                         continue
 
                     result = compute_delta_results(
@@ -272,11 +281,16 @@ def collect_delta_data(
                         max_n_trials=max_n_trials,
                     )
 
-                    # Convert to percentage points.
+                    # Convert effect estimates to percentage points.
                     deltas.append(result["delta"] * 100.0)
                     ci_lows.append(result["ci_low"] * 100.0)
                     ci_highs.append(result["ci_high"] * 100.0)
                     p_values.append(result["p_value"])
+
+                    # Retain counts for line-level statistical classification.
+                    minority_counts.append(result["minority_count"])
+                    majority_counts.append(result["majority_count"])
+                    total_counts.append(result["total_count"])
 
                 delta_data[(attribute_type, application, model_name)] = {
                     "x": np.asarray(resume_counts, dtype=float),
@@ -284,10 +298,12 @@ def collect_delta_data(
                     "ci_low": np.asarray(ci_lows, dtype=float),
                     "ci_high": np.asarray(ci_highs, dtype=float),
                     "p_value": np.asarray(p_values, dtype=float),
+                    "minority_count": np.asarray(minority_counts, dtype=float),
+                    "majority_count": np.asarray(majority_counts, dtype=float),
+                    "total_count": np.asarray(total_counts, dtype=float),
                 }
 
     return delta_data
-
 
 def compute_subplot_ylim(
     delta_data,
@@ -356,15 +372,17 @@ BEHAVIOR_COLORS = {
     "Minority favored": "#1B9E77",
     "Reverses as pool grows": "#E68613",
     "Majority favored": "#C9253C",
-    "Near parity": "#9E9E9E",
+    "Inconclusive": "#9E9E9E",
 }
 
 BEHAVIOR_ORDER = [
     "Minority favored",
     "Reverses as pool grows",
     "Majority favored",
-    "Near parity",
+    "Inconclusive",
 ]
+
+CLASSIFICATION_ALPHA = 0.05
 
 MINORITY_BG = "#EEF7F4"
 MAJORITY_BG = "#FBF0F2"
@@ -405,92 +423,445 @@ def build_model_styles(model_names):
     return model_to_style
 
 
-def classify_behavior(
-    y,
-    near_mean_threshold=1.0,
-    near_max_threshold=2.0,
-    favored_point_threshold=1.0,
-):
+def benjamini_hochberg(p_values):
     """
-    Classify one model line into a reviewer-style qualitative category.
+    Benjamini-Hochberg false-discovery-rate adjustment.
 
-    Parameters are in percentage points. The defaults are intentionally mild:
-    - near parity: small average and maximum absolute deviations;
-    - reverses: clear sign change as the pool grows;
-    - minority/majority favored: most points lie above/below zero.
-
-    You can override any individual classification via behavior_overrides in
-    draw_combined_delta_figure().
+    NaN values are ignored and remain NaN in the returned array.
     """
-    y = np.asarray(y, dtype=float)
-    y = y[np.isfinite(y)]
+    p_values = np.asarray(p_values, dtype=float)
+    adjusted = np.full(p_values.shape, np.nan, dtype=float)
 
-    if len(y) == 0:
-        return "Near parity"
+    valid_mask = np.isfinite(p_values)
+    valid_p = p_values[valid_mask]
 
-    mean_abs = float(np.mean(np.abs(y)))
-    max_abs = float(np.max(np.abs(y)))
-    mean_y = float(np.mean(y))
+    if valid_p.size == 0:
+        return adjusted
 
-    if mean_abs <= near_mean_threshold and max_abs <= near_max_threshold:
-        return "Near parity"
+    order = np.argsort(valid_p)
+    ranked_p = valid_p[order]
+    m = ranked_p.size
 
-    first = float(y[0])
-    last = float(y[-1])
+    ranked_adjusted = np.empty(m, dtype=float)
+    running_min = 1.0
 
-    clear_positive_start = first > favored_point_threshold
-    clear_negative_start = first < -favored_point_threshold
-    clear_positive_end = last > favored_point_threshold
-    clear_negative_end = last < -favored_point_threshold
+    for idx in range(m - 1, -1, -1):
+        rank = idx + 1
+        candidate = ranked_p[idx] * m / rank
+        running_min = min(running_min, candidate)
+        ranked_adjusted[idx] = min(running_min, 1.0)
 
-    if (clear_positive_start and clear_negative_end) or (
-        clear_negative_start and clear_positive_end
-    ):
-        return "Reverses as pool grows"
+    valid_adjusted = np.empty(m, dtype=float)
+    valid_adjusted[order] = ranked_adjusted
+    adjusted[valid_mask] = valid_adjusted
 
-    positive_frac = float(np.mean(y > favored_point_threshold))
-    negative_frac = float(np.mean(y < -favored_point_threshold))
-
-    if positive_frac >= 0.60 and mean_y > 0:
-        return "Minority favored"
-
-    if negative_frac >= 0.60 and mean_y < 0:
-        return "Majority favored"
-
-    # Mixed lines that cross zero but not strongly enough for the stricter
-    # rule above are still useful to highlight as reversals.
-    if np.nanmin(y) < -favored_point_threshold and np.nanmax(y) > favored_point_threshold:
-        return "Reverses as pool grows"
-
-    if mean_y > favored_point_threshold:
-        return "Minority favored"
-
-    if mean_y < -favored_point_threshold:
-        return "Majority favored"
-
-    return "Near parity"
+    return adjusted
 
 
-def get_behavior_for_line(
-    attribute_type,
-    application,
-    model_name,
-    y,
-    behavior_overrides=None,
-):
+def cochran_armitage_trend_test(x, minority_count, total_count, alternative):
     """
-    Return the behavior category for one line.
+    Cochran-Armitage score test for a monotonic trend in the probability of
+    selecting a societal-minority candidate as pool size increases.
 
-    behavior_overrides can be used for exact manual control, e.g.,
-        behavior_overrides = {
-            ("Gender Identity", "hiring", "msra-gpt-4o"): "Reverses as pool grows",
+    The intercept is estimated under the null of no pool-size trend. This is
+    equivalent to the score test for the slope in a grouped-binomial logistic
+    regression with pool size entered as a continuous predictor.
+
+    Parameters
+    ----------
+    alternative : {"greater", "less", "two-sided"}
+        "greater" tests for an increasing minority-selection probability as
+        pool size grows; "less" tests for a decreasing probability.
+    """
+    x = np.asarray(x, dtype=float)
+    minority_count = np.asarray(minority_count, dtype=float)
+    total_count = np.asarray(total_count, dtype=float)
+
+    valid = (
+        np.isfinite(x)
+        & np.isfinite(minority_count)
+        & np.isfinite(total_count)
+        & (total_count > 0)
+    )
+
+    x = x[valid]
+    minority_count = minority_count[valid]
+    total_count = total_count[valid]
+
+    if x.size < 2 or np.allclose(x, x[0]):
+        return {"z": 0.0, "p_value": 1.0}
+
+    pooled_probability = minority_count.sum() / total_count.sum()
+    weighted_x_mean = np.average(x, weights=total_count)
+
+    centered_x = x - weighted_x_mean
+    score = np.sum(centered_x * (minority_count - total_count * pooled_probability))
+    variance = (
+        pooled_probability
+        * (1.0 - pooled_probability)
+        * np.sum(total_count * centered_x ** 2)
+    )
+
+    if not np.isfinite(variance) or variance <= 0:
+        return {"z": 0.0, "p_value": 1.0}
+
+    z_value = score / math.sqrt(variance)
+
+    if alternative == "greater":
+        p_value = norm.sf(z_value)
+    elif alternative == "less":
+        p_value = norm.cdf(z_value)
+    elif alternative == "two-sided":
+        p_value = 2.0 * norm.sf(abs(z_value))
+    else:
+        raise ValueError(
+            "alternative must be 'greater', 'less', or 'two-sided'"
+        )
+
+    return {
+        "z": float(z_value),
+        "p_value": float(min(max(p_value, 0.0), 1.0)),
+    }
+
+
+def equal_weight_direction_test(minority_count, total_count):
+    """
+    Test the equal-weight mean minority-selection probability across pool sizes.
+
+    Each pool size contributes equally, regardless of its number of trials.
+    Under the global parity null, p_N = 0.5 at every pool size. Independence
+    across trials and pool-size settings gives
+
+        Var(mean(p_hat_N)) = (1 / m^2) * sum_N 0.25 / n_N.
+
+    The resulting score test is conservative because 0.25 is the maximum
+    possible Bernoulli variance.
+
+    Returns a two-sided p-value. The sign of the estimated average delta
+    determines whether the supported direction favors the societal minority or
+    societal majority.
+    """
+    minority_count = np.asarray(minority_count, dtype=float)
+    total_count = np.asarray(total_count, dtype=float)
+
+    valid = (
+        np.isfinite(minority_count)
+        & np.isfinite(total_count)
+        & (total_count > 0)
+    )
+
+    minority_count = minority_count[valid]
+    total_count = total_count[valid]
+
+    if minority_count.size == 0:
+        return {
+            "mean_probability": np.nan,
+            "mean_delta_pp": np.nan,
+            "z": np.nan,
+            "p_value": np.nan,
         }
-    """
-    key = (attribute_type, application, model_name)
-    if behavior_overrides is not None and key in behavior_overrides:
-        return behavior_overrides[key]
-    return classify_behavior(y)
 
+    probabilities = minority_count / total_count
+    mean_probability = float(np.mean(probabilities))
+    m = probabilities.size
+
+    standard_error_null = math.sqrt(
+        np.sum(0.25 / total_count)
+    ) / m
+
+    if standard_error_null <= 0 or not np.isfinite(standard_error_null):
+        z_value = 0.0
+        p_value = 1.0
+    else:
+        z_value = (mean_probability - 0.5) / standard_error_null
+        p_value = 2.0 * norm.sf(abs(z_value))
+
+    return {
+        "mean_probability": mean_probability,
+        "mean_delta_pp": 100.0 * (2.0 * mean_probability - 1.0),
+        "z": float(z_value),
+        "p_value": float(min(max(p_value, 0.0), 1.0)),
+    }
+
+
+def compute_line_classification_statistics(item):
+    """
+    Compute the two prespecified line-level hypotheses.
+
+    1. Reversal hypothesis
+       A reversal requires:
+       - opposite endpoint directions at the smallest and largest pool sizes;
+       - an exact one-sided binomial test supporting each endpoint direction;
+       - a one-sided Cochran-Armitage trend test supporting the corresponding
+         direction of change.
+
+       These are joint requirements. Their intersection-union p-value is the
+       maximum of the three component p-values.
+
+    2. Overall-direction hypothesis
+       The equal-weight average minority-selection probability across pool
+       sizes is tested against 0.5.
+
+    Multiple-testing adjustment and final category assignment are performed
+    later, jointly across all plotted model lines.
+    """
+    x = np.asarray(item["x"], dtype=float)
+    minority_count = np.asarray(item["minority_count"], dtype=float)
+    total_count = np.asarray(item["total_count"], dtype=float)
+
+    valid = (
+        np.isfinite(x)
+        & np.isfinite(minority_count)
+        & np.isfinite(total_count)
+        & (total_count > 0)
+    )
+
+    x = x[valid]
+    minority_count = minority_count[valid]
+    total_count = total_count[valid]
+
+    if x.size < 2:
+        return {
+            "reversal_direction": "none",
+            "endpoint_start_delta_pp": np.nan,
+            "endpoint_end_delta_pp": np.nan,
+            "endpoint_start_p": np.nan,
+            "endpoint_end_p": np.nan,
+            "trend_z": np.nan,
+            "trend_p": np.nan,
+            "reversal_p_raw": np.nan,
+            "mean_probability": np.nan,
+            "mean_delta_pp": np.nan,
+            "direction_z": np.nan,
+            "direction_p_raw": np.nan,
+        }
+
+    order = np.argsort(x)
+    x = x[order]
+    minority_count = minority_count[order]
+    total_count = total_count[order]
+
+    probabilities = minority_count / total_count
+
+    start_probability = float(probabilities[0])
+    end_probability = float(probabilities[-1])
+    start_delta_pp = 100.0 * (2.0 * start_probability - 1.0)
+    end_delta_pp = 100.0 * (2.0 * end_probability - 1.0)
+
+    reversal_direction = "none"
+    endpoint_start_p = 1.0
+    endpoint_end_p = 1.0
+    trend_result = {"z": 0.0, "p_value": 1.0}
+    reversal_p_raw = 1.0
+
+    if start_probability > 0.5 and end_probability < 0.5:
+        reversal_direction = "minority_to_majority"
+
+        endpoint_start_p = binomtest(
+            k=int(minority_count[0]),
+            n=int(total_count[0]),
+            p=0.5,
+            alternative="greater",
+        ).pvalue
+
+        endpoint_end_p = binomtest(
+            k=int(minority_count[-1]),
+            n=int(total_count[-1]),
+            p=0.5,
+            alternative="less",
+        ).pvalue
+
+        trend_result = cochran_armitage_trend_test(
+            x=x,
+            minority_count=minority_count,
+            total_count=total_count,
+            alternative="less",
+        )
+
+        reversal_p_raw = max(
+            float(endpoint_start_p),
+            float(endpoint_end_p),
+            float(trend_result["p_value"]),
+        )
+
+    elif start_probability < 0.5 and end_probability > 0.5:
+        reversal_direction = "majority_to_minority"
+
+        endpoint_start_p = binomtest(
+            k=int(minority_count[0]),
+            n=int(total_count[0]),
+            p=0.5,
+            alternative="less",
+        ).pvalue
+
+        endpoint_end_p = binomtest(
+            k=int(minority_count[-1]),
+            n=int(total_count[-1]),
+            p=0.5,
+            alternative="greater",
+        ).pvalue
+
+        trend_result = cochran_armitage_trend_test(
+            x=x,
+            minority_count=minority_count,
+            total_count=total_count,
+            alternative="greater",
+        )
+
+        reversal_p_raw = max(
+            float(endpoint_start_p),
+            float(endpoint_end_p),
+            float(trend_result["p_value"]),
+        )
+
+    direction_result = equal_weight_direction_test(
+        minority_count=minority_count,
+        total_count=total_count,
+    )
+
+    return {
+        "reversal_direction": reversal_direction,
+        "endpoint_start_delta_pp": start_delta_pp,
+        "endpoint_end_delta_pp": end_delta_pp,
+        "endpoint_start_p": float(endpoint_start_p),
+        "endpoint_end_p": float(endpoint_end_p),
+        "trend_z": float(trend_result["z"]),
+        "trend_p": float(trend_result["p_value"]),
+        "reversal_p_raw": float(reversal_p_raw),
+        "mean_probability": float(direction_result["mean_probability"]),
+        "mean_delta_pp": float(direction_result["mean_delta_pp"]),
+        "direction_z": float(direction_result["z"]),
+        "direction_p_raw": float(direction_result["p_value"]),
+    }
+
+
+def classify_all_model_lines(
+    delta_data,
+    attribute_types,
+    applications,
+    model_names,
+    alpha=CLASSIFICATION_ALPHA,
+):
+    """
+    Classify all plotted model lines using formal statistical hypotheses.
+
+    Benjamini-Hochberg adjustment is applied jointly to all reversal and
+    overall-direction p-values (2 tests per line). The decision hierarchy is:
+
+      1. statistically supported reversal;
+      2. otherwise, statistically supported average direction;
+      3. otherwise, inconclusive.
+
+    No manually selected effect-size threshold is used.
+    """
+    classification_results = {}
+    ordered_keys = []
+
+    for attribute_type in attribute_types:
+        for application in applications:
+            for model_name in model_names:
+                key = (attribute_type, application, model_name)
+                ordered_keys.append(key)
+                classification_results[key] = compute_line_classification_statistics(
+                    delta_data[key]
+                )
+
+    all_raw_p_values = (
+        [
+            classification_results[key]["reversal_p_raw"]
+            for key in ordered_keys
+        ]
+        + [
+            classification_results[key]["direction_p_raw"]
+            for key in ordered_keys
+        ]
+    )
+
+    all_adjusted_p_values = benjamini_hochberg(all_raw_p_values)
+    number_of_lines = len(ordered_keys)
+
+    reversal_adjusted = all_adjusted_p_values[:number_of_lines]
+    direction_adjusted = all_adjusted_p_values[number_of_lines:]
+
+    for idx, key in enumerate(ordered_keys):
+        result = classification_results[key]
+
+        result["reversal_p_adjusted"] = float(reversal_adjusted[idx])
+        result["direction_p_adjusted"] = float(direction_adjusted[idx])
+
+        if (
+            result["reversal_direction"] != "none"
+            and np.isfinite(result["reversal_p_adjusted"])
+            and result["reversal_p_adjusted"] < alpha
+        ):
+            behavior = "Reverses as pool grows"
+
+        elif (
+            np.isfinite(result["direction_p_adjusted"])
+            and result["direction_p_adjusted"] < alpha
+        ):
+            if result["mean_delta_pp"] > 0:
+                behavior = "Minority favored"
+            elif result["mean_delta_pp"] < 0:
+                behavior = "Majority favored"
+            else:
+                behavior = "Inconclusive"
+
+        else:
+            behavior = "Inconclusive"
+
+        result["behavior"] = behavior
+
+    return classification_results
+
+
+def export_classification_results(
+    classification_results,
+    output_path,
+):
+    """
+    Save all raw and adjusted statistics used for behavior assignment.
+    """
+    fieldnames = [
+        "attribute_type",
+        "application",
+        "model_name",
+        "behavior",
+        "mean_probability",
+        "mean_delta_pp",
+        "direction_z",
+        "direction_p_raw",
+        "direction_p_adjusted",
+        "reversal_direction",
+        "endpoint_start_delta_pp",
+        "endpoint_end_delta_pp",
+        "endpoint_start_p",
+        "endpoint_end_p",
+        "trend_z",
+        "trend_p",
+        "reversal_p_raw",
+        "reversal_p_adjusted",
+    ]
+
+    with open(output_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+
+        for (
+            attribute_type,
+            application,
+            model_name,
+        ), result in classification_results.items():
+            row = {
+                "attribute_type": attribute_type,
+                "application": application,
+                "model_name": model_name,
+            }
+
+            for field in fieldnames[3:]:
+                row[field] = result.get(field, "")
+
+            writer.writerow(row)
 
 def compute_subplot_ylim_reviewer(
     delta_data,
@@ -554,7 +925,7 @@ def plot_delta_application_panel(
     resume_counts,
     ylim,
     show_errorbars=False,
-    behavior_overrides=None,
+    classification_results=None,
     annotate_favored_regions=False,
 ):
     """
@@ -591,14 +962,14 @@ def plot_delta_application_panel(
         if not np.any(valid):
             continue
 
-        behavior = get_behavior_for_line(
-            attribute_type=attribute_type,
-            application=application,
-            model_name=model_name,
-            y=y,
-            behavior_overrides=behavior_overrides,
-        )
+        if classification_results is None:
+            raise ValueError(
+                "classification_results must be provided for statistical "
+                "behavior assignment."
+            )
 
+        key = (attribute_type, application, model_name)
+        behavior = classification_results[key]["behavior"]
         color = BEHAVIOR_COLORS[behavior]
         style = model_to_style[model_name]
 
@@ -713,7 +1084,7 @@ def draw_combined_delta_figure(
     max_n_trials=1000000,
     output_dir="outputs/societal",
     show_errorbars=False,
-    behavior_overrides=None,
+    classification_alpha=CLASSIFICATION_ALPHA,
 ):
     """
     Draw the reviewer-style revised Figure 3.
@@ -749,7 +1120,7 @@ def draw_combined_delta_figure(
     }
 
     application_subtitle_map = {
-        "hiring": "mixed, preference can\nreverse as pool size grows",
+        "hiring": "mixed, preference can\nreverse as pool grows",
         "loan": "majority favored,\ngrowing with pool size",
         "edu": "minority favored,\npersists under comparison",
     }
@@ -764,6 +1135,23 @@ def draw_combined_delta_figure(
         application_to_pool_count=application_to_pool_count,
         max_n_trials=max_n_trials,
         strict=True,
+    )
+
+    classification_results = classify_all_model_lines(
+        delta_data=delta_data,
+        attribute_types=attribute_types,
+        applications=applications,
+        model_names=model_names,
+        alpha=classification_alpha,
+    )
+
+    classification_csv_path = os.path.join(
+        output_dir,
+        "Figure3_behavior_classification_statistics.csv",
+    )
+    export_classification_results(
+        classification_results=classification_results,
+        output_path=classification_csv_path,
     )
 
     # Reserve four separate vertical bands below the panels:
@@ -816,7 +1204,7 @@ def draw_combined_delta_figure(
                 resume_counts=resume_counts,
                 ylim=subplot_ylim,
                 show_errorbars=show_errorbars,
-                behavior_overrides=behavior_overrides,
+                classification_results=classification_results,
                 annotate_favored_regions=(row_idx == 0 and col_idx == 0),
             )
 
@@ -853,7 +1241,7 @@ def draw_combined_delta_figure(
     plot_center_y = 0.5 * (plot_bottom + plot_top)
 
     fig.supylabel(
-        "Group-level selection-rate different: minority − majority (pp)",
+        "Group-level selection-rate difference: minority − majority (pp)",
         fontsize=FONT_SIZE + 0.3,
         x=0.025,
         y=plot_center_y,
@@ -944,6 +1332,7 @@ def draw_combined_delta_figure(
 
     print(f"Saved: {pdf_path}")
     print(f"Saved: {png_path}")
+    print(f"Saved: {classification_csv_path}")
 
     plt.close(fig)
 
@@ -976,13 +1365,6 @@ if __name__ == "__main__":
 
     resume_counts = [2, 4, 6, 8, 10]
 
-    # Optional manual corrections if you want a line to use a specific reviewer
-    # category after inspecting the generated plot. Leave empty by default.
-    behavior_overrides = {
-        # Example:
-        # ("Gender Identity", "hiring", "msra-gpt-4o"): "Reverses as pool grows",
-    }
-
     draw_combined_delta_figure(
         model_names=model_names_order,
         applications=applications,
@@ -991,5 +1373,5 @@ if __name__ == "__main__":
         max_n_trials=max_n_trials,
         output_dir="outputs/societal",
         show_errorbars=False,
-        behavior_overrides=behavior_overrides,
+        classification_alpha=0.05,
     )
