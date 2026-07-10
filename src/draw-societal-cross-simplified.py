@@ -1086,7 +1086,7 @@ def plot_delta_application_panel(
         ax.text(
             0.06,
             0.90,
-            "societal minority favored",
+            "Societal minority favored",
             transform=ax.transAxes,
             ha="left",
             va="center",
@@ -1098,7 +1098,7 @@ def plot_delta_application_panel(
         ax.text(
             0.06,
             0.09,
-            "societal majority favored",
+            "Societal majority favored",
             transform=ax.transAxes,
             ha="left",
             va="center",
@@ -1153,9 +1153,9 @@ def draw_combined_delta_figure(
     }
 
     application_subtitle_map = {
-        "hiring": "mixed, model-dependent\npreferences",
-        "loan": "predominantly majority favored,\noften stronger in larger pools",
-        "edu": "predominantly minority favored,\ngenerally persistent across pool sizes",
+        "hiring": "Mixed, model-dependent\npreferences",
+        "loan": "Predominantly majority favored,\noften stronger in larger pools",
+        "edu": "Predominantly minority favored,\ngenerally persistent across pool sizes",
     }
 
     model_to_style = build_model_styles(model_names)
@@ -1276,7 +1276,7 @@ def draw_combined_delta_figure(
     fig.supylabel(
         "Group-level selection-rate difference: minority − majority (pp)",
         fontsize=FONT_SIZE + 0.3,
-        x=0.025,
+        x=0.04,
         y=plot_center_y,
     )
 
@@ -1285,7 +1285,7 @@ def draw_combined_delta_figure(
         row_pos = axes[row_idx, 0].get_position()
         row_center_y = 0.5 * (row_pos.y0 + row_pos.y1)
         fig.text(
-            0.077,
+            0.08,
             row_center_y,
             row_label,
             ha="center",
