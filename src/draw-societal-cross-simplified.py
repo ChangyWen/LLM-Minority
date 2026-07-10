@@ -1091,7 +1091,7 @@ def plot_delta_application_panel(
             ha="left",
             va="center",
             fontsize=LABEL_SIZE + 0.4,
-            fontweight="bold",
+            # fontweight="bold",
             fontstyle="italic",
             color=BEHAVIOR_COLORS["Minority favored"],
         )
@@ -1103,7 +1103,7 @@ def plot_delta_application_panel(
             ha="left",
             va="center",
             fontsize=LABEL_SIZE + 0.4,
-            fontweight="bold",
+            # fontweight="bold",
             fontstyle="italic",
             color=BEHAVIOR_COLORS["Majority favored"],
         )
@@ -1266,7 +1266,7 @@ def draw_combined_delta_figure(
     fig.supxlabel(
         "Number of candidates in pool",
         fontsize=FONT_SIZE + 0.3,
-        y=0.275,
+        y=0.285,
     )
 
     plot_bottom = min(ax.get_position().y0 for ax in axes.flat)
@@ -1311,7 +1311,7 @@ def draw_combined_delta_figure(
     fig.legend(
         handles=behavior_handles,
         loc="lower center",
-        bbox_to_anchor=(0.5, 0.15),
+        bbox_to_anchor=(0.5, 0.19),
         ncol=4,
         frameon=False,
         handlelength=1.7,
@@ -1345,7 +1345,7 @@ def draw_combined_delta_figure(
     fig.legend(
         handles=model_handles,
         loc="lower center",
-        bbox_to_anchor=(0.5, 0.02),
+        bbox_to_anchor=(0.5, 0.09),
         ncol=4,
         frameon=False,
         handlelength=2.0,
