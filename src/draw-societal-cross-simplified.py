@@ -1266,7 +1266,7 @@ def draw_combined_delta_figure(
     fig.supxlabel(
         "Number of candidates in pool",
         fontsize=FONT_SIZE + 0.3,
-        y=0.26,
+        y=0.275,
     )
 
     plot_bottom = min(ax.get_position().y0 for ax in axes.flat)
@@ -1276,7 +1276,7 @@ def draw_combined_delta_figure(
     fig.supylabel(
         "Group-level selection-rate difference: minority − majority (pp)",
         fontsize=FONT_SIZE + 0.3,
-        x=0.04,
+        x=0.05,
         y=plot_center_y,
     )
 
@@ -1285,7 +1285,7 @@ def draw_combined_delta_figure(
         row_pos = axes[row_idx, 0].get_position()
         row_center_y = 0.5 * (row_pos.y0 + row_pos.y1)
         fig.text(
-            0.08,
+            0.09,
             row_center_y,
             row_label,
             ha="center",
