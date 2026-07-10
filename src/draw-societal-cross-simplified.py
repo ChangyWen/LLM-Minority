@@ -6,7 +6,7 @@ from collections import defaultdict
 import numpy as np
 import matplotlib.pyplot as plt
 
-from matplotlib.lines import Line2D
+from matplotlib.lines import Line2D, lineStyles
 from matplotlib.ticker import MaxNLocator, FuncFormatter
 from scipy.stats import binomtest
 
@@ -18,7 +18,7 @@ type_to_minority_attributes = {
 
 FONT_SIZE = 9.5
 LABEL_SIZE = 8.0
-MARKER_SIZE = 4.0
+MARKER_SIZE = 5.0
 LINE_WIDTH = 0.95
 LINE_ALPHA = 0.82
 
@@ -383,16 +383,16 @@ def build_model_styles(model_names):
     In the revised figure, color encodes the behavioral pattern rather than
     model identity. Model identity is encoded by marker and line style.
     """
-    markers = ["o", "s", "^", "D", "v", "P", "X", "*"]
+    markers = ["^", "v", "<", ">", "o", "*", "d", "X"]
     linestyles = [
-        "-",
-        "--",
-        "-.",
-        ":",
-        "-",
-        "--",
-        "-.",
-        (0, (1.0, 2.0)),
+        "solid",
+        "solid",
+        "dotted",
+        "dotted",
+        "dashed",
+        "dashdot",
+        (0, (3, 1, 1, 1)), # densely dashdotted
+        (0, (3,5,1,5,1,5)), # dashdotdotted
     ]
 
     model_to_style = {}
@@ -749,7 +749,7 @@ def draw_combined_delta_figure(
     }
 
     application_subtitle_map = {
-        "hiring": "mixed; preference often\nweakens or reverses",
+        "hiring": "mixed, preference can\nreverse as pool size grows",
         "loan": "majority favored,\ngrowing with pool size",
         "edu": "minority favored,\npersists under comparison",
     }
@@ -845,7 +845,7 @@ def draw_combined_delta_figure(
     fig.supxlabel(
         "Number of candidates in pool",
         fontsize=FONT_SIZE + 0.3,
-        y=0.25,
+        y=0.26,
     )
 
     plot_bottom = min(ax.get_position().y0 for ax in axes.flat)
@@ -890,15 +890,15 @@ def draw_combined_delta_figure(
     fig.legend(
         handles=behavior_handles,
         loc="lower center",
-        bbox_to_anchor=(0.5, 0.12),
+        bbox_to_anchor=(0.5, 0.15),
         ncol=4,
         frameon=False,
         handlelength=1.7,
         columnspacing=1.35,
         handletextpad=0.55,
-        title="Behavior category",
-        title_fontsize=FONT_SIZE - 0.3,
-        fontsize=FONT_SIZE - 0.6,
+        title="Behavior category (color)",
+        title_fontsize=FONT_SIZE + 0.3,
+        fontsize=FONT_SIZE - 0.3,
     )
 
     # Model legend: marker and line style meaning.
@@ -913,7 +913,7 @@ def draw_combined_delta_figure(
                 marker=style["marker"],
                 linestyle=style["linestyle"],
                 linewidth=LINE_WIDTH + 0.25,
-                markersize=MARKER_SIZE + 0.4,
+                markersize=MARKER_SIZE + 2.0,
                 markerfacecolor="0.35",
                 markeredgecolor="white",
                 markeredgewidth=0.35,
@@ -924,13 +924,15 @@ def draw_combined_delta_figure(
     fig.legend(
         handles=model_handles,
         loc="lower center",
-        bbox_to_anchor=(0.5, 0.025),
+        bbox_to_anchor=(0.5, 0.02),
         ncol=4,
         frameon=False,
         handlelength=2.0,
         columnspacing=1.35,
         handletextpad=0.55,
-        fontsize=FONT_SIZE - 1.3,
+        title="Model (linestyle and marker)",
+        title_fontsize=FONT_SIZE + 0.3,
+        fontsize=FONT_SIZE - 0.3,
     )
 
     base = "Figure3_societal_cross_candidate_delta_reviewer_style"
