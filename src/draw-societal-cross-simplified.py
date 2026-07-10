@@ -390,7 +390,7 @@ MAJORITY_BG = "#FBF0F2"
 # Manual y-axis limits for panels that need extra space for annotations.
 # Key format: (attribute_type, application).
 PANEL_YLIM_OVERRIDES = {
-    ("Gender Identity", "hiring"): (-10.0, 10.0),
+    ("Gender Identity", "hiring"): (-11.0, 11.0),
 }
 
 
@@ -1192,7 +1192,7 @@ def draw_combined_delta_figure(
     fig, axes = plt.subplots(
         2,
         3,
-        figsize=(9.4, 5.65),
+        figsize=(9.4, 7.0),
         sharex=True,
         sharey=False,
     )
@@ -1202,8 +1202,8 @@ def draw_combined_delta_figure(
         right=0.985,
         top=0.820,
         bottom=0.340,
-        wspace=0.24,
-        hspace=0.34,
+        wspace=0.12,
+        hspace=0.28,
     )
 
     for row_idx, attribute_type in enumerate(attribute_types):
