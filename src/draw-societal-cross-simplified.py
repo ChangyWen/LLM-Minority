@@ -676,13 +676,6 @@ def plot_delta_application_panel(
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
 
-    # ax.grid(
-    #     axis="y",
-    #     color="white",
-    #     linewidth=0.75,
-    #     linestyle="-",
-    #     zorder=1,
-    # )
     ax.set_axisbelow(True)
 
     if annotate_favored_regions:
@@ -773,10 +766,12 @@ def draw_combined_delta_figure(
         strict=True,
     )
 
+    # Reserve four separate vertical bands below the panels:
+    # plots -> shared x-axis label -> behavior legend -> model legend.
     fig, axes = plt.subplots(
         2,
         3,
-        figsize=(9.4, 4.95),
+        figsize=(9.4, 5.65),
         sharex=True,
         sharey=False,
     )
@@ -784,8 +779,8 @@ def draw_combined_delta_figure(
     plt.subplots_adjust(
         left=0.125,
         right=0.985,
-        top=0.800,
-        bottom=0.245,
+        top=0.820,
+        bottom=0.340,
         wspace=0.24,
         hspace=0.34,
     )
@@ -850,7 +845,7 @@ def draw_combined_delta_figure(
     fig.supxlabel(
         "Number of candidates in pool",
         fontsize=FONT_SIZE + 0.3,
-        y=0.205,
+        y=0.285,
     )
 
     fig.supylabel(
@@ -890,7 +885,7 @@ def draw_combined_delta_figure(
     fig.legend(
         handles=behavior_handles,
         loc="lower center",
-        bbox_to_anchor=(0.5, 0.155),
+        bbox_to_anchor=(0.5, 0.165),
         ncol=4,
         frameon=False,
         handlelength=1.7,
@@ -924,7 +919,7 @@ def draw_combined_delta_figure(
     fig.legend(
         handles=model_handles,
         loc="lower center",
-        bbox_to_anchor=(0.5, 0.020),
+        bbox_to_anchor=(0.5, 0.025),
         ncol=4,
         frameon=False,
         handlelength=2.0,
