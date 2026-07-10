@@ -365,19 +365,21 @@ def compute_subplot_ylim(
 # Plotting
 # ============================================================
 
-# Semantic colors for the statistically supported overall preference.
-# Markers/linestyles identify models. Reversal is retained as a separate
-# statistical result in the CSV but is not a color category.
+# Reviewer-style semantic colors.
+# Lines are colored by the qualitative pattern, while markers/linestyles
+# identify models. This makes the main story readable without 48 small panels.
 BEHAVIOR_COLORS = {
     "Minority favored": "#1B9E77",
+    "Reverses as pool grows": "#E68613",
     "Majority favored": "#C9253C",
-    "No statistically supported pattern": "#9E9E9E",
+    "No statistically-supported pattern": "#9E9E9E",
 }
 
 BEHAVIOR_ORDER = [
     "Minority favored",
+    "Reverses as pool grows",
     "Majority favored",
-    "No statistically supported pattern",
+    "No statistically-supported pattern",
 ]
 
 CLASSIFICATION_ALPHA = 0.05
@@ -741,23 +743,24 @@ def classify_all_model_lines(
     alpha=CLASSIFICATION_ALPHA,
 ):
     """
-    Classify all plotted model lines by their overall directional preference.
+    Classify all plotted model lines using formal statistical hypotheses.
 
-    The plotted behavior category is determined only by the equal-weight
-    overall-direction test:
+    The reversal and overall-direction hypotheses answer different scientific
+    questions, so their p-values are adjusted in two separate
+    Benjamini-Hochberg families:
 
-      - a significantly positive mean difference is "Minority favored";
-      - a significantly negative mean difference is "Majority favored";
-      - otherwise, the line is "No statistically supported pattern".
+      - one family containing all line-level reversal p-values;
+      - one family containing all line-level overall-direction p-values.
 
-    Benjamini-Hochberg adjustment is applied across all line-level
-    overall-direction tests. With the default figure design, this family
-    contains 48 tests (8 models x 3 applications x 2 attributes), provided
-    that all tests return finite p-values.
+    With the default figure design, each family contains 48 tests
+    (8 models x 3 applications x 2 attributes), provided that all tests return
+    finite p-values.
 
-    Reversal statistics are still computed, adjusted in their own 48-test
-    family, and exported for supplementary interpretation. They do not affect
-    the plotted behavior category or line color.
+    The decision hierarchy is:
+
+      1. statistically supported reversal;
+      2. otherwise, statistically supported average direction;
+      3. otherwise, inconclusive.
 
     No manually selected effect-size threshold is used.
     """
@@ -773,9 +776,7 @@ def classify_all_model_lines(
                     delta_data[key]
                 )
 
-    # The reversal and overall-direction hypotheses answer different questions,
-    # so their p-values are adjusted in separate Benjamini-Hochberg families.
-    # Only the adjusted direction test is used for the behavior category.
+    # Adjust the two scientifically distinct hypothesis families separately.
     reversal_raw_p_values = np.asarray(
         [
             classification_results[key]["reversal_p_raw"]
@@ -803,32 +804,34 @@ def classify_all_model_lines(
         result["reversal_p_adjusted"] = float(reversal_adjusted[idx])
         result["direction_p_adjusted"] = float(direction_adjusted[idx])
 
-        # Retained for reporting only; this flag does not determine line color.
         reversal_significant = (
             result["reversal_direction"] != "none"
             and np.isfinite(result["reversal_p_adjusted"])
             and result["reversal_p_adjusted"] < alpha
         )
-
         direction_significant = (
             np.isfinite(result["direction_p_adjusted"])
             and result["direction_p_adjusted"] < alpha
         )
 
-        # Assign the plotted category solely from the overall-direction test.
-        if direction_significant and result["mean_delta_pp"] > 0:
-            behavior = "Minority favored"
-        elif direction_significant and result["mean_delta_pp"] < 0:
-            behavior = "Majority favored"
+        # Apply the prespecified hierarchical classification rule.
+        if reversal_significant:
+            behavior = "Reverses as pool grows"
+
+        elif direction_significant:
+            if result["mean_delta_pp"] > 0:
+                behavior = "Minority favored"
+            elif result["mean_delta_pp"] < 0:
+                behavior = "Majority favored"
+            else:
+                behavior = "No statistically-supported pattern"
+
         else:
-            behavior = "No statistically supported pattern"
+            behavior = "No statistically-supported pattern"
 
         result["reversal_significant"] = bool(reversal_significant)
         result["direction_significant"] = bool(direction_significant)
         result["classification_alpha"] = float(alpha)
-        result["classification_basis"] = (
-            "Overall-direction test only; reversal does not determine class"
-        )
         result["multiple_testing_method"] = (
             "Benjamini-Hochberg; separate reversal and direction families"
         )
@@ -852,7 +855,6 @@ def export_classification_results(
         "model_name",
         "behavior",
         "classification_alpha",
-        "classification_basis",
         "multiple_testing_method",
         "reversal_bh_family_size",
         "direction_bh_family_size",
@@ -962,8 +964,8 @@ def plot_delta_application_panel(
     """
     Draw one subplot: one attribute x one application.
 
-    Each line corresponds to one model. Line color encodes the statistically
-    supported overall preference; marker/linestyle encodes the model.
+    Each line corresponds to one model. Line color encodes the qualitative
+    behavioral pattern; marker/linestyle encodes the model.
     """
     xs = np.asarray(resume_counts, dtype=float)
 
@@ -1129,7 +1131,7 @@ def draw_combined_delta_figure(
         Delta = SelectionRate_Minority - SelectionRate_Majority
 
     Visual encoding:
-        Color:       statistically supported overall preference
+        Color:       qualitative behavior category
         Marker/line: model identity
         Background:  positive = societal minority favored;
                      negative = societal majority favored
@@ -1293,7 +1295,7 @@ def draw_combined_delta_figure(
             fontweight="bold",
         )
 
-    # Overall-preference legend: semantic color meaning.
+    # Behavior legend: semantic color meaning.
     behavior_handles = [
         Line2D(
             [0],
@@ -1310,12 +1312,12 @@ def draw_combined_delta_figure(
         handles=behavior_handles,
         loc="lower center",
         bbox_to_anchor=(0.5, 0.19),
-        ncol=3,
+        ncol=4,
         frameon=False,
         handlelength=1.7,
         columnspacing=1.35,
         handletextpad=0.55,
-        title="Overall preference (color)",
+        title="Behavior category (color)",
         title_fontsize=FONT_SIZE + 0.3,
         fontsize=FONT_SIZE - 0.3,
     )
