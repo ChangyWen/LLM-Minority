@@ -845,13 +845,18 @@ def draw_combined_delta_figure(
     fig.supxlabel(
         "Number of candidates in pool",
         fontsize=FONT_SIZE + 0.3,
-        y=0.285,
+        y=0.25,
     )
 
+    plot_bottom = min(ax.get_position().y0 for ax in axes.flat)
+    plot_top = max(ax.get_position().y1 for ax in axes.flat)
+    plot_center_y = 0.5 * (plot_bottom + plot_top)
+
     fig.supylabel(
-        f"Group-level selection-rate different: minority − majority (pp)",
+        "Group-level selection-rate different: minority − majority (pp)",
         fontsize=FONT_SIZE + 0.3,
         x=0.025,
+        y=plot_center_y,
     )
 
     # Row labels.
@@ -885,7 +890,7 @@ def draw_combined_delta_figure(
     fig.legend(
         handles=behavior_handles,
         loc="lower center",
-        bbox_to_anchor=(0.5, 0.165),
+        bbox_to_anchor=(0.5, 0.12),
         ncol=4,
         frameon=False,
         handlelength=1.7,
