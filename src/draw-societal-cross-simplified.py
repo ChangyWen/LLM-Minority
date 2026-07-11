@@ -1260,10 +1260,15 @@ def draw_combined_delta_figure(
                     linespacing=1.05,
                 )
 
+    plot_left = min(ax.get_position().x0 for ax in axes.flat)
+    plot_right = max(ax.get_position().x1 for ax in axes.flat)
+    plot_center_x = 0.5 * (plot_left + plot_right)
+
     # Shared axis labels.
     fig.supxlabel(
         "Number of candidates in pool",
         fontsize=FONT_SIZE + 0.3,
+        x=plot_center_x,
         y=0.285,
     )
 
@@ -1309,7 +1314,7 @@ def draw_combined_delta_figure(
     fig.legend(
         handles=behavior_handles,
         loc="lower center",
-        bbox_to_anchor=(0.5, 0.19),
+        bbox_to_anchor=(plot_center_x, 0.19),
         ncol=3,
         frameon=False,
         handlelength=1.7,
@@ -1343,7 +1348,7 @@ def draw_combined_delta_figure(
     fig.legend(
         handles=model_handles,
         loc="lower center",
-        bbox_to_anchor=(0.5, 0.09),
+        bbox_to_anchor=(plot_center_x, 0.09),
         ncol=4,
         frameon=False,
         handlelength=2.0,
