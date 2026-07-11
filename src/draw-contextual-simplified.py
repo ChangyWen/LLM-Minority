@@ -138,7 +138,7 @@ INDIVIDUAL_ALPHA = 0.27
 MINORITY_SHADE_COLOR = "0.93"
 BASELINE_COLOR = "0.05"
 
-FIGURE_SIZE = (16.5, 9.2)
+FIGURE_SIZE = (16.5, 10.5)
 OUTPUT_BASENAME = "Figure4_contextual_bias_reviewer_style_summary"
 
 
@@ -860,10 +860,10 @@ def plot_summary_panel(
 
         if attribute_type == "Gender":
             minority_text = "Female is\ncontextual minority"
-            majority_text = "Female is\ncontextual majority"
+            majority_text = "Male is\ncontextual minority"
         elif attribute_type == "Race":
             minority_text = "Black is\ncontextual minority"
-            majority_text = "Black is\ncontextual majority"
+            majority_text = "White is\ncontextual minority"
         else:
             raise ValueError(
                 f"Unexpected attribute_type for contextual annotation: "
