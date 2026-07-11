@@ -141,6 +141,22 @@ BASELINE_COLOR = "0.05"
 FIGURE_SIZE = (16.5, 10.5)
 OUTPUT_BASENAME = "Figure4_contextual_bias_reviewer_style_summary"
 
+# ============================================================
+# Font sizes
+#
+# Adjust the values below to resize all textual elements consistently.
+# ============================================================
+
+BASE_FONT_SIZE = 10.5
+AXIS_FONT_SIZE = 16
+TICK_FONT_SIZE = 13.5
+TITLE_FONT_SIZE = 16
+SUBTITLE_FONT_SIZE = 16
+ROW_LABEL_FONT_SIZE = 16
+INLINE_LABEL_FONT_SIZE = 13.5
+ANNOTATION_FONT_SIZE = 13.5
+LEGEND_FONT_SIZE = 16
+
 
 # ============================================================
 # Plot style
@@ -156,6 +172,11 @@ def set_figure_style() -> None:
             "ps.fonttype": 42,
             "figure.dpi": 150,
             "savefig.dpi": 600,
+            "font.size": BASE_FONT_SIZE,
+            "axes.labelsize": AXIS_FONT_SIZE,
+            "xtick.labelsize": TICK_FONT_SIZE,
+            "ytick.labelsize": TICK_FONT_SIZE,
+            "legend.fontsize": LEGEND_FONT_SIZE,
             "axes.linewidth": 0.85,
             "axes.edgecolor": "0.10",
             "axes.spines.top": False,
@@ -604,7 +625,7 @@ def _add_inline_group_label(
         label_y,
         label,
         color=color,
-        fontsize=12.0,
+        fontsize=INLINE_LABEL_FONT_SIZE,
         fontweight="bold",
         ha=horizontal_alignment,
         va="center",
@@ -811,7 +832,7 @@ def plot_summary_panel(
         axis="both",
         which="major",
         direction="out",
-        labelsize=10.5,
+        labelsize=TICK_FONT_SIZE,
         width=0.85,
         length=0.0,
         pad=4.0,
@@ -836,7 +857,7 @@ def plot_summary_panel(
             transform=ax.transAxes,
             ha="center",
             va="bottom",
-            fontsize=14.0,
+            fontsize=TITLE_FONT_SIZE,
             fontweight="bold",
             clip_on=False,
         )
@@ -847,7 +868,7 @@ def plot_summary_panel(
             transform=ax.transAxes,
             ha="center",
             va="bottom",
-            fontsize=10.6,
+            fontsize=SUBTITLE_FONT_SIZE,
             fontstyle="italic",
             color="0.35",
             linespacing=1.08,
@@ -876,7 +897,7 @@ def plot_summary_panel(
             minority_text,
             ha="center",
             va="bottom",
-            fontsize=9.8,
+            fontsize=ANNOTATION_FONT_SIZE,
             fontstyle="italic",
             color="0.38",
             linespacing=1.05,
@@ -889,7 +910,7 @@ def plot_summary_panel(
             majority_text,
             ha="center",
             va="bottom",
-            fontsize=9.8,
+            fontsize=ANNOTATION_FONT_SIZE,
             fontstyle="italic",
             color="0.38",
             linespacing=1.05,
@@ -957,7 +978,7 @@ def draw_figure(
         right=0.988,
         bottom=0.175,
         top=0.835,
-        wspace=0.15,
+        wspace=0.1,
         hspace=0.38,
     )
 
@@ -1024,7 +1045,7 @@ def draw_figure(
         plots_center_x,
         first_row_xlabel_y,
         "Proportion of female in pool (%)",
-        fontsize=11.5,
+        fontsize=AXIS_FONT_SIZE,
         ha="center",
         va="center",
     )
@@ -1033,14 +1054,14 @@ def draw_figure(
         plots_center_x,
         second_row_xlabel_y,
         "Proportion of Black in pool (%)",
-        fontsize=11.5,
+        fontsize=AXIS_FONT_SIZE,
         ha="center",
         va="center",
     )
 
     fig.supylabel(
         "Candidate-level selection rate (%)",
-        fontsize=11.5,
+        fontsize=AXIS_FONT_SIZE,
         x=0.018,
         y=plots_center_y,
         va="center",
@@ -1062,7 +1083,7 @@ def draw_figure(
             attribute_type,
             ha="center",
             va="center",
-            fontsize=12.0,
+            fontsize=ROW_LABEL_FONT_SIZE,
             fontweight="bold",
             rotation=90,
         )
@@ -1113,10 +1134,10 @@ def draw_figure(
     fig.legend(
         handles=legend_handles,
         loc="lower center",
-        bbox_to_anchor=(plots_center_x, 0.012),
-        ncol=4,
+        bbox_to_anchor=(plots_center_x, 0.005),
+        ncol=2,
         frameon=False,
-        fontsize=10.5,
+        fontsize=LEGEND_FONT_SIZE,
         handlelength=2.2,
         handletextpad=0.7,
         columnspacing=1.55,
