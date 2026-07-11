@@ -11,7 +11,9 @@ Each panel contains:
     - thin group-colored lines for the individual LLMs;
     - thick lines with markers for the unweighted cross-model mean;
     - a dashed uniform-random candidate-level selection-rate baseline;
-    - a shaded region indicating that the focal group is the contextual minority.
+    - a shaded region indicating that the focal group is the contextual minority;
+    - symmetric contextual-minority/contextual-majority annotations in the
+      first panel of each row.
 
 Expected input path pattern:
     {data_root}/{application}/contextual/{attribute_type}/
@@ -46,7 +48,6 @@ from typing import Dict, Iterable, Mapping, MutableMapping, Sequence
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
-from matplotlib.patches import Patch
 from matplotlib.ticker import MaxNLocator
 
 
@@ -125,6 +126,11 @@ Y_AXIS_PADDING_FRACTION = 0.12
 Y_AXIS_MIN_PADDING = 0.50
 Y_AXIS_MIN_DATA_SPAN = 4.00
 Y_AXIS_TARGET_TICKS = 5
+
+# Extra empty space beneath the curves in the first panel of each row so
+# that the contextual-minority/contextual-majority annotations do not overlap
+# the plotted lines.
+FIRST_COLUMN_PANEL_LOWER_MARGIN_FRACTION = 0.22
 
 FOCAL_COLOR = "#d81b60"
 REFERENCE_COLOR = "#3949ab"
@@ -617,9 +623,7 @@ def plot_summary_panel(
     pool_size: int,
     show_column_header: bool,
     show_x_tick_labels: bool,
-    show_x_label: bool,
-    show_y_label: bool,
-    add_minority_note: bool,
+    add_context_note: bool,
 ) -> None:
     style = get_attribute_style(attribute_type)
     focal_group = str(style["focal"])
@@ -728,6 +732,18 @@ def plot_summary_panel(
         reference_group=reference_group,
         random_rate_percent=random_rate_percent,
     )
+
+    # The first panel of each row contains two explanatory annotations
+    # beneath the curves. Expand only those lower limits to reserve clean
+    # text space.
+    if add_context_note:
+        panel_span = max(panel_ymax - panel_ymin, 1e-12)
+        panel_ymin = max(
+            0.0,
+            panel_ymin
+            - FIRST_COLUMN_PANEL_LOWER_MARGIN_FRACTION * panel_span,
+        )
+
     ax.set_ylim(panel_ymin, panel_ymax)
     ax.yaxis.set_major_locator(
         MaxNLocator(
@@ -776,20 +792,6 @@ def plot_summary_panel(
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
 
-    if show_x_label:
-        ax.set_xlabel(
-            "Proportion of focal group in pool (%)",
-            fontsize=11.5,
-            labelpad=6.0,
-        )
-
-    if show_y_label:
-        ax.set_ylabel(
-            f"{attribute_type}\nCandidate-level selection rate (%)",
-            fontsize=11.5,
-            labelpad=13.0,
-        )
-
     if show_column_header:
         ax.text(
             0.5,
@@ -816,12 +818,39 @@ def plot_summary_panel(
             clip_on=False,
         )
 
-    if add_minority_note:
+    if add_context_note:
         ymin, ymax = ax.get_ylim()
+        note_y = ymin + 0.045 * (ymax - ymin)
+
+        if attribute_type == "Gender":
+            minority_text = "Female is\ncontextual minority"
+            majority_text = "Female is\ncontextual majority"
+        elif attribute_type == "Race":
+            minority_text = "Black is\ncontextual minority"
+            majority_text = "Black is\ncontextual majority"
+        else:
+            raise ValueError(
+                f"Unexpected attribute_type for contextual annotation: "
+                f"{attribute_type!r}"
+            )
+
         ax.text(
             25.0,
-            ymin + 0.035 * (ymax - ymin),
-            "focal group is\ncontextual minority",
+            note_y,
+            minority_text,
+            ha="center",
+            va="bottom",
+            fontsize=9.8,
+            fontstyle="italic",
+            color="0.38",
+            linespacing=1.05,
+            zorder=5,
+        )
+
+        ax.text(
+            75.0,
+            note_y,
+            majority_text,
             ha="center",
             va="bottom",
             fontsize=9.8,
@@ -888,12 +917,12 @@ def draw_figure(
     )
 
     fig.subplots_adjust(
-        left=0.075,
+        left=0.135,
         right=0.988,
-        bottom=0.165,
+        bottom=0.175,
         top=0.835,
-        wspace=0.235,
-        hspace=0.245,
+        wspace=0.15,
+        hspace=0.38,
     )
 
     for row_index, attribute_type in enumerate(ATTRIBUTE_TYPES):
@@ -907,19 +936,101 @@ def draw_figure(
                 attribute_type=attribute_type,
                 pool_size=pool_size,
                 show_column_header=(row_index == 0),
-                show_x_tick_labels=(row_index == 1),
-                show_x_label=(row_index == 1),
-                show_y_label=(column_index == 0),
-                add_minority_note=(
-                    row_index == 0 and column_index == 0
-                ),
+                show_x_tick_labels=True,
+                add_context_note=(column_index == 0),
             )
 
-    # Matplotlib fills multi-row legends column by column. This ordering
-    # therefore renders the first row as:
-    #   focal mean | individual models | shaded minority region
-    # and the second row as:
-    #   reference mean | random baseline
+    # ------------------------------------------------------------
+    # Shared axis labels
+    #
+    # Center both shared labels on the actual 2 x 3 plotting area,
+    # rather than on the entire figure canvas.
+    # ------------------------------------------------------------
+    left_plot_edge = min(
+        ax.get_position().x0
+        for row_axes in axes
+        for ax in row_axes
+    )
+    right_plot_edge = max(
+        ax.get_position().x1
+        for row_axes in axes
+        for ax in row_axes
+    )
+    bottom_plot_edge = min(
+        ax.get_position().y0
+        for row_axes in axes
+        for ax in row_axes
+    )
+    top_plot_edge = max(
+        ax.get_position().y1
+        for row_axes in axes
+        for ax in row_axes
+    )
+
+    plots_center_x = (left_plot_edge + right_plot_edge) / 2.0
+    plots_center_y = (bottom_plot_edge + top_plot_edge) / 2.0
+
+    # Row-specific x labels, centered on the plotting area.
+    first_row_positions = [axes[0, col].get_position() for col in range(3)]
+    second_row_positions = [axes[1, col].get_position() for col in range(3)]
+
+    first_row_bottom = min(pos.y0 for pos in first_row_positions)
+    second_row_top = max(pos.y1 for pos in second_row_positions)
+    second_row_bottom = min(pos.y0 for pos in second_row_positions)
+
+    # First-row shared xlabel: place it in the gap between the two rows.
+    first_row_xlabel_y = second_row_top + 0.48 * (first_row_bottom - second_row_top)
+
+    # Second-row shared xlabel: place it below the second row and above the legend.
+    second_row_xlabel_y = second_row_bottom - 0.058
+
+    fig.text(
+        plots_center_x,
+        first_row_xlabel_y,
+        "Proportion of female in pool (%)",
+        fontsize=11.5,
+        ha="center",
+        va="center",
+    )
+
+    fig.text(
+        plots_center_x,
+        second_row_xlabel_y,
+        "Proportion of Black in pool (%)",
+        fontsize=11.5,
+        ha="center",
+        va="center",
+    )
+
+    fig.supylabel(
+        "Candidate-level selection rate (%)",
+        fontsize=11.5,
+        x=0.018,
+        y=plots_center_y,
+        va="center",
+    )
+
+    # Row-specific attribute labels are placed between the shared y label
+    # and the plots and are centered vertically on each row.
+    row_label_x = 0.078
+
+    for row_index, attribute_type in enumerate(ATTRIBUTE_TYPES):
+        first_axis_position = axes[row_index, 0].get_position()
+        row_center_y = (
+            first_axis_position.y0 + first_axis_position.y1
+        ) / 2.0
+
+        fig.text(
+            row_label_x,
+            row_center_y,
+            attribute_type,
+            ha="center",
+            va="center",
+            fontsize=12.0,
+            fontweight="bold",
+            rotation=90,
+        )
+
     legend_handles = [
         Line2D(
             [0],
@@ -961,18 +1072,13 @@ def draw_figure(
                 f"({100.0 / pool_size:.0f}%)"
             ),
         ),
-        Patch(
-            facecolor=MINORITY_SHADE_COLOR,
-            edgecolor="none",
-            label="Focal group is contextual minority",
-        ),
     ]
 
     fig.legend(
         handles=legend_handles,
         loc="lower center",
-        bbox_to_anchor=(0.5, 0.035),
-        ncol=3,
+        bbox_to_anchor=(plots_center_x, 0.012),
+        ncol=4,
         frameon=False,
         fontsize=10.5,
         handlelength=2.2,
