@@ -79,22 +79,22 @@ APPLICATION_TEXT = {
     "hiring": {
         "title": "Hiring",
         "subtitle": (
-            "Female/Black favored;\n"
-            "gap widest when they are the minority"
+            "Female/Black favored, especially\n"
+            "when contextually underrepresented"
         ),
     },
     "loan": {
         "title": "Loan approval",
         "subtitle": (
-            "Male/White favored;\n"
-            "gap widest when they are the minority"
+            "Male/White favored, especially\n"
+            "when contextually underrepresented"
         ),
     },
     "edu": {
         "title": "Scholarship allocation",
         "subtitle": (
-            "Female/Black favored, as in hiring;\n"
-            "pattern weaker and more model-dependent"
+            "Female/Black favored, especially\n"
+            "when contextually underrepresented"
         ),
     },
 }
@@ -720,8 +720,8 @@ def plot_summary_panel(
         focal_xs,
         focal_ys,
         color=FOCAL_COLOR,
-        marker="o",
-        markersize=5.8,
+        marker="^",
+        markersize=8,
         markerfacecolor=FOCAL_COLOR,
         markeredgecolor=FOCAL_COLOR,
         linewidth=3.25,
@@ -732,8 +732,8 @@ def plot_summary_panel(
         reference_xs,
         reference_ys,
         color=REFERENCE_COLOR,
-        marker="s",
-        markersize=5.4,
+        marker="o",
+        markersize=8,
         markerfacecolor=REFERENCE_COLOR,
         markeredgecolor=REFERENCE_COLOR,
         linewidth=3.25,
@@ -797,6 +797,11 @@ def plot_summary_panel(
         )
 
         ax.set_ylim(panel_ymin, panel_ymax)
+
+        if attribute_type == "Race" and application == "hiring":
+            ax.set_ylim(10, 28)
+        if attribute_type == "Race" and application == "edu":
+            ax.set_ylim(13, 23)
         ax.yaxis.set_major_locator(
             MultipleLocator(integer_tick_step)
         )
@@ -863,7 +868,7 @@ def plot_summary_panel(
         )
         ax.text(
             0.5,
-            1.16,
+            1.1,
             APPLICATION_TEXT[application]["subtitle"],
             transform=ax.transAxes,
             ha="center",
@@ -978,7 +983,7 @@ def draw_figure(
         right=0.988,
         bottom=0.175,
         top=0.835,
-        wspace=0.1,
+        wspace=0.13,
         hspace=0.38,
     )
 
@@ -1062,14 +1067,14 @@ def draw_figure(
     fig.supylabel(
         "Candidate-level selection rate (%)",
         fontsize=AXIS_FONT_SIZE,
-        x=0.018,
+        x=0.06,
         y=plots_center_y,
         va="center",
     )
 
     # Row-specific attribute labels are placed between the shared y label
     # and the plots and are centered vertically on each row.
-    row_label_x = 0.078
+    row_label_x = 0.093
 
     for row_index, attribute_type in enumerate(ATTRIBUTE_TYPES):
         first_axis_position = axes[row_index, 0].get_position()
@@ -1093,23 +1098,23 @@ def draw_figure(
             [0],
             [0],
             color=FOCAL_COLOR,
-            marker="o",
+            marker="^",
             markerfacecolor=FOCAL_COLOR,
             markeredgecolor=FOCAL_COLOR,
-            linewidth=3.0,
-            markersize=6.5,
-            label="Female / Black (cross-model mean)",
+            linewidth=3.5,
+            markersize=8.5,
+            label="Female / Black (mean across models)",
         ),
         Line2D(
             [0],
             [0],
             color=REFERENCE_COLOR,
-            marker="s",
+            marker="o",
             markerfacecolor=REFERENCE_COLOR,
             markeredgecolor=REFERENCE_COLOR,
-            linewidth=3.0,
-            markersize=6.1,
-            label="Male / White (cross-model mean)",
+            linewidth=3.5,
+            markersize=8.5,
+            label="Male / White (mean across models)",
         ),
         Line2D(
             [0],
