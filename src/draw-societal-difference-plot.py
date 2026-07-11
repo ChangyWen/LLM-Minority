@@ -547,7 +547,7 @@ def plot_difference_panel(
     ax.tick_params(
         axis="both",
         direction="out",
-        length=2.5,
+        length=0,
         width=0.7,
         color="0.15",
         labelcolor="black",
