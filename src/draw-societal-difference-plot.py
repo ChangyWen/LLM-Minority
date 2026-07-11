@@ -394,6 +394,7 @@ def plot_difference_panel(
     model_color_map,
     show_model_labels=True,
     xlim=None,
+    annotate_preference_regions=False,
 ):
     """
     Draw one panel:
@@ -497,6 +498,41 @@ def plot_difference_panel(
         xlim = get_panel_xlim(results_for_panel)
     ax.set_xlim(*xlim)
 
+    # Add interpretation labels only when explicitly requested.
+    # x uses data coordinates so the labels sit on opposite sides of x = 0;
+    # y uses axes coordinates so they remain aligned near the top of the panel.
+    if annotate_preference_regions:
+        x_min, x_max = ax.get_xlim()
+        x_pad = 0.025 * (x_max - x_min)
+
+        ax.text(
+            -x_pad,
+            0.97,
+            "Societal\nmajority\nfavored",
+            transform=ax.get_xaxis_transform(),
+            ha="right",
+            va="top",
+            fontsize=FIG_FONT_SIZE,
+            color="0.30",
+            linespacing=1.05,
+            fontstyle="italic",
+            zorder=5,
+        )
+
+        ax.text(
+            x_pad,
+            0.97,
+            "Societal\nminority\nfavored",
+            transform=ax.get_xaxis_transform(),
+            ha="left",
+            va="top",
+            fontsize=FIG_FONT_SIZE,
+            color="0.30",
+            linespacing=1.05,
+            fontstyle="italic",
+            zorder=5,
+        )
+
     ax.xaxis.set_major_locator(MaxNLocator(nbins=5))
     ax.xaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"{v:.2f}"))
 
@@ -596,6 +632,16 @@ def draw_societal_difference_figure(
 
             panel_xlim = global_xlim if USE_GLOBAL_XLIM else get_panel_xlim(results_for_panel)
 
+            # Add extra horizontal space only to the upper-left panel
+            if row_idx == 0 and col_idx == 0:
+                x_min, x_max = panel_xlim
+                x_span = x_max - x_min
+
+                panel_xlim = (
+                    x_min - 0.2 * x_span,  # extra space on the majority-favored side
+                    x_max + 0.0 * x_span,  # small extra space on the minority-favored side
+                )
+
             plot_difference_panel(
                 ax=ax,
                 results_for_panel=results_for_panel,
@@ -603,6 +649,7 @@ def draw_societal_difference_figure(
                 model_color_map=model_color_map,
                 show_model_labels=(col_idx == 0),
                 xlim=panel_xlim,
+                annotate_preference_regions=(row_idx == 0 and col_idx == 0),
             )
 
             ax.set_title(
@@ -614,7 +661,7 @@ def draw_societal_difference_figure(
 
 
     fig.supxlabel(
-        "Score difference: societal minority − societal majority",
+        "Score difference: minority − majority",
         fontsize=FIG_FONT_SIZE,
         x=0.65,   # move right; default is 0.5
         y=0.09,
