@@ -21,7 +21,7 @@ MODEL_ROW_SPACING = 1.8
 
 ATTRIBUTE_TITLE_PAD = 8
 APPLICATION_TITLE_OFFSET = 0.030
-ROW_HSPACE = 0.5
+ROW_HSPACE = 0.45
 
 # Match current Fig. 2 caption:
 # H1: minority scores exceed majority scores.
@@ -352,7 +352,7 @@ def get_xlim_from_results(all_results):
     x_max = max(x_max, 0.0)
 
     span = max(x_max - x_min, 0.1)
-    pad = 0.10 * span
+    pad = 0.0 * span
 
     # Give a little negative space so the zero line is visible.
     return (x_min - pad, x_max + pad)
@@ -614,7 +614,7 @@ def draw_societal_difference_figure(
     fig, axes = plt.subplots(
         nrows=len(applications),
         ncols=len(attribute_types),
-        figsize=(7.6, 8),
+        figsize=(7.6, 9),
         sharex=USE_GLOBAL_XLIM,
         sharey=True,
     )
@@ -664,7 +664,7 @@ def draw_societal_difference_figure(
         "Score difference: minority − majority",
         fontsize=FIG_FONT_SIZE,
         x=0.65,   # move right; default is 0.5
-        y=0.09,
+        y=0.10,
     )
 
     fig.subplots_adjust(
@@ -672,7 +672,7 @@ def draw_societal_difference_figure(
         right=0.985,
         bottom=0.155,
         top=0.925,
-        wspace=0.130,
+        wspace=0.08,
         hspace=ROW_HSPACE,
     )
 
