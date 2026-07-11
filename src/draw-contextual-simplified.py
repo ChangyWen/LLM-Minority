@@ -813,7 +813,7 @@ def plot_summary_panel(
         direction="out",
         labelsize=10.5,
         width=0.85,
-        length=5.0,
+        length=0.0,
         pad=4.0,
     )
     ax.tick_params(
