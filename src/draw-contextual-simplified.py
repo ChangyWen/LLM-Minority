@@ -48,7 +48,7 @@ from typing import Dict, Iterable, Mapping, MutableMapping, Sequence
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
-from matplotlib.ticker import MaxNLocator
+from matplotlib.ticker import MaxNLocator, MultipleLocator
 
 
 # ============================================================
@@ -79,21 +79,21 @@ APPLICATION_TEXT = {
     "hiring": {
         "title": "Hiring",
         "subtitle": (
-            "Female/Black favored:\n"
+            "Female/Black favored;\n"
             "gap widest when they are the minority"
         ),
     },
     "loan": {
         "title": "Loan approval",
         "subtitle": (
-            "Male/White favored:\n"
+            "Male/White favored;\n"
             "gap widest when they are the minority"
         ),
     },
     "edu": {
         "title": "Scholarship allocation",
         "subtitle": (
-            "Female/Black favored, as in hiring:\n"
+            "Female/Black favored, as in hiring;\n"
             "pattern weaker and more model-dependent"
         ),
     },
@@ -744,14 +744,50 @@ def plot_summary_panel(
             - FIRST_COLUMN_PANEL_LOWER_MARGIN_FRACTION * panel_span,
         )
 
-    ax.set_ylim(panel_ymin, panel_ymax)
-    ax.yaxis.set_major_locator(
-        MaxNLocator(
-            nbins=Y_AXIS_TARGET_TICKS,
-            steps=[1, 2, 2.5, 5, 10],
-            min_n_ticks=4,
-        )
+    # Force integer y-axis limits and tick intervals for the lower-left
+    # (Race × Hiring) and lower-right (Race × Scholarship allocation)
+    # panels. The other four panels retain their existing automatic locator.
+    use_integer_y_ticks = (
+        attribute_type == "Race"
+        and application in {"hiring", "edu"}
     )
+
+    if use_integer_y_ticks:
+        integer_ymin = math.floor(panel_ymin)
+        integer_ymax = math.ceil(panel_ymax)
+
+        # Choose an integer interval that gives approximately the requested
+        # number of major ticks, then align both limits to that interval.
+        integer_tick_step = max(
+            1,
+            math.ceil(
+                (integer_ymax - integer_ymin)
+                / max(Y_AXIS_TARGET_TICKS - 1, 1)
+            ),
+        )
+
+        panel_ymin = (
+            math.floor(integer_ymin / integer_tick_step)
+            * integer_tick_step
+        )
+        panel_ymax = (
+            math.ceil(integer_ymax / integer_tick_step)
+            * integer_tick_step
+        )
+
+        ax.set_ylim(panel_ymin, panel_ymax)
+        ax.yaxis.set_major_locator(
+            MultipleLocator(integer_tick_step)
+        )
+    else:
+        ax.set_ylim(panel_ymin, panel_ymax)
+        ax.yaxis.set_major_locator(
+            MaxNLocator(
+                nbins=Y_AXIS_TARGET_TICKS,
+                steps=[1, 2, 2.5, 5, 10],
+                min_n_ticks=4,
+            )
+        )
 
     # Add labels only after the panel-specific y-range is known.
     _add_inline_group_label(
