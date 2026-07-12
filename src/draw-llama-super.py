@@ -95,6 +95,40 @@ def p_to_stars(p):
         return "ns"
 
 
+def benjamini_hochberg_adjust(p_values):
+    """
+    Adjust a sequence of P values using the Benjamini--Hochberg procedure.
+
+    The returned array has the same order as the input. NaN values are
+    preserved and excluded from the adjustment family.
+    """
+    p_values = np.asarray(p_values, dtype=float)
+    adjusted = np.full(p_values.shape, np.nan, dtype=float)
+
+    valid_mask = ~np.isnan(p_values)
+    valid_p = p_values[valid_mask]
+
+    if valid_p.size == 0:
+        return adjusted
+
+    order = np.argsort(valid_p)
+    ranked_p = valid_p[order]
+    m = ranked_p.size
+    ranks = np.arange(1, m + 1, dtype=float)
+
+    # Raw BH values, followed by the reverse cumulative minimum to enforce
+    # monotonicity of adjusted P values with respect to the ordered raw values.
+    adjusted_ranked = ranked_p * m / ranks
+    adjusted_ranked = np.minimum.accumulate(adjusted_ranked[::-1])[::-1]
+    adjusted_ranked = np.clip(adjusted_ranked, 0.0, 1.0)
+
+    adjusted_valid = np.empty_like(valid_p)
+    adjusted_valid[order] = adjusted_ranked
+    adjusted[valid_mask] = adjusted_valid
+
+    return adjusted
+
+
 def two_sided_p_for_delta_difference(d1, se1, d2, se2):
     """
     Two-sided normal-approximation test for:
@@ -195,7 +229,9 @@ def compute_societal_results(attribute_type, file_name):
             "ci_low": majority_ci_low,
             "ci_high": majority_ci_high,
         },
-        "p_value": p_value,
+        "p_value": float(p_value),
+        "p_value_raw": float(p_value),
+        "p_value_adj": None,
     }
 
 
@@ -390,6 +426,7 @@ def plot_societal_panel(
     model_name,
     attribute_types,
     attribute_to_color,
+    societal_results,
 ):
     """
     Draw one panel:
@@ -417,16 +454,18 @@ def plot_societal_panel(
     bracket_info = []
 
     for i, attribute_type in enumerate(attribute_types):
-        file_name = f"outputs/{application}/societal/{attribute_type}/{model_name}.jsonl"
-
-        if not os.path.exists(file_name):
-            print(f"[Warning] Missing file: {file_name}")
-            continue
-
-        res = compute_societal_results(attribute_type, file_name)
+        res = (
+            societal_results
+            .get(application, {})
+            .get(model_name, {})
+            .get(attribute_type, None)
+        )
 
         if res is None:
-            print(f"[Warning] No valid result: {application}, {attribute_type}, {model_name}")
+            print(
+                f"[Warning] No valid societal result: "
+                f"{application}, {attribute_type}, {model_name}"
+            )
             continue
 
         color = attribute_to_color[attribute_type]
@@ -481,8 +520,9 @@ def plot_societal_panel(
         panel_low_values.extend([min_low, maj_low])
         panel_high_values.extend([min_high, maj_high])
 
-        p_value = float(res["p_value"])
-        stars = p_to_stars(p_value)
+        p_value_raw = float(res["p_value_raw"])
+        p_value_adj = float(res["p_value_adj"])
+        stars = p_to_stars(p_value_adj)
 
         y_pair_top = max(min_high, maj_high)
         bracket_info.append({
@@ -490,13 +530,15 @@ def plot_societal_panel(
             "x2": x_majority[i],
             "y_top": y_pair_top,
             "stars": stars,
-            "p_value": p_value,
+            "p_value_raw": p_value_raw,
+            "p_value_adj": p_value_adj,
             "attribute_type": attribute_type,
         })
 
         print(
             f"{application} | {model_name} | {attribute_type}: "
-            f"minority vs majority, two-sided P={p_value:.4g}"
+            f"minority vs majority, two-sided raw P={p_value_raw:.4g}, "
+            f"BH-adjusted P={p_value_adj:.4g}"
         )
 
     # Panel-specific y-limits with space for brackets
@@ -668,6 +710,55 @@ def draw_combined_llama_figure(
     # ============================================================
     # a. Societal minority bias
     # ============================================================
+    # Keep the original test structure: for each model, scenario, and
+    # attribute, use a two-sided Mann--Whitney U test comparing societal
+    # minority and societal majority scores. Adjust all available P values
+    # in panel a together using Benjamini--Hochberg. With complete data,
+    # this family contains 3 scenarios x 2 models x 2 attributes = 12 tests.
+    societal_results = defaultdict(lambda: defaultdict(dict))
+    societal_test_keys = []
+    societal_raw_pvalues = []
+
+    for application in applications:
+        for model_name in model_names:
+            for attribute_type in societal_attribute_types:
+                file_name = (
+                    f"outputs/{application}/societal/{attribute_type}/"
+                    f"{model_name}.jsonl"
+                )
+
+                if not os.path.exists(file_name):
+                    print(f"[Warning] Missing file: {file_name}")
+                    continue
+
+                res = compute_societal_results(attribute_type, file_name)
+
+                if res is None:
+                    print(
+                        f"[Warning] No valid result: "
+                        f"{application}, {attribute_type}, {model_name}"
+                    )
+                    continue
+
+                societal_results[application][model_name][attribute_type] = res
+                societal_test_keys.append((application, model_name, attribute_type))
+                societal_raw_pvalues.append(float(res["p_value_raw"]))
+
+    societal_adjusted_pvalues = benjamini_hochberg_adjust(
+        societal_raw_pvalues
+    )
+
+    for key, p_adj in zip(societal_test_keys, societal_adjusted_pvalues):
+        application, model_name, attribute_type = key
+        societal_results[application][model_name][attribute_type][
+            "p_value_adj"
+        ] = float(p_adj)
+
+    print(
+        f"\nPanel a: Benjamini--Hochberg adjustment applied across "
+        f"{len(societal_raw_pvalues)} tests."
+    )
+
     for row_idx, application in enumerate(applications):
         for col_idx, model_name in enumerate(model_names):
             ax = fig.add_subplot(societal_gs[row_idx, col_idx])
@@ -679,6 +770,7 @@ def draw_combined_llama_figure(
                 model_name=model_name,
                 attribute_types=societal_attribute_types,
                 attribute_to_color=societal_attr_color,
+                societal_results=societal_results,
             )
 
             # ax.set_title(
@@ -720,6 +812,66 @@ def draw_combined_llama_figure(
                     context_size=context_size,
                 )
                 app_attr_model_to_delta[application][attribute_type][model_name] = delta
+
+    # Compare the pretrained and post-trained models at each target-group
+    # proportion, then adjust all available panel-b P values together using
+    # Benjamini--Hochberg. With complete data, this family contains
+    # 3 scenarios x 2 attributes x 4 proportions = 24 tests.
+    contextual_pvalues_raw = {}
+    contextual_pvalues_adj = {}
+
+    if len(model_names) == 2:
+        model_1, model_2 = model_names
+        contextual_test_keys = []
+        contextual_raw_list = []
+
+        for application in applications:
+            for attribute_type in contextual_attribute_types:
+                delta_by_ratio_1 = (
+                    app_attr_model_to_delta
+                    .get(application, {})
+                    .get(attribute_type, {})
+                    .get(model_1, {})
+                )
+                delta_by_ratio_2 = (
+                    app_attr_model_to_delta
+                    .get(application, {})
+                    .get(attribute_type, {})
+                    .get(model_2, {})
+                )
+
+                pvalues_by_ratio = compute_model_pair_pvalues_by_ratio(
+                    delta_by_ratio_1=delta_by_ratio_1,
+                    delta_by_ratio_2=delta_by_ratio_2,
+                    ratios=ratio_strs,
+                )
+
+                for rstr in ratio_strs:
+                    if rstr not in pvalues_by_ratio:
+                        continue
+
+                    key = (application, attribute_type, rstr)
+                    p_raw = float(pvalues_by_ratio[rstr])
+                    contextual_pvalues_raw[key] = p_raw
+                    contextual_test_keys.append(key)
+                    contextual_raw_list.append(p_raw)
+
+        contextual_adjusted_list = benjamini_hochberg_adjust(
+            contextual_raw_list
+        )
+
+        for key, p_adj in zip(contextual_test_keys, contextual_adjusted_list):
+            contextual_pvalues_adj[key] = float(p_adj)
+
+        print(
+            f"\nPanel b: Benjamini--Hochberg adjustment applied across "
+            f"{len(contextual_raw_list)} tests."
+        )
+    else:
+        print(
+            "[Warning] Panel-b significance tests require exactly two models; "
+            "no contextual P values were computed."
+        )
 
     for row_idx, application in enumerate(applications):
         for col_idx, attribute_type in enumerate(contextual_attribute_types):
@@ -787,36 +939,26 @@ def draw_combined_llama_figure(
                     zorder=3,
                 )
 
-            # Statistical test: Llama-3.1-8B vs Llama-3.1-8B-Instruct
-            pvalues_by_ratio = {}
+            # Statistical test: Llama-3.1-8B vs Llama-3.1-8B-Instruct.
+            # Significance stars below are based on BH-adjusted P values.
+            pvalues_raw_by_ratio = {}
+            pvalues_adj_by_ratio = {}
 
-            if len(model_names) == 2:
-                model_1, model_2 = model_names
+            for rstr in ratio_strs:
+                key = (application, attribute_type, rstr)
+                if key not in contextual_pvalues_raw:
+                    continue
 
-                delta_by_ratio_1 = (
-                    app_attr_model_to_delta
-                    .get(application, {})
-                    .get(attribute_type, {})
-                    .get(model_1, {})
+                p_raw = contextual_pvalues_raw[key]
+                p_adj = contextual_pvalues_adj[key]
+                pvalues_raw_by_ratio[rstr] = p_raw
+                pvalues_adj_by_ratio[rstr] = p_adj
+
+                print(
+                    f"{application} | {attribute_type} | {rstr}: "
+                    f"{model_1} vs {model_2}, two-sided raw P={p_raw:.4g}, "
+                    f"BH-adjusted P={p_adj:.4g}"
                 )
-                delta_by_ratio_2 = (
-                    app_attr_model_to_delta
-                    .get(application, {})
-                    .get(attribute_type, {})
-                    .get(model_2, {})
-                )
-
-                pvalues_by_ratio = compute_model_pair_pvalues_by_ratio(
-                    delta_by_ratio_1=delta_by_ratio_1,
-                    delta_by_ratio_2=delta_by_ratio_2,
-                    ratios=ratio_strs,
-                )
-
-                for rstr, p in pvalues_by_ratio.items():
-                    print(
-                        f"{application} | {attribute_type} | {rstr}: "
-                        f"{model_1} vs {model_2}, two-sided P={p:.4g}"
-                    )
 
             if len(panel_ci_upper_values) == 0:
                 panel_data_top = 1.0
@@ -828,10 +970,10 @@ def draw_combined_llama_figure(
             star_offset = 0.075 * panel_data_top
 
             for rx, rstr in zip(ratio_x, ratio_strs):
-                if rstr not in pvalues_by_ratio:
+                if rstr not in pvalues_adj_by_ratio:
                     continue
 
-                stars = p_to_stars(pvalues_by_ratio[rstr])
+                stars = p_to_stars(pvalues_adj_by_ratio[rstr])
                 if stars:
                     y_star = panel_upper_by_ratio.get(rstr, 0.0) + star_offset
                     star_positions[rstr] = y_star
@@ -853,7 +995,7 @@ def draw_combined_llama_figure(
                 ax.text(
                     rx,
                     star_positions[rstr],
-                    p_to_stars(pvalues_by_ratio[rstr]),
+                    p_to_stars(pvalues_adj_by_ratio[rstr]),
                     ha="center",
                     va="bottom",
                     fontsize=FIG_FONT_SIZE,
