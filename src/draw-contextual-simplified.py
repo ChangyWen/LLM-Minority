@@ -818,18 +818,18 @@ def _add_inline_group_label(
         ymax - inner_margin,
     )
 
-    # ax.text(
-    #     xs[index] + x_offset,
-    #     label_y,
-    #     label,
-    #     color=color,
-    #     fontsize=INLINE_LABEL_FONT_SIZE,
-    #     fontweight="bold",
-    #     ha=horizontal_alignment,
-    #     va="center",
-    #     clip_on=False,
-    #     zorder=6,
-    # )
+    ax.text(
+        xs[index] + x_offset,
+        label_y,
+        label,
+        color=color,
+        fontsize=INLINE_LABEL_FONT_SIZE,
+        fontweight="bold",
+        ha=horizontal_alignment,
+        va="center",
+        clip_on=False,
+        zorder=6,
+    )
 
 
 def _add_cross_model_difference_labels(
