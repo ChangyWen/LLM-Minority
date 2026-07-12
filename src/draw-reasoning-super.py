@@ -13,16 +13,6 @@ from matplotlib.ticker import MaxNLocator, FuncFormatter
 from scipy import stats
 
 
-def se_diff_of_props(hA, nA, hB, nB):
-    """
-    Standard error for the difference between two proportions.
-    Used for contextual minority bias.
-    """
-    pA = hA / nA
-    pB = hB / nB
-    return math.sqrt(pA * (1 - pA) / nA + pB * (1 - pB) / nB)
-
-
 def p_to_stars(p):
     """
     Convert a p-value to significance stars.
@@ -56,8 +46,9 @@ def reasoning_lower_p_value(reasoning_result, nonreasoning_result):
         H1: bias_reasoning < bias_nonreasoning
 
     For contextual results:
-        Uses a normal approximation based on the SE of the absolute
-        difference between two proportions.
+        Uses a normal approximation based on the bootstrap standard error of
+        the mean absolute candidate-level selection-rate difference across
+        q in {0.2, 0.4, 0.6, 0.8}.
 
     For societal results:
         Uses bootstrap distributions of the relative score difference.
@@ -351,66 +342,94 @@ def set_nature_style():
 # Contextual minority computation
 # ============================================================
 
-def wilson_ci(k, n, z=1.96):
-    if n == 0:
-        return 0.0, 0.0
-
-    p = k / n
-    denominator = 1 + (z ** 2) / n
-    centre = p + (z ** 2) / (2 * n)
-    margin = z * math.sqrt((p * (1 - p) / n) + (z ** 2) / (4 * n ** 2))
-
-    lower = (centre - margin) / denominator
-    upper = (centre + margin) / denominator
-    return lower, upper
+# A five-candidate pool has four non-degenerate target-group proportions:
+# q = 0.2, 0.4, 0.6, and 0.8. In the raw aggregation, c is the number of
+# *other* candidates with the same attribute value, so q = (c + 1) / 5.
+CONTEXTUAL_POOL_SIZE = 5
+CONTEXTUAL_TARGET_CS = (0, 1, 2, 3)
+CONTEXTUAL_TARGET_QS = tuple(
+    (c + 1) / CONTEXTUAL_POOL_SIZE for c in CONTEXTUAL_TARGET_CS
+)
 
 
-def compute_contextual_results(file_name, attribute_type, max_n_trials=1000000):
+def compute_contextual_results(
+    file_name,
+    attribute_type,
+    max_n_trials=1_000_000,
+    n_bootstrap=5_000,
+    alpha=0.05,
+    seed=42,
+):
     """
-    Compute absolute selection-rate difference at the minimum contextual ratio.
-    Returns:
-        {
-            "delta": ...,
-            "ci_low": ...,
-            "ci_high": ...
+    Compute the Figure 8 contextual-bias measure used in Figure 7.
+
+    For each target-group proportion q in {0.2, 0.4, 0.6, 0.8}, first compute
+    the absolute candidate-level selection-rate difference between mirrored
+    pool compositions. The reported point estimate is the equal-weight mean
+    across the four values of q:
+
+        mean_q |S_A(q) - S_B(q)|.
+
+    Rates are stored as proportions; the plotting code multiplies them by 100,
+    so the displayed quantity is in percentage points.
+
+    Confidence intervals and the standard error are estimated with a
+    trial-level parametric bootstrap. For a group represented k times in a
+    pool, the group-selection count is bootstrapped over trials and then
+    divided by k times the number of trials to recover its candidate-level
+    selection rate. This preserves the fact that exactly one candidate is
+    selected per trial and avoids treating the k candidate instances within a
+    trial as independent Bernoulli observations.
+
+    Returns
+    -------
+    dict or None
+        Keys include ``delta``, ``ci_low``, ``ci_high``, ``se``,
+        ``target_qs``, and ``composition_deltas``.
+    """
+    if n_bootstrap < 2:
+        raise ValueError("n_bootstrap must be at least 2.")
+    if not 0 < alpha < 1:
+        raise ValueError("alpha must lie strictly between 0 and 1.")
+
+    attr_value_to_results = defaultdict(
+        lambda: {
+            "same_attr_count_to_count": defaultdict(int),
+            "same_attr_count_to_hit_count": defaultdict(int),
         }
-    """
-
-    attr_value_to_results = defaultdict(lambda: {
-        "same_attr_count_to_count": defaultdict(int),
-        "same_attr_count_to_hit_count": defaultdict(int),
-    })
+    )
 
     n_trials = 0
 
-    with open(file_name, "r") as f:
+    with open(file_name, "r", encoding="utf-8") as f:
         for line in f:
             item = json.loads(line)
-
             attributes = item["attributes"]
+
+            # Retain the original Figure 8 filtering rule.
             if "Asian" in attributes:
                 continue
-
-            suggested_candidate_id = item["suggested_candidate_id"]
 
             if n_trials >= max_n_trials:
                 break
             n_trials += 1
 
+            suggested_candidate_id = item["suggested_candidate_id"]
+
             for inner_idx, attr_value in enumerate(attributes):
                 same_attr_count = attributes.count(attr_value) - 1
+                attr_value_to_results[attr_value][
+                    "same_attr_count_to_count"
+                ][same_attr_count] += 1
+                attr_value_to_results[attr_value][
+                    "same_attr_count_to_hit_count"
+                ][same_attr_count] += int(inner_idx == suggested_candidate_id)
 
-                attr_value_to_results[attr_value]["same_attr_count_to_count"][same_attr_count] += 1
-                attr_value_to_results[attr_value]["same_attr_count_to_hit_count"][same_attr_count] += (
-                    1 if inner_idx == suggested_candidate_id else 0
-                )
-
-    attr_counts_A = None
-    attr_counts_B = None
+    attr_counts_a = None
+    attr_counts_b = None
 
     for attr_value, attr_value_results in attr_value_to_results.items():
         attr_counts = {}
-
         same_attr_count_to_count = dict(
             sorted(
                 attr_value_results["same_attr_count_to_count"].items(),
@@ -418,52 +437,113 @@ def compute_contextual_results(file_name, attribute_type, max_n_trials=1000000):
             )
         )
 
-        for same_attr_count, count in same_attr_count_to_count.items():
-            hit_count = attr_value_results["same_attr_count_to_hit_count"][same_attr_count]
-            attr_counts[same_attr_count] = (hit_count, count)
+        for same_attr_count, candidate_count in same_attr_count_to_count.items():
+            selected_count = attr_value_results[
+                "same_attr_count_to_hit_count"
+            ][same_attr_count]
+            attr_counts[same_attr_count] = (selected_count, candidate_count)
 
-        if attr_value in ["Black", "Female"]:
-            attr_counts_A = attr_counts
+        if attr_value in {"Black", "Female"}:
+            attr_counts_a = attr_counts
         else:
-            attr_counts_B = attr_counts
+            attr_counts_b = attr_counts
 
-    if attr_counts_A is None or attr_counts_B is None:
-        return None
+    if attr_counts_a is None or attr_counts_b is None:
+        raise ValueError(
+            f"Could not identify the two comparison groups in {file_name} "
+            f"for attribute type {attribute_type}."
+        )
 
-    results = {}
+    missing_cs = [
+        c
+        for c in CONTEXTUAL_TARGET_CS
+        if c not in attr_counts_a or c not in attr_counts_b
+    ]
+    if missing_cs:
+        missing_qs = [
+            (c + 1) / CONTEXTUAL_POOL_SIZE for c in missing_cs
+        ]
+        raise ValueError(
+            f"Missing required contextual compositions in {file_name}: "
+            f"c={missing_cs}, corresponding to q={missing_qs}."
+        )
 
-    for c in sorted(set(attr_counts_A) & set(attr_counts_B)):
-        hA, nA = attr_counts_A[c]
-        hB, nB = attr_counts_B[c]
+    rng = np.random.default_rng(seed)
+    observed_deltas = []
+    bootstrap_deltas_by_q = []
+    composition_deltas = {}
 
-        pA = hA / nA
-        pB = hB / nB
+    for c, q in zip(CONTEXTUAL_TARGET_CS, CONTEXTUAL_TARGET_QS):
+        selected_a, candidate_count_a = attr_counts_a[c]
+        selected_b, candidate_count_b = attr_counts_b[c]
 
-        ciA_low, ciA_high = wilson_ci(hA, nA)
-        ciB_low, ciB_high = wilson_ci(hB, nB)
+        group_count = c + 1
 
-        if pA > pB:
-            delta = pA - pB
-            ci_low = ciA_low - ciB_high
-            ci_high = ciA_high - ciB_low
-        else:
-            delta = pB - pA
-            ci_low = ciB_low - ciA_high
-            ci_high = ciB_high - ciA_low
+        if candidate_count_a % group_count != 0:
+            raise ValueError(
+                f"Candidate count {candidate_count_a} for group A at c={c} "
+                f"is not divisible by group size {group_count}."
+            )
+        if candidate_count_b % group_count != 0:
+            raise ValueError(
+                f"Candidate count {candidate_count_b} for group B at c={c} "
+                f"is not divisible by group size {group_count}."
+            )
 
-        se = se_diff_of_props(hA, nA, hB, nB)
+        n_trials_a = candidate_count_a // group_count
+        n_trials_b = candidate_count_b // group_count
 
-        results[c] = {
-            "delta": delta,
-            "ci_low": ci_low,
-            "ci_high": ci_high,
-            "se": se,
-        }
+        if n_trials_a <= 0 or n_trials_b <= 0:
+            raise ValueError(
+                f"No usable trials at c={c} in {file_name}."
+            )
+        if selected_a > n_trials_a or selected_b > n_trials_b:
+            raise ValueError(
+                "A group-selection count cannot exceed the number of trials."
+            )
 
-    if 1 not in results:
-        return None
+        rate_a = selected_a / candidate_count_a
+        rate_b = selected_b / candidate_count_b
+        abs_delta = abs(rate_a - rate_b)
 
-    return results[1]
+        observed_deltas.append(abs_delta)
+        composition_deltas[f"{q:.1f}"] = float(abs_delta)
+
+        # Bootstrap group-selection counts at the trial level. Dividing by the
+        # fixed number of candidate instances recovers candidate-level rates.
+        group_selection_prob_a = selected_a / n_trials_a
+        group_selection_prob_b = selected_b / n_trials_b
+
+        boot_selected_a = rng.binomial(
+            n=n_trials_a,
+            p=group_selection_prob_a,
+            size=n_bootstrap,
+        )
+        boot_selected_b = rng.binomial(
+            n=n_trials_b,
+            p=group_selection_prob_b,
+            size=n_bootstrap,
+        )
+
+        boot_rate_a = boot_selected_a / candidate_count_a
+        boot_rate_b = boot_selected_b / candidate_count_b
+        bootstrap_deltas_by_q.append(np.abs(boot_rate_a - boot_rate_b))
+
+    delta = float(np.mean(observed_deltas))
+    boot_deltas = np.mean(np.vstack(bootstrap_deltas_by_q), axis=0)
+
+    ci_low = float(np.percentile(boot_deltas, 100 * alpha / 2))
+    ci_high = float(np.percentile(boot_deltas, 100 * (1 - alpha / 2)))
+    se = float(np.std(boot_deltas, ddof=1))
+
+    return {
+        "delta": delta,
+        "ci_low": ci_low,
+        "ci_high": ci_high,
+        "se": se,
+        "target_qs": CONTEXTUAL_TARGET_QS,
+        "composition_deltas": composition_deltas,
+    }
 
 
 # ============================================================
@@ -622,6 +702,7 @@ def collect_results(
                         "delta": np.nan,
                         "ci_low": np.nan,
                         "ci_high": np.nan,
+                        "se": np.nan,
                     }
 
                 application_to_model_to_delta[application][model_name] = delta
@@ -926,8 +1007,9 @@ def draw_reasoning_super_figure(
     societal_attribute_types = ["Gender Identity", "Sexual Orientation"]
 
     # Compute the 24 raw one-sided P values, then apply one joint BH correction
-    # across the entire Figure 8 family. All significance stars below use the
-    # adjusted P values.
+    # across the entire Figure 8 family. For contextual bias, each model/mode
+    # value is the equal-weight mean across q = 0.2, 0.4, 0.6, and 0.8. All
+    # significance stars below use the adjusted P values.
     adjusted_pvalue_lookup, pvalue_records = compute_reasoning_pvalue_results(
         societal_results=societal_results,
         contextual_results=contextual_results,
@@ -1003,7 +1085,7 @@ def draw_reasoning_super_figure(
         adjusted_pvalue_lookup=adjusted_pvalue_lookup,
         panel_letter="b",
         block_title="Contextual minority bias vs. reasoning",
-        ylabel="Absolute candidate-level selection-rate difference (pp)",
+        ylabel="Mean absolute candidate-level selection-rate difference (pp)",
         base_to_color=base_to_color,
         mode_to_marker=mode_to_marker,
     )
