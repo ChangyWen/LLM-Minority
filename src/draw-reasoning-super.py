@@ -1,3 +1,4 @@
+import csv
 import json
 import os
 import math
@@ -104,6 +105,176 @@ def reasoning_lower_p_value(reasoning_result, nonreasoning_result):
         return float(p)
 
     return np.nan
+
+
+
+
+def benjamini_hochberg(p_values):
+    """
+    Adjust a sequence of P values using the Benjamini--Hochberg procedure.
+
+    Non-finite entries are preserved as NaN and are excluded from the
+    adjustment family. In this Figure 8 analysis, all 24 P values are expected
+    to be finite.
+    """
+    p_values = np.asarray(p_values, dtype=float)
+    adjusted = np.full(p_values.shape, np.nan, dtype=float)
+
+    valid_mask = np.isfinite(p_values)
+    valid_p = p_values[valid_mask]
+
+    if valid_p.size == 0:
+        return adjusted
+
+    order = np.argsort(valid_p)
+    ranked_p = valid_p[order]
+    ranks = np.arange(1, valid_p.size + 1, dtype=float)
+
+    ranked_adjusted = ranked_p * valid_p.size / ranks
+
+    # Enforce the BH monotonicity constraint from largest to smallest rank.
+    ranked_adjusted = np.minimum.accumulate(ranked_adjusted[::-1])[::-1]
+    ranked_adjusted = np.clip(ranked_adjusted, 0.0, 1.0)
+
+    valid_adjusted = np.empty_like(ranked_adjusted)
+    valid_adjusted[order] = ranked_adjusted
+    adjusted[valid_mask] = valid_adjusted
+
+    return adjusted
+
+
+REASONING_PAIR_DEFS = [
+    ("GLM-4.5-Air", "GLM-4.5-Air_no_thinking", "GLM"),
+    (
+        "NVIDIA-Nemotron-Nano-12B-v2",
+        "NVIDIA-Nemotron-Nano-12B-v2_no_thinking",
+        "Nemotron",
+    ),
+]
+
+
+def compute_reasoning_pvalue_results(
+    societal_results,
+    contextual_results,
+    applications,
+    alpha=0.05,
+):
+    """
+    Compute all 24 one-sided reasoning-versus-non-reasoning tests and apply
+    one Benjamini--Hochberg correction jointly across the complete Figure 8
+    family:
+
+        2 bias types x 2 attributes x 3 scenarios x 2 models = 24 tests.
+
+    Returns
+    -------
+    lookup : dict
+        Maps (bias_type, attribute_type, application, short_model_name) to a
+        result record containing raw and BH-adjusted P values.
+    records : list[dict]
+        Flat records suitable for printing or CSV export.
+    """
+    test_blocks = [
+        (
+            "societal",
+            societal_results,
+            ["Gender Identity", "Sexual Orientation"],
+        ),
+        (
+            "contextual",
+            contextual_results,
+            ["Gender", "Race"],
+        ),
+    ]
+
+    records = []
+
+    for bias_type, results, attribute_types in test_blocks:
+        for attribute_type in attribute_types:
+            for application in applications:
+                for reasoning_name, nonreasoning_name, short_label in REASONING_PAIR_DEFS:
+                    reasoning_result = results[attribute_type][application][reasoning_name]
+                    nonreasoning_result = results[attribute_type][application][nonreasoning_name]
+
+                    raw_p = reasoning_lower_p_value(
+                        reasoning_result=reasoning_result,
+                        nonreasoning_result=nonreasoning_result,
+                    )
+
+                    records.append({
+                        "bias_type": bias_type,
+                        "attribute": attribute_type,
+                        "application": application,
+                        "model": short_label,
+                        "reasoning_model": reasoning_name,
+                        "nonreasoning_model": nonreasoning_name,
+                        "bias_reasoning": float(reasoning_result["delta"]),
+                        "bias_nonreasoning": float(nonreasoning_result["delta"]),
+                        "p_raw": float(raw_p),
+                    })
+
+    expected_n_tests = 24
+    if len(records) != expected_n_tests:
+        raise RuntimeError(
+            f"Expected {expected_n_tests} Figure 8 tests, but constructed "
+            f"{len(records)} tests."
+        )
+
+    raw_pvalues = np.asarray([record["p_raw"] for record in records], dtype=float)
+    if not np.all(np.isfinite(raw_pvalues)):
+        bad_indices = np.where(~np.isfinite(raw_pvalues))[0].tolist()
+        raise RuntimeError(
+            "All 24 raw P values must be finite before BH adjustment. "
+            f"Non-finite P values occurred at record indices: {bad_indices}"
+        )
+
+    adjusted_pvalues = benjamini_hochberg(raw_pvalues)
+
+    for record, adjusted_p in zip(records, adjusted_pvalues):
+        record["p_adjusted"] = float(adjusted_p)
+        record["significance"] = p_to_stars(adjusted_p)
+        record["fdr_alpha"] = float(alpha)
+        record["n_tests_in_bh_family"] = expected_n_tests
+        record["multiple_testing_method"] = (
+            "Benjamini-Hochberg; one family across all 24 Figure 8 tests"
+        )
+
+    lookup = {
+        (
+            record["bias_type"],
+            record["attribute"],
+            record["application"],
+            record["model"],
+        ): record
+        for record in records
+    }
+
+    return lookup, records
+
+
+def save_reasoning_pvalue_results(records, output_file):
+    """Save raw and BH-adjusted Figure 8 statistics to a CSV file."""
+    fieldnames = [
+        "bias_type",
+        "attribute",
+        "application",
+        "model",
+        "reasoning_model",
+        "nonreasoning_model",
+        "bias_reasoning",
+        "bias_nonreasoning",
+        "p_raw",
+        "p_adjusted",
+        "significance",
+        "fdr_alpha",
+        "n_tests_in_bh_family",
+        "multiple_testing_method",
+    ]
+
+    with open(output_file, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(records)
 
 
 def add_sig_bracket(
@@ -466,6 +637,8 @@ def draw_reasoning_block(
     attribute_type_to_application_to_model_to_delta,
     attribute_types,
     applications,
+    bias_type,
+    adjusted_pvalue_lookup,
     panel_letter,
     block_title,
     ylabel,
@@ -484,11 +657,7 @@ def draw_reasoning_block(
         "loan": "Loan approval",
     }
 
-    pair_defs = [
-        ("GLM-4.5-Air", "GLM-4.5-Air_no_thinking", "GLM"),
-        ("NVIDIA-Nemotron-Nano-12B-v2", "NVIDIA-Nemotron-Nano-12B-v2_no_thinking", "Nemotron"),
-    ]
-
+    pair_defs = REASONING_PAIR_DEFS
     model_order = [p[2] for p in pair_defs]
 
     # Smaller value = GLM and Nemotron closer together
@@ -543,24 +712,18 @@ def draw_reasoning_block(
                     "ci_high": float(d["ci_high"]),
                 })
 
-            # Store upper bounds and p-values for brackets
+            # Store upper bounds and globally BH-adjusted P values for brackets.
             pair_upper = {m: -np.inf for m in model_order}
             pair_pvalues = {}
 
-            for base_name, no_think_name, short_label in pair_defs:
-                d_reasoning = application_to_model_to_delta[application][base_name]
-                d_nonreasoning = application_to_model_to_delta[application][no_think_name]
-
-                p_val = reasoning_lower_p_value(
-                    reasoning_result=d_reasoning,
-                    nonreasoning_result=d_nonreasoning,
-                )
-                pair_pvalues[short_label] = p_val
-
-                print(
-                    f"{block_title} | {attribute_type} | {application} | "
-                    f"{short_label}: one-sided P={p_val:.4g}"
-                )
+            for _, _, short_label in pair_defs:
+                p_record = adjusted_pvalue_lookup[(
+                    bias_type,
+                    attribute_type,
+                    application,
+                    short_label,
+                )]
+                pair_pvalues[short_label] = p_record["p_adjusted"]
 
             all_ci_lows = []
             all_ci_highs = []
@@ -617,7 +780,7 @@ def draw_reasoning_block(
                 y_bracket = pair_upper[model_short] + bracket_offset
                 p_val = pair_pvalues[model_short]
 
-                # Use stars in the figure. Exact P values are printed in terminal.
+                # Figure stars are based on the BH-adjusted P value.
                 p_text = p_to_stars(p_val)
 
                 add_sig_bracket(
@@ -762,6 +925,36 @@ def draw_reasoning_super_figure(
     contextual_attribute_types = ["Gender", "Race"]
     societal_attribute_types = ["Gender Identity", "Sexual Orientation"]
 
+    # Compute the 24 raw one-sided P values, then apply one joint BH correction
+    # across the entire Figure 8 family. All significance stars below use the
+    # adjusted P values.
+    adjusted_pvalue_lookup, pvalue_records = compute_reasoning_pvalue_results(
+        societal_results=societal_results,
+        contextual_results=contextual_results,
+        applications=applications,
+        alpha=0.05,
+    )
+
+    statistics_path = os.path.join(
+        output_dir,
+        "figure8_reasoning_statistics_bh_adjusted.csv",
+    )
+    save_reasoning_pvalue_results(pvalue_records, statistics_path)
+
+    print(
+        "Benjamini-Hochberg adjustment applied jointly across all 24 "
+        "Figure 8 tests (FDR = 0.05)."
+    )
+    for record in pvalue_records:
+        print(
+            f"{record['bias_type']} | {record['attribute']} | "
+            f"{record['application']} | {record['model']}: "
+            f"raw P={record['p_raw']:.4g}, "
+            f"BH-adjusted P={record['p_adjusted']:.4g}, "
+            f"{record['significance']}"
+        )
+    print(f"Saved: {statistics_path}")
+
     # Professional, colorblind-safe colors
     base_to_color = {
         "GLM": "#FB6542",
@@ -791,6 +984,8 @@ def draw_reasoning_super_figure(
         attribute_type_to_application_to_model_to_delta=societal_results,
         attribute_types=societal_attribute_types,
         applications=applications,
+        bias_type="societal",
+        adjusted_pvalue_lookup=adjusted_pvalue_lookup,
         panel_letter="a",
         block_title="Societal minority bias vs. reasoning",
         ylabel="Relative score difference (%)",
@@ -804,6 +999,8 @@ def draw_reasoning_super_figure(
         attribute_type_to_application_to_model_to_delta=contextual_results,
         attribute_types=contextual_attribute_types,
         applications=applications,
+        bias_type="contextual",
+        adjusted_pvalue_lookup=adjusted_pvalue_lookup,
         panel_letter="b",
         block_title="Contextual minority bias vs. reasoning",
         ylabel="Absolute candidate-level selection-rate difference (pp)",
