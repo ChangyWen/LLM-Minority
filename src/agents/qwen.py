@@ -1,5 +1,4 @@
 import os
-import anthropic
 import random
 import requests
 import time

@@ -60,12 +60,6 @@ outputs/<application>/contextual/<attribute>/<model>_<pool-size>_<sampling-pool>
 
 Here, `<application>` is `hiring`, `loan`, or `edu`. The sampling-pool suffix is normally `200` for hiring and `500` for loan and scholarship allocation.
 
-Disk requirements:
-
-- Included processed datasets: approximately 24 MB.
-- A full local working copy of the authors' outputs can require tens of GB. The current complete workspace uses approximately 39 GB for `outputs/` and 7.6 GB for archived raw shards; allocate at least 50 GB if reproducing all experiments from scratch.
-- Model weights require additional storage determined by the selected models and vLLM cache configuration.
-
 ## System Requirements
 
 ### Operating Systems
@@ -120,7 +114,6 @@ The API wrappers in `src/agents/` use:
 - `google-genai` 1.19.0
 - `requests` 2.32.3
 - `python-dotenv` 1.1.0
-- `anthropic` 0.52.2 (imported by the Qwen wrapper, although the manuscript pipeline uses its OpenAI-compatible endpoint)
 
 The optional attention-inspection scripts `src/loan/atten.py` and `src/draw-attentions.py` also import `savis` and PyTorch. The repository does not record a tested `savis` version, and these scripts are not required to reproduce the manuscript's main behavioral results or figures.
 
@@ -224,7 +217,6 @@ pip install \
   azure-ai-projects==1.0.0b11 \
   azure-ai-agents==1.1.0b2 \
   google-genai==1.19.0 \
-  anthropic==0.52.2 \
   requests==2.32.3
 ```
 
@@ -302,7 +294,6 @@ Expected run time on a normal desktop: approximately 1-5 minutes, depending on o
 ```text
 dataset/                         # processed input profiles
 outputs/                         # merged model outputs and generated figures
-archive/                         # optional raw output shards
 src/
   hiring/                        # hiring generation and per-domain analysis
   loan/                          # loan generation and per-domain analysis
