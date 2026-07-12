@@ -926,7 +926,7 @@ def _add_cross_model_trend_labels(
     )
 
     ax.text(
-        0.02,
+        0.25,
         1.015,
         f"{focal_group}  {focal_label}",
         transform=ax.transAxes,
@@ -940,7 +940,7 @@ def _add_cross_model_trend_labels(
     )
 
     ax.text(
-        0.98,
+        0.75,
         1.015,
         f"{reference_group}  {reference_label}",
         transform=ax.transAxes,
@@ -1329,7 +1329,7 @@ def draw_figure(
         bottom=0.175,
         top=0.835,
         wspace=0.13,
-        hspace=0.38,
+        hspace=0.41,
     )
 
     for row_index, attribute_type in enumerate(ATTRIBUTE_TYPES):
@@ -1386,7 +1386,7 @@ def draw_figure(
     second_row_bottom = min(pos.y0 for pos in second_row_positions)
 
     # First-row shared xlabel: place it in the gap between the two rows.
-    first_row_xlabel_y = second_row_top + 0.48 * (first_row_bottom - second_row_top)
+    first_row_xlabel_y = second_row_top + 0.5 * (first_row_bottom - second_row_top)
 
     # Second-row shared xlabel: place it below the second row and above the legend.
     second_row_xlabel_y = second_row_bottom - 0.058
