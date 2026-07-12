@@ -8,6 +8,7 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
+from statsmodels.stats.multitest import multipletests
 
 from scipy.stats import chi2_contingency, norm
 from matplotlib.ticker import MaxNLocator, FuncFormatter
@@ -78,7 +79,8 @@ def safe_slug(text):
 
 
 def p_to_stars(p):
-    if p is None or math.isnan(p):
+    """Convert a valid P value to the significance label used in the figure."""
+    if p is None or not np.isfinite(p):
         return ""
     if p < 0.001:
         return "***"
@@ -88,7 +90,6 @@ def p_to_stars(p):
         return "*"
     else:
         return "ns"
-
 
 def format_percent_tick(v, pos):
     return f"{v * 100:.0f}"
@@ -135,83 +136,66 @@ def get_attribute_style(attribute_type):
     raise ValueError(f"Unknown attribute_type: {attribute_type}")
 
 
-def trend_label_from_pvalues(p_inc, p_dec, show_ns=True):
+def trend_label_from_adjusted_test(
+    trend_z,
+    p_value_adjusted,
+    show_ns=True,
+):
     """
-    Return a compact one-sided trend label.
+    Return a compact trend label based on a two-sided BH-adjusted P value.
 
-    Examples:
-        ↑*
-        ↓**
-        ↑***
-        ns
+    Statistical significance is determined from the adjusted two-sided
+    Cochran--Armitage trend-test P value. The sign of the trend statistic
+    determines the arrow direction:
+        z > 0: increasing selection rate along the plotted x-axis
+        z < 0: decreasing selection rate along the plotted x-axis
 
-    Important:
-        If the trend is not statistically significant, return "ns"
-        without any arrow.
+    This avoids selecting whichever one-sided direction happens to produce
+    the smaller P value after looking at the data.
     """
-    if p_inc is None or p_dec is None:
+    if (
+        trend_z is None
+        or p_value_adjusted is None
+        or not np.isfinite(trend_z)
+        or not np.isfinite(p_value_adjusted)
+    ):
         return "ns" if show_ns else ""
 
-    if math.isnan(p_inc) or math.isnan(p_dec):
+    stars = p_to_stars(p_value_adjusted)
+    if stars in ("", "ns"):
         return "ns" if show_ns else ""
 
-    # Increasing trend is stronger
-    if p_inc <= p_dec:
-        if p_inc < 0.001:
-            return "↑***"
-        elif p_inc < 0.01:
-            return "↑**"
-        elif p_inc < 0.05:
-            return "↑*"
-        else:
-            return "ns" if show_ns else ""
+    if trend_z > 0:
+        return f"↑{stars}"
+    if trend_z < 0:
+        return f"↓{stars}"
 
-    # Decreasing trend is stronger
-    else:
-        if p_dec < 0.001:
-            return "↓***"
-        elif p_dec < 0.01:
-            return "↓**"
-        elif p_dec < 0.05:
-            return "↓*"
-        else:
-            return "ns" if show_ns else ""
-
+    return "ns" if show_ns else ""
 
 def make_trend_legend_handles(attribute_type, significance):
     """
-    Build a compact in-panel legend showing the direction and significance
-    of each group-specific selection-rate trend.
+    Build the in-panel trend legend using BH-adjusted two-sided P values.
 
     The arrows always refer to the plotted x-axis:
         Gender: increasing proportion of Female candidates.
         Race:   increasing proportion of Black candidates.
-
-    Examples:
-        ↑*** means the target group's selection rate significantly increases
-              as the proportion of Female/Black candidates increases.
-
-        ↓*** means the target group's selection rate significantly decreases
-              as the proportion of Female/Black candidates increases.
     """
     attr_style = get_attribute_style(attribute_type)
     handles = []
 
     for attribute_value in attr_style["order"]:
         color = attr_style["colors"][attribute_value]
+        group_significance = significance.get(attribute_value, {})
 
-        p_inc = significance.get(attribute_value, {}).get(
-            "p_value_one_inc",
-            float("nan"),
-        )
-        p_dec = significance.get(attribute_value, {}).get(
-            "p_value_one_dec",
+        trend_z = group_significance.get("trend_z", float("nan"))
+        p_adjusted = group_significance.get(
+            "p_value_two_sided_adjusted",
             float("nan"),
         )
 
-        trend_text = trend_label_from_pvalues(
-            p_inc=p_inc,
-            p_dec=p_dec,
+        trend_text = trend_label_from_adjusted_test(
+            trend_z=trend_z,
+            p_value_adjusted=p_adjusted,
             show_ns=True,
         )
 
@@ -232,7 +216,6 @@ def make_trend_legend_handles(attribute_type, significance):
         )
 
     return handles
-
 
 def expand_lower_ylim(ax, lower_frac=0.22, upper_frac=0.04):
     """
@@ -406,12 +389,11 @@ def add_pairwise_significance_stars(
     fontsize=7.2,
 ):
     """
-    Add per-x significance stars for pairwise tests between the two
-    attribute-specific selection rates.
+    Add per-composition significance labels for the two-group comparison.
 
-    The x-axis is now the focal-group proportion:
-        Gender: proportion of Female candidates
-        Race: proportion of Black candidates
+    Labels are based on BH-adjusted two-sided P values. The adjustment is
+    performed globally across all model × scenario × attribute × composition
+    pairwise tests before plotting.
     """
     pairwise = significance.get("pairwise", {})
     if not pairwise:
@@ -429,7 +411,10 @@ def add_pairwise_significance_stars(
     max_star_y = ymax
 
     for x_percent in sorted(pairwise.keys()):
-        p_value = pairwise[x_percent].get("p_value_two_sided", float("nan"))
+        p_value = pairwise[x_percent].get(
+            "p_value_two_sided_adjusted",
+            float("nan"),
+        )
         stars = p_to_stars(p_value)
 
         if not stars:
@@ -467,7 +452,6 @@ def add_pairwise_significance_stars(
 
     if max_star_y > ymax:
         ax.set_ylim(ymin, max_star_y)
-
 
 def build_focal_axis_counts(attr_counts, attribute_value, attr_style, pool_size):
     """
@@ -610,12 +594,14 @@ def compute_results(file_name, attribute_type, max_n_trials=1000000, pool_size=N
 
             significance[attr_value]["trend_z"] = z
             significance[attr_value]["p_value_two_sided"] = p_two
+            significance[attr_value]["p_value_two_sided_adjusted"] = float("nan")
             significance[attr_value]["p_value_one_inc"] = p_inc
             significance[attr_value]["p_value_one_dec"] = p_dec
         else:
             significance[attr_value]["global_test_p_value"] = float("nan")
             significance[attr_value]["trend_z"] = float("nan")
             significance[attr_value]["p_value_two_sided"] = float("nan")
+            significance[attr_value]["p_value_two_sided_adjusted"] = float("nan")
             significance[attr_value]["p_value_one_inc"] = float("nan")
             significance[attr_value]["p_value_one_dec"] = float("nan")
 
@@ -662,9 +648,157 @@ def compute_results(file_name, attribute_type, max_n_trials=1000000, pool_size=N
         significance["pairwise"][x_percent] = {
             "z": z_pair,
             "p_value_two_sided": p_pair,
+            "p_value_two_sided_adjusted": float("nan"),
         }
 
     return results, significance, n_trials
+
+
+# ============================================================
+# Global multiple-testing correction
+# ============================================================
+
+def _is_valid_pvalue(p):
+    return p is not None and np.isfinite(p) and 0.0 <= p <= 1.0
+
+
+def precompute_all_results(
+    attribute_types,
+    applications,
+    model_names,
+    application_to_pool_count,
+    resume_count=5,
+    max_n_trials=1000000,
+):
+    """
+    Compute every panel before plotting.
+
+    A global precomputation pass is necessary because the BH correction is
+    applied across tests appearing in both the gender and race figures.
+    """
+    computed_results = {}
+
+    for attribute_type in attribute_types:
+        for application in applications:
+            pool_count = application_to_pool_count[application]
+
+            for model_name in model_names:
+                file_name = (
+                    f"outputs/{application}/contextual/"
+                    f"{attribute_type}/{model_name}_{resume_count}_{pool_count}.jsonl"
+                )
+
+                if not os.path.exists(file_name):
+                    print(f"[Warning] File not found, skipping: {file_name}")
+                    continue
+
+                results, significance, n_trials = compute_results(
+                    file_name=file_name,
+                    attribute_type=attribute_type,
+                    max_n_trials=max_n_trials,
+                    pool_size=resume_count,
+                )
+
+                key = (attribute_type, application, model_name)
+                computed_results[key] = {
+                    "file_name": file_name,
+                    "results": results,
+                    "significance": significance,
+                    "n_trials": n_trials,
+                }
+
+    return computed_results
+
+
+def apply_global_bh_corrections(computed_results, alpha=0.05):
+    """
+    Apply two separate Benjamini--Hochberg corrections.
+
+    Family 1: all displayed two-sided pairwise group comparisons at fixed
+              pool compositions (192 tests when all expected files exist).
+
+    Family 2: all displayed two-sided group-specific trend tests
+              (96 tests when all expected files exist).
+
+    The two families are corrected separately because they answer different
+    scientific questions. The adjusted P values are written back into each
+    panel's significance dictionary and are then used for every annotation.
+    """
+    pairwise_records = []
+    pairwise_raw_p = []
+
+    trend_records = []
+    trend_raw_p = []
+
+    for (attribute_type, application, model_name), panel_data in computed_results.items():
+        significance = panel_data["significance"]
+
+        # Pairwise comparisons at each displayed pool composition.
+        for x_percent, test_result in significance.get("pairwise", {}).items():
+            test_result["p_value_two_sided_adjusted"] = float("nan")
+            test_result["reject_fdr_bh"] = False
+
+            p_raw = test_result.get("p_value_two_sided", float("nan"))
+            if _is_valid_pvalue(p_raw):
+                pairwise_records.append(test_result)
+                pairwise_raw_p.append(float(p_raw))
+
+        # One two-sided trend test for each displayed group curve.
+        attr_style = get_attribute_style(attribute_type)
+        for attribute_value in attr_style["order"]:
+            test_result = significance.get(attribute_value, {})
+            test_result["p_value_two_sided_adjusted"] = float("nan")
+            test_result["reject_fdr_bh"] = False
+
+            p_raw = test_result.get("p_value_two_sided", float("nan"))
+            if _is_valid_pvalue(p_raw):
+                trend_records.append(test_result)
+                trend_raw_p.append(float(p_raw))
+
+    if pairwise_raw_p:
+        reject, p_adjusted, _, _ = multipletests(
+            pairwise_raw_p,
+            alpha=alpha,
+            method="fdr_bh",
+        )
+        for record, p_adj, is_rejected in zip(
+            pairwise_records,
+            p_adjusted,
+            reject,
+        ):
+            record["p_value_two_sided_adjusted"] = float(p_adj)
+            record["reject_fdr_bh"] = bool(is_rejected)
+
+    if trend_raw_p:
+        reject, p_adjusted, _, _ = multipletests(
+            trend_raw_p,
+            alpha=alpha,
+            method="fdr_bh",
+        )
+        for record, p_adj, is_rejected in zip(
+            trend_records,
+            p_adjusted,
+            reject,
+        ):
+            record["p_value_two_sided_adjusted"] = float(p_adj)
+            record["reject_fdr_bh"] = bool(is_rejected)
+
+    print(
+        "[BH correction] "
+        f"Adjusted {len(pairwise_raw_p)} pairwise P values as one family "
+        f"and {len(trend_raw_p)} trend-test P values as a separate family "
+        f"(FDR alpha={alpha:g})."
+    )
+
+    if len(pairwise_raw_p) != 192 or len(trend_raw_p) != 96:
+        print(
+            "[BH correction] Note: with all 8 models, 3 scenarios, "
+            "2 attributes, 4 interior pool compositions, and 2 group trends "
+            "per panel, the expected counts are 192 pairwise tests and "
+            "96 trend tests. Different counts usually indicate missing files "
+            "or unavailable tests."
+        )
+
 
 # ============================================================
 # Panel plotting
@@ -919,9 +1053,8 @@ def plot_model_panel(
 def draw_attribute_big_figure(
     attribute_type,
     model_names,
-    application_to_pool_count,
+    computed_results,
     resume_count=5,
-    max_n_trials=1000000,
     output_dir="outputs/contextual",
 ):
     """
@@ -1001,8 +1134,6 @@ def draw_attribute_big_figure(
         axes = np.empty((2, 4), dtype=object)
         all_axes[application] = axes
 
-        pool_count = application_to_pool_count[application]
-
         for idx, model_name in enumerate(model_names):
             row = idx // 4
             col = idx % 4
@@ -1017,22 +1148,16 @@ def draw_attribute_big_figure(
                 fontsize=FONT_SIZE,
             )
 
-            file_name = (
-                f"outputs/{application}/contextual/"
-                f"{attribute_type}/{model_name}_{resume_count}_{pool_count}.jsonl"
-            )
+            cache_key = (attribute_type, application, model_name)
+            panel_data = computed_results.get(cache_key)
 
-            if not os.path.exists(file_name):
-                print(f"[Warning] File not found, skipping: {file_name}")
+            if panel_data is None:
                 ax_main.set_visible(False)
                 continue
 
-            results, significance, n_trials = compute_results(
-                file_name=file_name,
-                attribute_type=attribute_type,
-                max_n_trials=max_n_trials,
-                pool_size=resume_count,
-            )
+            results = panel_data["results"]
+            significance = panel_data["significance"]
+            n_trials = panel_data["n_trials"]
 
             plot_model_panel(
                 ax_main=ax_main,
@@ -1142,6 +1267,8 @@ def draw_attribute_big_figure(
 
 if __name__ == "__main__":
     max_n_trials = 1000000
+    resume_count = 5
+    output_dir = "outputs/contextual"
 
     model_names_order = [
         "msra-gpt-4o",
@@ -1155,6 +1282,7 @@ if __name__ == "__main__":
     ]
 
     attribute_types = ["Gender", "Race"]
+    applications = ["hiring", "loan", "edu"]
 
     application_to_pool_count = {
         "edu": 500,
@@ -1162,12 +1290,30 @@ if __name__ == "__main__":
         "loan": 500,
     }
 
+    # First pass: compute all panels across both attributes.
+    all_computed_results = precompute_all_results(
+        attribute_types=attribute_types,
+        applications=applications,
+        model_names=model_names_order,
+        application_to_pool_count=application_to_pool_count,
+        resume_count=resume_count,
+        max_n_trials=max_n_trials,
+    )
+
+    # Correct the two displayed testing families separately:
+    #   1) pairwise cross-group comparisons;
+    #   2) group-specific monotonic trend tests.
+    apply_global_bh_corrections(
+        computed_results=all_computed_results,
+        alpha=0.05,
+    )
+
+    # Second pass: draw each attribute figure using adjusted P values.
     for attribute_type in attribute_types:
         draw_attribute_big_figure(
             attribute_type=attribute_type,
             model_names=model_names_order,
-            application_to_pool_count=application_to_pool_count,
-            resume_count=5,
-            max_n_trials=max_n_trials,
-            output_dir="outputs/contextual",
+            computed_results=all_computed_results,
+            resume_count=resume_count,
+            output_dir=output_dir,
         )
