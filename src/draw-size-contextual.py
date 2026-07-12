@@ -1,3 +1,4 @@
+import csv
 import json
 import sys
 from collections import defaultdict
@@ -113,6 +114,103 @@ def iut_pvalue_by_ratio(counts_size5, counts_size10, ratios=("20%", "40%", "60%"
 
 
 # ---------------------------------------------------------------------
+# Benjamini-Hochberg correction
+# ---------------------------------------------------------------------
+def benjamini_hochberg(p_values):
+    """
+    Return Benjamini-Hochberg-adjusted P values in the original order.
+
+    The procedure controls the false discovery rate across the supplied
+    family of tests. All values must be finite numbers in [0, 1].
+    """
+    p_values = np.asarray(p_values, dtype=float)
+
+    if p_values.ndim != 1:
+        raise ValueError("p_values must be a one-dimensional sequence.")
+    if p_values.size == 0:
+        return p_values.copy()
+    if np.any(~np.isfinite(p_values)):
+        raise ValueError("p_values must contain only finite values.")
+    if np.any((p_values < 0.0) | (p_values > 1.0)):
+        raise ValueError("Every P value must lie in [0, 1].")
+
+    n_tests = p_values.size
+    order = np.argsort(p_values)
+    ranked_p = p_values[order]
+
+    adjusted_ranked = ranked_p * n_tests / np.arange(1, n_tests + 1, dtype=float)
+
+    # Enforce monotonicity from the largest rank back to the smallest.
+    adjusted_ranked = np.minimum.accumulate(adjusted_ranked[::-1])[::-1]
+    adjusted_ranked = np.clip(adjusted_ranked, 0.0, 1.0)
+
+    adjusted = np.empty_like(adjusted_ranked)
+    adjusted[order] = adjusted_ranked
+    return adjusted
+
+
+def adjust_figure5_pvalues_bh(
+    raw_pvalues,
+    attribute_types,
+    applications,
+    model_names,
+    ratios=("20%", "40%", "60%", "80%"),
+):
+    """
+    Apply one BH correction family per application/Figure 5.
+
+    With the default configuration, each application contains
+        2 attributes x 8 models x 4 target-group proportions = 64 tests.
+
+    Missing tests are omitted from that application's correction family.
+    The returned object has the same nested structure as raw_pvalues.
+    """
+    adjusted_pvalues = {
+        attribute_type: {
+            application: {model_name: {} for model_name in model_names}
+            for application in applications
+        }
+        for attribute_type in attribute_types
+    }
+
+    for application in applications:
+        test_keys = []
+        test_pvalues = []
+
+        for attribute_type in attribute_types:
+            for model_name in model_names:
+                per_ratio_p = (
+                    raw_pvalues
+                    .get(attribute_type, {})
+                    .get(application, {})
+                    .get(model_name, {})
+                )
+
+                for ratio in ratios:
+                    p = per_ratio_p.get(ratio)
+                    if p is None or not math.isfinite(p):
+                        continue
+                    test_keys.append((attribute_type, model_name, ratio))
+                    test_pvalues.append(float(p))
+
+        adjusted_values = benjamini_hochberg(test_pvalues)
+
+        for (attribute_type, model_name, ratio), adjusted_p in zip(
+            test_keys, adjusted_values
+        ):
+            adjusted_pvalues[attribute_type][application][model_name][ratio] = float(
+                adjusted_p
+            )
+
+        print(
+            f"BH correction for application={application}: "
+            f"adjusted {len(test_pvalues)} P values jointly."
+        )
+
+    return adjusted_pvalues
+
+
+# ---------------------------------------------------------------------
 # Nature-style plotting helpers
 # ---------------------------------------------------------------------
 def set_nature_style():
@@ -169,6 +267,73 @@ def pretty_model_name(model_key):
 
 def safe_slug(text):
     return re.sub(r"[^A-Za-z0-9_.-]+", "_", str(text)).strip("_")
+
+
+def save_pvalue_summary_csv(
+    raw_pvalues,
+    adjusted_pvalues,
+    attribute_types,
+    applications,
+    model_names,
+    ratios=("20%", "40%", "60%", "80%"),
+    output_dir="outputs/size",
+):
+    """Save raw and BH-adjusted P values used for Figure 5."""
+    os.makedirs(output_dir, exist_ok=True)
+
+    for application in applications:
+        csv_path = os.path.join(
+            output_dir,
+            f"{safe_slug(application)}_Figure5_BH_adjusted_pvalues.csv",
+        )
+
+        with open(csv_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(
+                f,
+                fieldnames=[
+                    "application",
+                    "attribute",
+                    "model",
+                    "target_group_proportion",
+                    "raw_p_value",
+                    "bh_adjusted_p_value",
+                    "significance",
+                ],
+            )
+            writer.writeheader()
+
+            for attribute_type in attribute_types:
+                for model_name in model_names:
+                    raw_per_ratio = (
+                        raw_pvalues
+                        .get(attribute_type, {})
+                        .get(application, {})
+                        .get(model_name, {})
+                    )
+                    adjusted_per_ratio = (
+                        adjusted_pvalues
+                        .get(attribute_type, {})
+                        .get(application, {})
+                        .get(model_name, {})
+                    )
+
+                    for ratio in ratios:
+                        raw_p = raw_per_ratio.get(ratio)
+                        adjusted_p = adjusted_per_ratio.get(ratio)
+                        if raw_p is None or adjusted_p is None:
+                            continue
+
+                        writer.writerow({
+                            "application": application,
+                            "attribute": attribute_type,
+                            "model": pretty_model_name(model_name),
+                            "target_group_proportion": ratio,
+                            "raw_p_value": f"{raw_p:.12g}",
+                            "bh_adjusted_p_value": f"{adjusted_p:.12g}",
+                            "significance": p_to_stars(adjusted_p),
+                        })
+
+        print(f"Saved: {csv_path}")
 
 
 def compute_results(file_name, context_size, max_n_trials=1000000):
@@ -284,7 +449,7 @@ def get_global_ylim(application, application_to_model_to_delta, model_names, con
 
 def draw_combined_gender_race_by_application(
     attribute_type_to_application_to_model_to_delta,
-    attribute_type_to_application_to_model_to_pvalue,
+    attribute_type_to_application_to_model_to_adjusted_pvalue,
     attribute_types,
     model_names,
     context_sizes,
@@ -296,6 +461,8 @@ def draw_combined_gender_race_by_application(
     For each application, draw one large figure:
         - Top block: Gender, arranged as 2 x 4 panels
         - Bottom block: Race, arranged as 2 x 4 panels
+
+    Significance stars are based on Benjamini-Hochberg-adjusted P values.
 
     This version uses nested GridSpec:
         - outer_hspace controls the gap between Gender and Race
@@ -382,7 +549,9 @@ def draw_combined_gender_race_by_application(
             row_offset = attr_idx * 2
 
             application_to_model_to_delta = attribute_type_to_application_to_model_to_delta[attribute_type]
-            application_to_model_to_pvalue = attribute_type_to_application_to_model_to_pvalue[attribute_type]
+            application_to_model_to_adjusted_pvalue = (
+                attribute_type_to_application_to_model_to_adjusted_pvalue[attribute_type]
+            )
 
             for i, model_key in enumerate(model_names):
                 row = row_offset + (i // 4)
@@ -463,8 +632,9 @@ def draw_combined_gender_race_by_application(
                     panel_data_top = max(panel_ci_upper_values)
                     panel_data_top = max(panel_data_top, 0.05)
 
-                per_ratio_p = (
-                    application_to_model_to_pvalue
+                # Significance labels are based on BH-adjusted P values.
+                per_ratio_adjusted_p = (
+                    application_to_model_to_adjusted_pvalue
                     .get(application, {})
                     .get(model_key, {})
                 )
@@ -473,7 +643,7 @@ def draw_combined_gender_race_by_application(
                 star_offset = 0.075 * panel_data_top
 
                 for rx, rstr in zip(ratio_x, ratio_strs):
-                    stars = p_to_stars(per_ratio_p.get(rstr, float("nan")))
+                    stars = p_to_stars(per_ratio_adjusted_p.get(rstr, float("nan")))
                     if stars:
                         y_star = panel_upper_by_ratio.get(rstr, 0.0) + star_offset
                         star_positions[rstr] = y_star
@@ -489,7 +659,7 @@ def draw_combined_gender_race_by_application(
                 ax.set_ylim(ymin, ymax_i)
 
                 for rx, rstr in zip(ratio_x, ratio_strs):
-                    stars = p_to_stars(per_ratio_p.get(rstr, float("nan")))
+                    stars = p_to_stars(per_ratio_adjusted_p.get(rstr, float("nan")))
 
                     if stars:
                         ax.text(
@@ -620,7 +790,7 @@ if __name__ == "__main__":
     attribute_types = ["Gender", "Race"]
 
     attribute_type_to_application_to_model_to_delta = {}
-    attribute_type_to_application_to_model_to_pvalue = {}
+    attribute_type_to_application_to_model_to_raw_pvalue = {}
 
     for attribute_type in attribute_types:
         application_to_model_to_delta = defaultdict(lambda: defaultdict(dict))
@@ -680,11 +850,34 @@ if __name__ == "__main__":
                 )
 
         attribute_type_to_application_to_model_to_delta[attribute_type] = application_to_model_to_delta
-        attribute_type_to_application_to_model_to_pvalue[attribute_type] = application_to_model_to_pvalue
+        attribute_type_to_application_to_model_to_raw_pvalue[attribute_type] = application_to_model_to_pvalue
+
+    # Adjust all Figure 5 tests jointly within each application.
+    # With the default settings, this is one family of 64 tests:
+    # 2 attributes x 8 models x 4 target-group proportions.
+    attribute_type_to_application_to_model_to_adjusted_pvalue = (
+        adjust_figure5_pvalues_bh(
+            raw_pvalues=attribute_type_to_application_to_model_to_raw_pvalue,
+            attribute_types=attribute_types,
+            applications=applications,
+            model_names=model_names,
+        )
+    )
+
+    save_pvalue_summary_csv(
+        raw_pvalues=attribute_type_to_application_to_model_to_raw_pvalue,
+        adjusted_pvalues=attribute_type_to_application_to_model_to_adjusted_pvalue,
+        attribute_types=attribute_types,
+        applications=applications,
+        model_names=model_names,
+        output_dir="outputs/size",
+    )
 
     draw_combined_gender_race_by_application(
         attribute_type_to_application_to_model_to_delta=attribute_type_to_application_to_model_to_delta,
-        attribute_type_to_application_to_model_to_pvalue=attribute_type_to_application_to_model_to_pvalue,
+        attribute_type_to_application_to_model_to_adjusted_pvalue=(
+            attribute_type_to_application_to_model_to_adjusted_pvalue
+        ),
         attribute_types=attribute_types,
         model_names=model_names,
         context_sizes=context_sizes,
