@@ -821,7 +821,7 @@ def draw_super_scale_figure(
         panel_letter="c",
         block_title="Contextual minority bias vs. model parameters",
         xlabel=r"$\log_{10}$(Model parameters / $10^9$)",
-        ylabel="Absolute candidate-level selection-rate difference (pp)",
+        ylabel="Mean absolute candidate-level selection-rate difference (pp)",
     )
 
     # d. Contextual minority bias versus training compute
