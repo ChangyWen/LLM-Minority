@@ -373,13 +373,17 @@ def compute_contextual_results(
     Rates are stored as proportions; the plotting code multiplies them by 100,
     so the displayed quantity is in percentage points.
 
-    Confidence intervals and the standard error are estimated with a
-    trial-level parametric bootstrap. For a group represented k times in a
-    pool, the group-selection count is bootstrapped over trials and then
-    divided by k times the number of trials to recover its candidate-level
-    selection rate. This preserves the fact that exactly one candidate is
-    selected per trial and avoids treating the k candidate instances within a
-    trial as independent Bernoulli observations.
+    The standard error is estimated with a trial-level parametric bootstrap.
+    The 95% confidence interval is then computed as the observed mean absolute
+    difference plus or minus the corresponding normal critical value times the
+    bootstrap standard error. The interval is intentionally not truncated at
+    zero, so its lower bound may be negative when uncertainty is large relative
+    to the point estimate. For a group represented k times in a pool, the
+    group-selection count is bootstrapped over trials and then divided by k
+    times the number of trials to recover its candidate-level selection rate.
+    This preserves the fact that exactly one candidate is selected per trial
+    and avoids treating the k candidate instances within a trial as independent
+    Bernoulli observations.
 
     Returns
     -------
@@ -532,9 +536,13 @@ def compute_contextual_results(
     delta = float(np.mean(observed_deltas))
     boot_deltas = np.mean(np.vstack(bootstrap_deltas_by_q), axis=0)
 
-    ci_low = float(np.percentile(boot_deltas, 100 * alpha / 2))
-    ci_high = float(np.percentile(boot_deltas, 100 * (1 - alpha / 2)))
     se = float(np.std(boot_deltas, ddof=1))
+
+    # Use an untruncated normal-approximation CI around the observed mean
+    # absolute difference. In particular, do not force the lower bound to 0.
+    z_crit = float(stats.norm.ppf(1 - alpha / 2))
+    ci_low = float(delta - z_crit * se)
+    ci_high = float(delta + z_crit * se)
 
     return {
         "delta": delta,
@@ -712,6 +720,87 @@ def collect_results(
     return attribute_type_to_application_to_model_to_delta
 
 
+def set_integer_percentage_ticks(
+    ax,
+    explicit_ticks_pp=None,
+    nbins=4,
+):
+    """
+    Set y ticks using integer percentage-point labels only.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        Target axis. The underlying y values are proportions.
+    explicit_ticks_pp : sequence of int, optional
+        Exact tick locations in percentage points. These are converted back to
+        proportions before being passed to Matplotlib. The axis limits are not
+        changed, so confidence intervals below zero remain fully visible.
+    nbins : int
+        Approximate maximum number of automatically selected integer tick
+        labels when no explicit ticks are supplied.
+    """
+    if explicit_ticks_pp is not None:
+        ticks_pp = np.asarray(explicit_ticks_pp, dtype=float)
+    else:
+        y_min, y_max = ax.get_ylim()
+        y_min_pp = 100.0 * y_min
+        y_max_pp = 100.0 * y_max
+
+        # Work directly in percentage-point units so that the locator's
+        # integer constraint applies to the labels actually shown to readers.
+        locator = MaxNLocator(
+            nbins=nbins,
+            integer=True,
+            min_n_ticks=2,
+            steps=[1, 2, 5, 10],
+        )
+        ticks_pp = np.asarray(
+            locator.tick_values(y_min_pp, y_max_pp),
+            dtype=float,
+        )
+
+        tolerance = max(abs(y_max_pp - y_min_pp), 1.0) * 1e-12
+        ticks_pp = ticks_pp[
+            (ticks_pp >= y_min_pp - tolerance)
+            & (ticks_pp <= y_max_pp + tolerance)
+        ]
+
+        # MaxNLocator may relax its integer constraint for an extremely narrow
+        # range. Keep only true integers and, if necessary, use the nearest
+        # integer bounds. Expanding the limits is deliberately avoided.
+        ticks_pp = ticks_pp[np.isclose(ticks_pp, np.round(ticks_pp), atol=1e-10)]
+        ticks_pp = np.unique(np.round(ticks_pp).astype(int)).astype(float)
+
+        if ticks_pp.size < 2:
+            lower_integer = math.ceil(y_min_pp - tolerance)
+            upper_integer = math.floor(y_max_pp + tolerance)
+            integer_candidates = np.arange(
+                lower_integer,
+                upper_integer + 1,
+                dtype=float,
+            )
+            if integer_candidates.size > 0:
+                ticks_pp = integer_candidates
+
+        # Thin dense integer ticks while preserving the first and last values.
+        if ticks_pp.size > nbins + 1:
+            indices = np.linspace(
+                0,
+                ticks_pp.size - 1,
+                nbins + 1,
+            ).round().astype(int)
+            ticks_pp = np.unique(ticks_pp[indices])
+
+    if ticks_pp.size == 0:
+        raise ValueError("No integer y ticks fall within the displayed range.")
+
+    ax.set_yticks(ticks_pp / 100.0)
+    ax.yaxis.set_major_formatter(
+        FuncFormatter(lambda value, pos: f"{int(round(value * 100))}")
+    )
+
+
 def draw_reasoning_block(
     fig,
     outer_spec,
@@ -817,8 +906,18 @@ def draw_reasoning_block(
                 ci_low = r["ci_low"]
                 ci_high = r["ci_high"]
 
-                yerr_low = max(0.0, y - ci_low)
-                yerr_high = max(0.0, ci_high - y)
+                yerr_low = y - ci_low
+                yerr_high = ci_high - y
+
+                # Matplotlib requires non-negative error lengths. These should
+                # already be non-negative because ci_low <= y <= ci_high; fail
+                # loudly rather than silently clipping a malformed interval.
+                if yerr_low < -1e-12 or yerr_high < -1e-12:
+                    raise ValueError(
+                        "Invalid confidence interval: the point estimate must "
+                        "lie between ci_low and ci_high."
+                    )
+
                 yerr = np.array([[yerr_low], [yerr_high]])
 
                 pair_upper[r["model"]] = max(pair_upper[r["model"]], ci_high)
@@ -896,8 +995,22 @@ def draw_reasoning_block(
                 model_to_x[model_order[-1]] + 0.28,
             )
 
-            ax.yaxis.set_major_locator(MaxNLocator(nbins=4))
-            ax.yaxis.set_major_formatter(FuncFormatter(lambda v, pos: f"{v * 100:.0f}"))
+            # Use integer percentage-point labels throughout. Two narrow
+            # contextual panels receive sparse, fixed ticks for readability:
+            #   overall row 3, column 3 (Gender, scholarship): 0, 1, 2;
+            #   overall row 4, column 1 (Race, hiring): 0, 1.
+            explicit_ticks_pp = None
+            if bias_type == "contextual":
+                if attribute_type == "Gender" and application == "edu":
+                    explicit_ticks_pp = (0, 1, 2)
+                elif attribute_type == "Race" and application == "hiring":
+                    explicit_ticks_pp = (0, 1)
+
+            set_integer_percentage_ticks(
+                ax,
+                explicit_ticks_pp=explicit_ticks_pp,
+                nbins=4,
+            )
 
             ax.tick_params(
                 axis="both",
