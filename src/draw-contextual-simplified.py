@@ -790,18 +790,24 @@ def _add_inline_group_label(
 
     if group_role == "focal":
         index = 0
-        x_offset = 2.2
+        if label == "Female":
+            x_offset = -18
+        else:
+            x_offset = -16
         y_offset_fraction = {
-            "hiring": 0.075,
+            "hiring": 0.03,
             "loan": -0.085,
             "edu": 0.075,
         }[application]
         horizontal_alignment = "left"
     elif group_role == "reference":
         index = -1
-        x_offset = -2.2
+        if label == "Male":
+            x_offset = 14
+        else:
+            x_offset = 16
         y_offset_fraction = {
-            "hiring": -0.075,
+            "hiring": -0.03,
             "loan": 0.075,
             "edu": -0.085,
         }[application]
@@ -1146,22 +1152,23 @@ def plot_summary_panel(
     )
 
     # Add labels only after the panel-specific y-range is known.
-    _add_inline_group_label(
-        ax=ax,
-        application=application,
-        group_role="focal",
-        label=focal_group,
-        curve=focal_mean,
-        color=FOCAL_COLOR,
-    )
-    _add_inline_group_label(
-        ax=ax,
-        application=application,
-        group_role="reference",
-        label=reference_group,
-        curve=reference_mean,
-        color=REFERENCE_COLOR,
-    )
+    if application == "hiring":
+        _add_inline_group_label(
+            ax=ax,
+            application=application,
+            group_role="focal",
+            label=focal_group,
+            curve=focal_mean,
+            color=FOCAL_COLOR,
+        )
+        _add_inline_group_label(
+            ax=ax,
+            application=application,
+            group_role="reference",
+            label=reference_group,
+            curve=reference_mean,
+            color=REFERENCE_COLOR,
+        )
 
     # One-sided trend tests for the two thick cross-model mean curves.
     _add_cross_model_trend_labels(
