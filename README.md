@@ -528,6 +528,9 @@ python src/draw-scale-super.py
 
 # Figure 8: reasoning versus non-reasoning
 python src/draw-reasoning-super.py
+
+# Figure 9: model-level contextual minority bias
+python src/draw-contextual.py
 ```
 
 Expected PDF outputs include:
@@ -541,6 +544,8 @@ outputs/size/loan_Gender_Race_size_contextual.pdf
 outputs/llama/llama_societal_contextual_combined.pdf
 outputs/parameter/scale_super_figure_societal_contextual_parameter_compute_nature_style.pdf
 outputs/reasoning/reasoning_contextual_societal_super_figure.pdf
+outputs/contextual/Gender_all_applications_contextual_selection_rate_random_baseline.pdf
+outputs/contextual/Race_all_applications_contextual_selection_rate_random_baseline.pdf
 ```
 
 Some scripts also produce PNG copies and print inferential statistics, confidence intervals, or adjusted p-values to the console.
@@ -559,7 +564,7 @@ To reproduce the paper from scratch:
 8. Run GLM-4.5-Air and Nemotron-Nano-12B-v2 in both reasoning and non-reasoning modes.
 9. Merge timestamped worker shards into the canonical filenames consumed by the plotting scripts. Check for and remove duplicate trials before merging resumed jobs.
 10. Run `python src/count_eval_times.py` to audit the number of retained JSONL records.
-11. Run the seven main figure commands above.
+11. Run the eight Figure 2-9 commands above.
 
 The full reproduction is computationally expensive. It covers more than 10.8 million generations across multiple large models and is expected to require a multi-GPU cluster and substantial wall-clock time. A reliable "normal desktop" runtime cannot be provided because the full models do not fit or run practically on normal desktop hardware. Figure reproduction from downloaded outputs generally takes minutes per script.
 
