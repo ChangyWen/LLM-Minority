@@ -680,7 +680,7 @@ def plot_summary_panel(
                 ys,
                 color=FOCAL_COLOR,
                 alpha=INDIVIDUAL_ALPHA,
-                linewidth=1.05,
+                linewidth=2,
                 solid_capstyle="round",
                 zorder=2,
             )
@@ -692,7 +692,7 @@ def plot_summary_panel(
                 ys,
                 color=REFERENCE_COLOR,
                 alpha=INDIVIDUAL_ALPHA,
-                linewidth=1.05,
+                linewidth=2,
                 solid_capstyle="round",
                 zorder=2,
             )
@@ -1120,7 +1120,7 @@ def draw_figure(
             [0],
             [0],
             color="0.62",
-            linewidth=1.3,
+            linewidth=2,
             label=_format_model_count(panel_model_counts),
         ),
         Line2D(
