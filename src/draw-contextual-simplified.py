@@ -10,10 +10,18 @@ The output is a 2 x 3 summary figure:
 Each panel contains:
     - thin group-colored lines for the individual LLMs;
     - thick lines with markers for the unweighted cross-model mean;
+    - cross-model trend-test annotations for the two mean curves;
+    - cross-model difference-test annotations at 20%, 40%, 60%, and 80%;
     - a dashed uniform-random candidate-level selection-rate baseline;
     - a shaded region indicating that the focal group is the contextual minority;
     - symmetric contextual-minority/contextual-majority annotations in the
       first panel of each row.
+
+The inferential unit for the added tests is the model, which matches the
+unweighted cross-model mean shown by the thick curves:
+    - trend tests use a one-sample t-test on the model-specific linear slopes;
+    - difference tests use a paired, two-sided one-sample t-test on the
+      model-specific focal-minus-reference differences at each composition.
 
 Expected input path pattern:
     {data_root}/{application}/contextual/{attribute_type}/
@@ -49,6 +57,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
 from matplotlib.ticker import MaxNLocator, MultipleLocator
+from scipy.stats import t as student_t
 
 
 # ============================================================
@@ -156,6 +165,8 @@ ROW_LABEL_FONT_SIZE = 16
 INLINE_LABEL_FONT_SIZE = 13.5
 ANNOTATION_FONT_SIZE = 13.5
 LEGEND_FONT_SIZE = 16
+SIGNIFICANCE_FONT_SIZE = 14.5
+TREND_TEST_FONT_SIZE = 13.5
 
 
 # ============================================================
@@ -480,6 +491,193 @@ def compute_cross_model_mean(
     }
 
 
+def p_to_stars(p_value: float) -> str:
+    """Convert a p value to the significance labels used in Figure 9."""
+    if not math.isfinite(p_value):
+        return ""
+    if p_value < 0.001:
+        return "***"
+    if p_value < 0.01:
+        return "**"
+    if p_value < 0.05:
+        return "*"
+    return "ns"
+
+
+def _one_sample_t_test(
+    values: Sequence[float],
+    null_mean: float = 0.0,
+) -> Dict[str, float]:
+    """
+    One-sample t-test with two-sided and directional p values.
+
+    The directional alternatives are:
+        p_value_one_inc: mean(values) > null_mean
+        p_value_one_dec: mean(values) < null_mean
+    """
+    array = np.asarray(
+        [value for value in values if math.isfinite(value)],
+        dtype=float,
+    )
+    n = int(array.size)
+
+    if n < 2:
+        return {
+            "n_models": float(n),
+            "mean": float("nan"),
+            "t": float("nan"),
+            "p_value_two_sided": float("nan"),
+            "p_value_one_inc": float("nan"),
+            "p_value_one_dec": float("nan"),
+        }
+
+    sample_mean = float(np.mean(array))
+    sample_sd = float(np.std(array, ddof=1))
+    difference = sample_mean - null_mean
+
+    # Handle a completely degenerate sample explicitly. This can occur, for
+    # example, when all models have exactly the same endpoint rate.
+    if sample_sd <= np.finfo(float).eps:
+        if math.isclose(difference, 0.0, abs_tol=1e-12):
+            t_value = 0.0
+            p_two = 1.0
+            p_inc = 0.5
+            p_dec = 0.5
+        elif difference > 0:
+            t_value = float("inf")
+            p_two = 0.0
+            p_inc = 0.0
+            p_dec = 1.0
+        else:
+            t_value = float("-inf")
+            p_two = 0.0
+            p_inc = 1.0
+            p_dec = 0.0
+    else:
+        standard_error = sample_sd / math.sqrt(n)
+        t_value = difference / standard_error
+        degrees_of_freedom = n - 1
+        p_two = 2.0 * student_t.sf(abs(t_value), degrees_of_freedom)
+        p_inc = student_t.sf(t_value, degrees_of_freedom)
+        p_dec = student_t.cdf(t_value, degrees_of_freedom)
+
+    return {
+        "n_models": float(n),
+        "mean": sample_mean,
+        "t": float(t_value),
+        "p_value_two_sided": float(p_two),
+        "p_value_one_inc": float(p_inc),
+        "p_value_one_dec": float(p_dec),
+    }
+
+
+def trend_label_from_test(test_result: Mapping[str, float]) -> str:
+    """Return a Figure-9-style arrow label for a cross-model trend test."""
+    p_inc = float(test_result.get("p_value_one_inc", float("nan")))
+    p_dec = float(test_result.get("p_value_one_dec", float("nan")))
+
+    if not math.isfinite(p_inc) or not math.isfinite(p_dec):
+        return "ns"
+
+    if p_inc <= p_dec:
+        stars = p_to_stars(p_inc)
+        return f"↑{stars}" if stars != "ns" else "ns"
+
+    stars = p_to_stars(p_dec)
+    return f"↓{stars}" if stars != "ns" else "ns"
+
+
+def compute_cross_model_significance(
+    model_to_curves: Mapping[
+        str, Mapping[str, Mapping[float, float]]
+    ],
+    focal_group: str,
+    reference_group: str,
+) -> Dict[str, object]:
+    """
+    Test the thick cross-model mean curves using models as replicates.
+
+    Trend tests
+    -----------
+    For each group, fit a linear slope to every model-specific curve and test
+    whether the mean slope across models differs directionally from zero.
+
+    Difference tests
+    ----------------
+    At each shared composition (20%, 40%, 60%, and 80% for pool size 5),
+    compute the focal-minus-reference difference within each model and test
+    whether the mean paired difference across models differs from zero.
+
+    Using the model as the inferential unit is aligned with the plotted thick
+    lines, which are unweighted means of model-level selection rates.
+    """
+    trend_results: Dict[str, Dict[str, float]] = {}
+
+    for group in (focal_group, reference_group):
+        slopes: list[float] = []
+
+        for curves in model_to_curves.values():
+            curve = curves.get(group, {})
+            finite_points = sorted(
+                (float(x), float(y))
+                for x, y in curve.items()
+                if math.isfinite(x) and math.isfinite(y)
+            )
+
+            if len(finite_points) < 2:
+                continue
+
+            xs = np.asarray([point[0] for point in finite_points], dtype=float)
+            ys = np.asarray([point[1] for point in finite_points], dtype=float)
+
+            if np.ptp(xs) <= np.finfo(float).eps:
+                continue
+
+            slope = float(np.polyfit(xs, ys, deg=1)[0])
+            if math.isfinite(slope):
+                slopes.append(slope)
+
+        trend_results[group] = _one_sample_t_test(slopes, null_mean=0.0)
+
+    pairwise_results: Dict[float, Dict[str, float]] = {}
+    candidate_x_values = sorted(
+        {
+            float(x)
+            for curves in model_to_curves.values()
+            for x in set(curves.get(focal_group, {})).intersection(
+                curves.get(reference_group, {})
+            )
+        }
+    )
+
+    for x_percent in candidate_x_values:
+        paired_differences: list[float] = []
+
+        for curves in model_to_curves.values():
+            focal_curve = curves.get(focal_group, {})
+            reference_curve = curves.get(reference_group, {})
+
+            if x_percent not in focal_curve or x_percent not in reference_curve:
+                continue
+
+            difference = (
+                float(focal_curve[x_percent])
+                - float(reference_curve[x_percent])
+            )
+            if math.isfinite(difference):
+                paired_differences.append(difference)
+
+        pairwise_results[x_percent] = _one_sample_t_test(
+            paired_differences,
+            null_mean=0.0,
+        )
+
+    return {
+        "trend": trend_results,
+        "pairwise": pairwise_results,
+    }
+
+
 # ============================================================
 # Plotting helpers
 # ============================================================
@@ -620,17 +818,133 @@ def _add_inline_group_label(
         ymax - inner_margin,
     )
 
+    # ax.text(
+    #     xs[index] + x_offset,
+    #     label_y,
+    #     label,
+    #     color=color,
+    #     fontsize=INLINE_LABEL_FONT_SIZE,
+    #     fontweight="bold",
+    #     ha=horizontal_alignment,
+    #     va="center",
+    #     clip_on=False,
+    #     zorder=6,
+    # )
+
+
+def _add_cross_model_difference_labels(
+    ax: plt.Axes,
+    focal_mean: Mapping[float, float],
+    reference_mean: Mapping[float, float],
+    significance: Mapping[str, object],
+) -> None:
+    """
+    Add two-sided cross-model difference-test labels above the mean curves.
+
+    For a five-candidate pool, shared group-composition points are 20%, 40%,
+    60%, and 80%, matching the annotations in Figure 9.
+    """
+    pairwise = significance.get("pairwise", {})
+    if not isinstance(pairwise, Mapping) or not pairwise:
+        return
+
+    ymin, ymax = ax.get_ylim()
+    y_span = max(ymax - ymin, 1e-12)
+    # Keep the test labels clearly above the inline group names used near the
+    # first and last mean-curve points.
+    label_offset = 0.065 * y_span
+    label_height = 0.045 * y_span
+
+    labels_to_draw: list[tuple[float, float, str]] = []
+    required_ymax = ymax
+
+    for x_percent in sorted(pairwise):
+        if x_percent not in focal_mean or x_percent not in reference_mean:
+            continue
+
+        test_result = pairwise[x_percent]
+        if not isinstance(test_result, Mapping):
+            continue
+
+        p_value = float(
+            test_result.get("p_value_two_sided", float("nan"))
+        )
+        label = p_to_stars(p_value)
+        if not label:
+            continue
+
+        label_y = max(
+            float(focal_mean[x_percent]),
+            float(reference_mean[x_percent]),
+        ) + label_offset
+
+        labels_to_draw.append((float(x_percent), label_y, label))
+        required_ymax = max(required_ymax, label_y + label_height)
+
+    if required_ymax > ymax:
+        ax.set_ylim(ymin, required_ymax)
+
+    for x_percent, label_y, label in labels_to_draw:
+        ax.text(
+            x_percent,
+            label_y,
+            label,
+            ha="center",
+            va="bottom",
+            fontsize=SIGNIFICANCE_FONT_SIZE,
+            color="0.08",
+            clip_on=False,
+            zorder=7,
+        )
+
+
+def _add_cross_model_trend_labels(
+    ax: plt.Axes,
+    focal_group: str,
+    reference_group: str,
+    significance: Mapping[str, object],
+) -> None:
+    """Place compact Figure-9-style trend labels above each panel."""
+    trend = significance.get("trend", {})
+    if not isinstance(trend, Mapping):
+        return
+
+    focal_test = trend.get(focal_group, {})
+    reference_test = trend.get(reference_group, {})
+
+    focal_label = trend_label_from_test(
+        focal_test if isinstance(focal_test, Mapping) else {}
+    )
+    reference_label = trend_label_from_test(
+        reference_test if isinstance(reference_test, Mapping) else {}
+    )
+
     ax.text(
-        xs[index] + x_offset,
-        label_y,
-        label,
-        color=color,
-        fontsize=INLINE_LABEL_FONT_SIZE,
+        0.02,
+        1.015,
+        f"{focal_group}  {focal_label}",
+        transform=ax.transAxes,
+        ha="left",
+        va="bottom",
+        fontsize=TREND_TEST_FONT_SIZE,
         fontweight="bold",
-        ha=horizontal_alignment,
-        va="center",
+        color=FOCAL_COLOR,
         clip_on=False,
-        zorder=6,
+        zorder=8,
+    )
+
+    ax.text(
+        0.98,
+        1.015,
+        f"{reference_group}  {reference_label}",
+        transform=ax.transAxes,
+        ha="right",
+        va="bottom",
+        fontsize=TREND_TEST_FONT_SIZE,
+        fontweight="bold",
+        color=REFERENCE_COLOR,
+        clip_on=False,
+        zorder=8,
     )
 
 
@@ -712,6 +1026,12 @@ def plot_summary_panel(
             f"Could not construct both group curves for {application}, "
             f"{attribute_type}."
         )
+
+    cross_model_significance = compute_cross_model_significance(
+        model_to_curves=model_to_curves,
+        focal_group=focal_group,
+        reference_group=reference_group,
+    )
 
     focal_xs, focal_ys = _curve_xy(focal_mean)
     reference_xs, reference_ys = _curve_xy(reference_mean)
@@ -815,6 +1135,16 @@ def plot_summary_panel(
             )
         )
 
+    # Two-sided tests of the cross-model mean difference at each composition.
+    # These labels are added before the inline group labels so any necessary
+    # upper-axis expansion is reflected in the latter's placement.
+    _add_cross_model_difference_labels(
+        ax=ax,
+        focal_mean=focal_mean,
+        reference_mean=reference_mean,
+        significance=cross_model_significance,
+    )
+
     # Add labels only after the panel-specific y-range is known.
     _add_inline_group_label(
         ax=ax,
@@ -831,6 +1161,14 @@ def plot_summary_panel(
         label=reference_group,
         curve=reference_mean,
         color=REFERENCE_COLOR,
+    )
+
+    # One-sided trend tests for the two thick cross-model mean curves.
+    _add_cross_model_trend_labels(
+        ax=ax,
+        focal_group=focal_group,
+        reference_group=reference_group,
+        significance=cross_model_significance,
     )
 
     ax.tick_params(
@@ -868,7 +1206,7 @@ def plot_summary_panel(
         )
         ax.text(
             0.5,
-            1.1,
+            1.15,
             APPLICATION_TEXT[application]["subtitle"],
             transform=ax.transAxes,
             ha="center",
