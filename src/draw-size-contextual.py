@@ -711,7 +711,7 @@ def draw_combined_gender_race_by_application(
         )
 
         fig.supylabel(
-            "Normalized absolute candidate-level selection-rate difference (pp)",
+            "Normalized absolute candidate-level selection-rate difference (%)",
             fontsize=9.2,
             x=0.033,
         )
