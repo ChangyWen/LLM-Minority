@@ -120,13 +120,26 @@ def compute_contextual_results(file_name, attribute_type, max_n_trials=1_000_000
         p_b = hits_b / count_b
         deltas[c] = p_a - p_b
 
-    # The original Figure 7 analysis uses c = 1.
-    if 1 not in deltas:
+    # # The original Figure 7 analysis uses c = 1.
+    # if 1 not in deltas:
+    #     raise ValueError(
+    #         f"Candidate-pool composition index c=1 is unavailable in {file_name}."
+    #     )
+
+    # return abs(deltas[1])
+
+    # Average over the two compositions in which the target group is
+    # numerically underrepresented: q = 0.2 and q = 0.4.
+    # Because q = (c + 1) / 5, these correspond to c = 0 and c = 1.
+    target_cs = [0, 1, 2, 3]
+
+    missing_cs = [c for c in target_cs if c not in deltas]
+    if missing_cs:
         raise ValueError(
-            f"Candidate-pool composition index c=1 is unavailable in {file_name}."
+            f"Required composition indices are unavailable: {missing_cs}"
         )
 
-    return abs(deltas[1])
+    return float(np.mean([abs(deltas[c]) for c in target_cs]))
 
 
 def compute_societal_results(file_name, attribute_type):
