@@ -23,9 +23,14 @@ ATTRIBUTE_TITLE_PAD = 8
 APPLICATION_TITLE_OFFSET = 0.030
 ROW_HSPACE = 0.45
 
-# Match current Fig. 2 caption:
+# Match the Fig. 2 hypothesis:
 # H1: minority scores exceed majority scores.
-MANN_WHITNEY_ALTERNATIVE = "greater"
+WILCOXON_ALTERNATIVE = "greater"
+
+# Multiple-testing correction for the full Figure 2 family:
+# 8 models × 3 scenarios × 2 attributes = 48 tests.
+FDR_ALPHA = 0.05
+EXPECTED_N_TESTS = 48
 
 # Use the same x-axis range across all six panels.
 # Set to False if you want each panel to be locally zoomed.
@@ -65,6 +70,56 @@ def p_to_stars(p):
         return "*"
     else:
         return "ns"
+
+
+def benjamini_hochberg_adjust(p_values):
+    """
+    Benjamini-Hochberg adjusted P values.
+
+    Parameters
+    ----------
+    p_values : array-like
+        A one-dimensional collection of finite raw P values.
+
+    Returns
+    -------
+    np.ndarray
+        Adjusted P values in the same order as the input.
+
+    Notes
+    -----
+    This implementation is dependency-free and follows the standard
+    step-up Benjamini-Hochberg procedure. Adjusted values are constrained
+    to [0, 1] and made monotone in ranked-P-value order.
+    """
+    p_values = np.asarray(p_values, dtype=float)
+
+    if p_values.ndim != 1:
+        raise ValueError("p_values must be one-dimensional.")
+
+    if len(p_values) == 0:
+        return np.asarray([], dtype=float)
+
+    if not np.all(np.isfinite(p_values)):
+        raise ValueError("p_values must contain only finite values.")
+
+    if np.any((p_values < 0) | (p_values > 1)):
+        raise ValueError("Each P value must lie between 0 and 1.")
+
+    n_tests = len(p_values)
+    order = np.argsort(p_values)
+    ranked_p = p_values[order]
+
+    adjusted_ranked = ranked_p * n_tests / np.arange(1, n_tests + 1)
+
+    # Enforce monotonicity from the largest rank to the smallest rank.
+    adjusted_ranked = np.minimum.accumulate(adjusted_ranked[::-1])[::-1]
+    adjusted_ranked = np.clip(adjusted_ranked, 0.0, 1.0)
+
+    adjusted = np.empty_like(adjusted_ranked)
+    adjusted[order] = adjusted_ranked
+
+    return adjusted
 
 
 def paired_bootstrap_mean_diff_ci(
@@ -114,7 +169,7 @@ def paired_bootstrap_mean_diff_ci(
     return float(ci_low), float(ci_high)
 
 
-def paired_p_value(paired_diffs, alternative=MANN_WHITNEY_ALTERNATIVE):
+def paired_p_value(paired_diffs, alternative=WILCOXON_ALTERNATIVE):
     """
     Paired significance test for candidate-level differences.
 
@@ -223,9 +278,9 @@ def compute_difference_results(attribute_type, file_name):
         paired_diffs=paired_diffs,
     )
 
-    p_value = paired_p_value(
+    p_value_raw = paired_p_value(
         paired_diffs=paired_diffs,
-        alternative=MANN_WHITNEY_ALTERNATIVE,
+        alternative=WILCOXON_ALTERNATIVE,
     )
 
     return {
@@ -234,7 +289,10 @@ def compute_difference_results(attribute_type, file_name):
         "diff": diff,
         "ci_low": ci_low,
         "ci_high": ci_high,
-        "p_value": p_value,
+        "p_value_raw": p_value_raw,
+        # Filled after all model–scenario–attribute results are collected.
+        "p_value_adj": np.nan,
+        "reject_fdr_0_05": False,
         "n_pairs": int(len(paired_diffs)),
         "skipped_candidates": int(skipped_candidates),
     }
@@ -317,18 +375,98 @@ def collect_all_difference_results(applications, attribute_types, model_names):
 
                 all_results[application][attribute_type][model_name] = res
 
+    return all_results
+
+
+def adjust_figure2_p_values(
+    all_results,
+    alpha=FDR_ALPHA,
+    expected_n_tests=EXPECTED_N_TESTS,
+):
+    """
+    Apply Benjamini-Hochberg correction across the full Figure 2 family.
+
+    The intended family contains:
+        8 models × 3 scenarios × 2 attributes = 48 tests.
+
+    Only finite raw P values are included. The adjusted values are written
+    back into each result dictionary as ``p_value_adj``. The Boolean field
+    ``reject_fdr_0_05`` records whether the adjusted P value is below alpha.
+    """
+    result_refs = []
+    raw_p_values = []
+
+    for application_results in all_results.values():
+        for attribute_results in application_results.values():
+            for result in attribute_results.values():
+                raw_p = result.get("p_value_raw", np.nan)
+
+                if raw_p is not None and np.isfinite(raw_p):
+                    result_refs.append(result)
+                    raw_p_values.append(float(raw_p))
+
+    n_valid_tests = len(raw_p_values)
+
+    if n_valid_tests == 0:
+        print("[Warning] No finite P values were available for adjustment.")
+        return 0
+
+    if expected_n_tests is not None and n_valid_tests != expected_n_tests:
+        print(
+            f"[Warning] Expected {expected_n_tests} Figure 2 tests, "
+            f"but found {n_valid_tests} finite P values. "
+            "Benjamini-Hochberg correction will use the available tests."
+        )
+
+    adjusted_p_values = benjamini_hochberg_adjust(raw_p_values)
+
+    for result, adjusted_p in zip(result_refs, adjusted_p_values):
+        result["p_value_adj"] = float(adjusted_p)
+        result["reject_fdr_0_05"] = bool(adjusted_p < alpha)
+
+    print(
+        f"Applied Benjamini-Hochberg correction to {n_valid_tests} tests "
+        f"(FDR threshold = {alpha:.2f})."
+    )
+
+    return n_valid_tests
+
+
+def print_difference_results(
+    all_results,
+    applications,
+    attribute_types,
+    model_names,
+):
+    """
+    Print effect estimates, confidence intervals, and both raw and adjusted
+    P values in a stable model–scenario–attribute order.
+    """
+    for application in applications:
+        for attribute_type in attribute_types:
+            panel_results = all_results.get(application, {}).get(attribute_type, {})
+
+            for model_name in model_names:
+                if model_name not in panel_results:
+                    continue
+
+                res = panel_results[model_name]
+                raw_p = res.get("p_value_raw", np.nan)
+                adjusted_p = res.get("p_value_adj", np.nan)
+
                 print(
-                    f"{application} | {attribute_type} | {pretty_model_name(model_name)}: "
+                    f"{application} | {attribute_type} | "
+                    f"{pretty_model_name(model_name)}: "
                     f"majority={res['majority_mean']:.3f}, "
                     f"minority={res['minority_mean']:.3f}, "
                     f"paired diff={res['diff']:.3f}, "
                     f"95% CI=({res['ci_low']:.3f}, {res['ci_high']:.3f}), "
                     f"n_pairs={res['n_pairs']}, "
                     f"skipped={res['skipped_candidates']}, "
-                    f"P={res['p_value']:.4g} {p_to_stars(res['p_value'])}"
+                    f"raw P={raw_p:.4g}, "
+                    f"BH-adjusted P={adjusted_p:.4g} "
+                    f"{p_to_stars(adjusted_p)}"
                 )
-
-    return all_results
 
 
 def get_xlim_from_results(all_results):
@@ -432,8 +570,9 @@ def plot_difference_panel(
         diff = res["diff"]
         ci_low = res["ci_low"]
         ci_high = res["ci_high"]
-        p_value = res["p_value"]
-        stars = p_to_stars(p_value)
+        # Stars are based on the Figure 2-wide BH-adjusted P value.
+        p_value_adj = res.get("p_value_adj", np.nan)
+        stars = p_to_stars(p_value_adj)
 
         xerr = np.array([
             [diff - ci_low],
@@ -587,6 +726,9 @@ def draw_societal_difference_figure(
         Δ score = minority mean score - majority mean score
 
     Positive values indicate preference toward societal minority groups.
+
+    Significance stars use Benjamini-Hochberg-adjusted P values across all
+    model–scenario–attribute tests in Figure 2.
     """
     set_nature_style()
     os.makedirs(output_dir, exist_ok=True)
@@ -603,6 +745,20 @@ def draw_societal_difference_figure(
     }
 
     all_results = collect_all_difference_results(
+        applications=applications,
+        attribute_types=attribute_types,
+        model_names=model_names,
+    )
+
+    # Correct the complete family of Figure 2 tests before assigning stars.
+    adjust_figure2_p_values(
+        all_results=all_results,
+        alpha=FDR_ALPHA,
+        expected_n_tests=len(applications) * len(attribute_types) * len(model_names),
+    )
+
+    print_difference_results(
+        all_results=all_results,
         applications=applications,
         attribute_types=attribute_types,
         model_names=model_names,
