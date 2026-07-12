@@ -23,6 +23,11 @@ unweighted cross-model mean shown by the thick curves:
     - difference tests use a paired, two-sided one-sample t-test on the
       model-specific focal-minus-reference differences at each composition.
 
+The resulting P values are adjusted with the Benjamini--Hochberg procedure
+in two prespecified families:
+    - 24 cross-group difference tests (6 panels x 4 compositions);
+    - 12 group-specific trend tests (6 panels x 2 groups).
+
 Expected input path pattern:
     {data_root}/{application}/contextual/{attribute_type}/
         {model_name}_{pool_size}_{pool_count}.jsonl
@@ -77,6 +82,19 @@ MODEL_NAMES = [
 
 APPLICATIONS = ["hiring", "loan", "edu"]
 ATTRIBUTE_TYPES = ["Gender", "Race"]
+
+# Prespecified multiple-testing families.
+DIFFERENCE_TEST_X_VALUES = (20.0, 40.0, 60.0, 80.0)
+EXPECTED_DIFFERENCE_TEST_COUNT = (
+    len(APPLICATIONS)
+    * len(ATTRIBUTE_TYPES)
+    * len(DIFFERENCE_TEST_X_VALUES)
+)
+EXPECTED_TREND_TEST_COUNT = (
+    len(APPLICATIONS)
+    * len(ATTRIBUTE_TYPES)
+    * 2
+)
 
 DEFAULT_APPLICATION_TO_POOL_COUNT = {
     "hiring": 200,
@@ -504,6 +522,43 @@ def p_to_stars(p_value: float) -> str:
     return "ns"
 
 
+def benjamini_hochberg(
+    p_values: Sequence[float],
+) -> list[float]:
+    """
+    Adjust a prespecified family of P values using Benjamini--Hochberg FDR.
+
+    The returned adjusted P values preserve the input order. All values must
+    be finite and lie in [0, 1], because the two test families used in this
+    figure are expected to be complete.
+    """
+    p_array = np.asarray(p_values, dtype=float)
+
+    if p_array.ndim != 1:
+        raise ValueError("p_values must be a one-dimensional sequence.")
+    if p_array.size == 0:
+        return []
+    if not np.all(np.isfinite(p_array)):
+        raise ValueError(
+            "Benjamini--Hochberg adjustment received a non-finite P value."
+        )
+    if np.any((p_array < 0.0) | (p_array > 1.0)):
+        raise ValueError("All P values must lie between 0 and 1.")
+
+    order = np.argsort(p_array, kind="mergesort")
+    ranked_p = p_array[order]
+    n_tests = ranked_p.size
+    ranks = np.arange(1, n_tests + 1, dtype=float)
+
+    adjusted_ranked = ranked_p * n_tests / ranks
+    adjusted_ranked = np.minimum.accumulate(adjusted_ranked[::-1])[::-1]
+    adjusted_ranked = np.clip(adjusted_ranked, 0.0, 1.0)
+
+    adjusted = np.empty_like(adjusted_ranked)
+    adjusted[order] = adjusted_ranked
+    return adjusted.tolist()
+
+
 def _one_sample_t_test(
     values: Sequence[float],
     null_mean: float = 0.0,
@@ -572,19 +627,29 @@ def _one_sample_t_test(
 
 
 def trend_label_from_test(test_result: Mapping[str, float]) -> str:
-    """Return a Figure-9-style arrow label for a cross-model trend test."""
-    p_inc = float(test_result.get("p_value_one_inc", float("nan")))
-    p_dec = float(test_result.get("p_value_one_dec", float("nan")))
+    """
+    Return a Figure-9-style arrow label using the BH-adjusted trend P value.
 
-    if not math.isfinite(p_inc) or not math.isfinite(p_dec):
+    The arrow direction is determined by the sign of the mean model-specific
+    slope. The P value is the one-sided P value in that direction, adjusted
+    across the 12 prespecified group-specific trend tests.
+    """
+    mean_slope = float(test_result.get("mean", float("nan")))
+    p_adjusted = float(
+        test_result.get(
+            "p_value_directional_adjusted",
+            test_result.get("p_value_directional_raw", float("nan")),
+        )
+    )
+
+    if not math.isfinite(mean_slope) or not math.isfinite(p_adjusted):
         return "ns"
 
-    if p_inc <= p_dec:
-        stars = p_to_stars(p_inc)
-        return f"↑{stars}" if stars != "ns" else "ns"
+    stars = p_to_stars(p_adjusted)
+    if stars == "ns" or math.isclose(mean_slope, 0.0, abs_tol=1e-12):
+        return "ns"
 
-    stars = p_to_stars(p_dec)
-    return f"↓{stars}" if stars != "ns" else "ns"
+    return f"↑{stars}" if mean_slope > 0.0 else f"↓{stars}"
 
 
 def compute_cross_model_significance(
@@ -637,20 +702,26 @@ def compute_cross_model_significance(
             if math.isfinite(slope):
                 slopes.append(slope)
 
-        trend_results[group] = _one_sample_t_test(slopes, null_mean=0.0)
+        trend_result = _one_sample_t_test(slopes, null_mean=0.0)
+        mean_slope = float(trend_result.get("mean", float("nan")))
+
+        if not math.isfinite(mean_slope):
+            directional_p = float("nan")
+        elif mean_slope > 0.0:
+            directional_p = float(trend_result["p_value_one_inc"])
+        elif mean_slope < 0.0:
+            directional_p = float(trend_result["p_value_one_dec"])
+        else:
+            directional_p = 0.5
+
+        trend_result["p_value_directional_raw"] = directional_p
+        trend_results[group] = trend_result
 
     pairwise_results: Dict[float, Dict[str, float]] = {}
-    candidate_x_values = sorted(
-        {
-            float(x)
-            for curves in model_to_curves.values()
-            for x in set(curves.get(focal_group, {})).intersection(
-                curves.get(reference_group, {})
-            )
-        }
-    )
 
-    for x_percent in candidate_x_values:
+    # The difference-test family is prespecified at these four shared pool
+    # compositions for every panel.
+    for x_percent in DIFFERENCE_TEST_X_VALUES:
         paired_differences: list[float] = []
 
         for curves in model_to_curves.values():
@@ -676,6 +747,121 @@ def compute_cross_model_significance(
         "trend": trend_results,
         "pairwise": pairwise_results,
     }
+
+
+def adjust_cross_model_p_values(
+    panel_significance: MutableMapping[
+        tuple[str, str], Dict[str, object]
+    ],
+) -> None:
+    """
+    Apply Benjamini--Hochberg correction to the two prespecified families.
+
+    Family 1:
+        24 two-sided cross-group difference tests
+        = 6 panels x 4 pool compositions.
+
+    Family 2:
+        12 one-sided group-specific trend tests
+        = 6 panels x 2 groups.
+
+    The function mutates ``panel_significance`` by adding:
+        pairwise[*]["p_value_two_sided_adjusted"]
+        trend[*]["p_value_directional_adjusted"]
+    """
+    difference_refs: list[MutableMapping[str, float]] = []
+    difference_raw_p_values: list[float] = []
+
+    trend_refs: list[MutableMapping[str, float]] = []
+    trend_raw_p_values: list[float] = []
+
+    for attribute_type in ATTRIBUTE_TYPES:
+        style = get_attribute_style(attribute_type)
+
+        for application in APPLICATIONS:
+            panel_key = (attribute_type, application)
+            if panel_key not in panel_significance:
+                raise ValueError(
+                    f"Missing significance results for panel {panel_key}."
+                )
+
+            significance = panel_significance[panel_key]
+
+            pairwise = significance.get("pairwise", {})
+            if not isinstance(pairwise, MutableMapping):
+                raise TypeError(
+                    f"Pairwise results for panel {panel_key} are invalid."
+                )
+
+            for x_percent in DIFFERENCE_TEST_X_VALUES:
+                test_result = pairwise.get(x_percent)
+                if not isinstance(test_result, MutableMapping):
+                    raise ValueError(
+                        "Missing cross-group difference test for "
+                        f"panel={panel_key}, x={x_percent:.0f}%."
+                    )
+
+                raw_p = float(
+                    test_result.get(
+                        "p_value_two_sided",
+                        float("nan"),
+                    )
+                )
+                difference_refs.append(test_result)
+                difference_raw_p_values.append(raw_p)
+
+            trend = significance.get("trend", {})
+            if not isinstance(trend, MutableMapping):
+                raise TypeError(
+                    f"Trend results for panel {panel_key} are invalid."
+                )
+
+            for group in style["order"]:
+                test_result = trend.get(group)
+                if not isinstance(test_result, MutableMapping):
+                    raise ValueError(
+                        "Missing group-specific trend test for "
+                        f"panel={panel_key}, group={group!r}."
+                    )
+
+                raw_p = float(
+                    test_result.get(
+                        "p_value_directional_raw",
+                        float("nan"),
+                    )
+                )
+                trend_refs.append(test_result)
+                trend_raw_p_values.append(raw_p)
+
+    if len(difference_raw_p_values) != EXPECTED_DIFFERENCE_TEST_COUNT:
+        raise ValueError(
+            "Expected "
+            f"{EXPECTED_DIFFERENCE_TEST_COUNT} cross-group difference tests, "
+            f"but found {len(difference_raw_p_values)}."
+        )
+
+    if len(trend_raw_p_values) != EXPECTED_TREND_TEST_COUNT:
+        raise ValueError(
+            f"Expected {EXPECTED_TREND_TEST_COUNT} trend tests, "
+            f"but found {len(trend_raw_p_values)}."
+        )
+
+    difference_adjusted = benjamini_hochberg(
+        difference_raw_p_values
+    )
+    trend_adjusted = benjamini_hochberg(trend_raw_p_values)
+
+    for test_result, adjusted_p in zip(
+        difference_refs,
+        difference_adjusted,
+    ):
+        test_result["p_value_two_sided_adjusted"] = float(adjusted_p)
+
+    for test_result, adjusted_p in zip(
+        trend_refs,
+        trend_adjusted,
+    ):
+        test_result["p_value_directional_adjusted"] = float(adjusted_p)
 
 
 # ============================================================
@@ -845,10 +1031,10 @@ def _add_cross_model_difference_labels(
     significance: Mapping[str, object],
 ) -> None:
     """
-    Add two-sided cross-model difference-test labels above the mean curves.
+    Add BH-adjusted, two-sided difference-test labels above the means.
 
-    For a five-candidate pool, shared group-composition points are 20%, 40%,
-    60%, and 80%, matching the annotations in Figure 9.
+    For a five-candidate pool, the prespecified group-composition points are
+    20%, 40%, 60%, and 80%, matching the annotations in Figure 9.
     """
     pairwise = significance.get("pairwise", {})
     if not isinstance(pairwise, Mapping) or not pairwise:
@@ -873,7 +1059,10 @@ def _add_cross_model_difference_labels(
             continue
 
         p_value = float(
-            test_result.get("p_value_two_sided", float("nan"))
+            test_result.get(
+                "p_value_two_sided_adjusted",
+                test_result.get("p_value_two_sided", float("nan")),
+            )
         )
         label = p_to_stars(p_value)
         if not label:
@@ -959,6 +1148,7 @@ def plot_summary_panel(
     model_to_curves: Mapping[
         str, Mapping[str, Mapping[float, float]]
     ],
+    cross_model_significance: Mapping[str, object],
     application: str,
     attribute_type: str,
     pool_size: int,
@@ -1032,12 +1222,6 @@ def plot_summary_panel(
             f"Could not construct both group curves for {application}, "
             f"{attribute_type}."
         )
-
-    cross_model_significance = compute_cross_model_significance(
-        model_to_curves=model_to_curves,
-        focal_group=focal_group,
-        reference_group=reference_group,
-    )
 
     focal_xs, focal_ys = _curve_xy(focal_mean)
     reference_xs, reference_ys = _curve_xy(reference_mean)
@@ -1141,7 +1325,7 @@ def plot_summary_panel(
             )
         )
 
-    # Two-sided tests of the cross-model mean difference at each composition.
+    # BH-adjusted two-sided tests of the cross-model mean difference.
     # These labels are added before the inline group labels so any necessary
     # upper-axis expansion is reflected in the latter's placement.
     _add_cross_model_difference_labels(
@@ -1170,7 +1354,7 @@ def plot_summary_panel(
             color=REFERENCE_COLOR,
         )
 
-    # One-sided trend tests for the two thick cross-model mean curves.
+    # BH-adjusted one-sided trend tests for the two mean curves.
     _add_cross_model_trend_labels(
         ax=ax,
         focal_group=focal_group,
@@ -1316,6 +1500,30 @@ def draw_figure(
             panel_data[(attribute_type, application)] = model_to_curves
             panel_model_counts.append(len(model_to_curves))
 
+    # Compute all 36 raw tests first, then apply BH adjustment separately
+    # to the 24 cross-group difference tests and the 12 trend tests.
+    panel_significance: Dict[
+        tuple[str, str],
+        Dict[str, object],
+    ] = {}
+
+    for attribute_type in ATTRIBUTE_TYPES:
+        style = get_attribute_style(attribute_type)
+        focal_group = str(style["focal"])
+        reference_group = str(style["reference"])
+
+        for application in APPLICATIONS:
+            panel_key = (attribute_type, application)
+            panel_significance[panel_key] = (
+                compute_cross_model_significance(
+                    model_to_curves=panel_data[panel_key],
+                    focal_group=focal_group,
+                    reference_group=reference_group,
+                )
+            )
+
+    adjust_cross_model_p_values(panel_significance)
+
     fig, axes = plt.subplots(
         nrows=2,
         ncols=3,
@@ -1334,11 +1542,11 @@ def draw_figure(
 
     for row_index, attribute_type in enumerate(ATTRIBUTE_TYPES):
         for column_index, application in enumerate(APPLICATIONS):
+            panel_key = (attribute_type, application)
             plot_summary_panel(
                 ax=axes[row_index, column_index],
-                model_to_curves=panel_data[
-                    (attribute_type, application)
-                ],
+                model_to_curves=panel_data[panel_key],
+                cross_model_significance=panel_significance[panel_key],
                 application=application,
                 attribute_type=attribute_type,
                 pool_size=pool_size,
