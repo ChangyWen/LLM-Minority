@@ -10,13 +10,15 @@ The output is a 2 x 3 summary figure:
 Each panel contains:
     - thin group-colored lines for the individual LLMs;
     - thick lines with markers for the unweighted cross-model mean;
-    - cross-model trend-test annotations for the two mean curves;
+    - cross-model trend-test significance embedded in the explanatory
+      annotations in every panel;
     - cross-model difference-test annotations at 20%, 40%, 60%, and 80%;
     - a dashed uniform-random candidate-level selection-rate baseline;
     - a shaded region indicating that the focal group is the contextual minority;
     - legends below the plots identifying the contextual-minority regions;
-    - directional arrows in the first panel of each row explaining how
-      preference changes as each group becomes more underrepresented.
+    - explanatory annotations in every panel showing each group's
+      trend significance and favored/less-favored status under greater
+      contextual underrepresentation.
 
 The inferential unit for the added tests is the model, which matches the
 unweighted cross-model mean shown by the thick curves:
@@ -120,7 +122,8 @@ APPLICATION_TEXT = {
     "edu": {
         "title": "Scholarship allocation",
         "subtitle": (
-            "Female/Black favored"
+            "Female/Black favored\n"
+            "Pattern resembles hiring"
         ),
     },
 }
@@ -138,6 +141,14 @@ ATTRIBUTE_STYLE = {
     },
 }
 
+# Which plotted group is favored overall in each application.
+# "focal" denotes Female/Black; "reference" denotes Male/White.
+APPLICATION_FAVORED_ROLE = {
+    "hiring": "focal",
+    "loan": "reference",
+    "edu": "focal",
+}
+
 # Each of the six panels receives its own data-driven y-axis limits.
 # The limits include all individual-model curves and the 20% random baseline.
 #
@@ -153,9 +164,9 @@ Y_AXIS_MIN_PADDING = 0.50
 Y_AXIS_MIN_DATA_SPAN = 4.00
 Y_AXIS_TARGET_TICKS = 5
 
-# Dedicated empty bands above and below the curves in the first panel of
-# each row. The explanatory arrows are drawn in these bands rather than on
-# top of the model traces.
+# Dedicated empty bands above and below the curves in every panel. The
+# explanatory annotations are drawn in these bands rather than on top of
+# the model traces.
 EXPLANATORY_ARROW_LOWER_MARGIN_FRACTION = 0.38
 EXPLANATORY_ARROW_UPPER_MARGIN_FRACTION = 0.38
 
@@ -166,7 +177,7 @@ MINORITY_SHADE_COLOR = "0.93"
 BASELINE_COLOR = "0.05"
 
 FIGURE_SIZE = (16.5, 12.0)
-OUTPUT_BASENAME = "Figure4_contextual_bias_reviewer_style_summary_spaced"
+OUTPUT_BASENAME = "Figure4_contextual_bias_scholarship_trend_only"
 
 # ============================================================
 # Font sizes
@@ -183,7 +194,6 @@ ROW_LABEL_FONT_SIZE = 16
 LEGEND_FONT_SIZE = 16
 CONTEXT_LEGEND_FONT_SIZE = 13.5
 SIGNIFICANCE_FONT_SIZE = 14.5
-TREND_TEST_FONT_SIZE = 13.5
 UNDERREPRESENTATION_FONT_SIZE = 11.5
 UNDERREPRESENTATION_ARROW_LINEWIDTH = 1.6
 UNDERREPRESENTATION_ARROW_MUTATION_SCALE = 14
@@ -1024,96 +1034,80 @@ def _add_cross_model_difference_labels(
         )
 
 
-def _add_cross_model_trend_labels(
+def _add_underrepresentation_arrows(
     ax: plt.Axes,
+    application: str,
+    attribute_type: str,
     focal_group: str,
     reference_group: str,
+    focal_mean: Mapping[float, float],
+    reference_mean: Mapping[float, float],
     significance: Mapping[str, object],
 ) -> None:
-    """Place compact Figure-9-style trend labels above each panel."""
+    """
+    Add two explanatory annotations to one panel.
+
+    Each annotation combines the group name, its BH-adjusted trend direction
+    and significance, and whether that group is the more-favored or
+    less-favored group in the current application.
+    """
+    if attribute_type not in {"Gender", "Race"}:
+        raise ValueError(
+            "Underrepresentation annotations are defined only for "
+            f"Gender and Race, not {attribute_type!r}."
+        )
+
     trend = significance.get("trend", {})
     if not isinstance(trend, Mapping):
-        return
+        trend = {}
 
     focal_test = trend.get(focal_group, {})
     reference_test = trend.get(reference_group, {})
 
-    focal_label = trend_label_from_test(
+    focal_trend_label = trend_label_from_test(
         focal_test if isinstance(focal_test, Mapping) else {}
     )
-    reference_label = trend_label_from_test(
+    reference_trend_label = trend_label_from_test(
         reference_test if isinstance(reference_test, Mapping) else {}
     )
 
-    ax.text(
-        0.25,
-        1.015,
-        f"{focal_group}  {focal_label}",
-        transform=ax.transAxes,
-        ha="left",
-        va="bottom",
-        fontsize=TREND_TEST_FONT_SIZE,
-        fontweight="bold",
-        color=FOCAL_COLOR,
-        clip_on=False,
-        zorder=8,
-    )
-
-    ax.text(
-        0.75,
-        1.015,
-        f"{reference_group}  {reference_label}",
-        transform=ax.transAxes,
-        ha="right",
-        va="bottom",
-        fontsize=TREND_TEST_FONT_SIZE,
-        fontweight="bold",
-        color=REFERENCE_COLOR,
-        clip_on=False,
-        zorder=8,
-    )
-
-
-def _add_underrepresentation_arrows(
-    ax: plt.Axes,
-    attribute_type: str,
-    focal_mean: Mapping[float, float],
-    reference_mean: Mapping[float, float],
-) -> None:
-    """
-    Add two directional annotations to the first panel of each row.
-
-    The focal-group arrow points left because the focal group becomes more
-    underrepresented as its proportion on the x-axis decreases. The
-    reference-group arrow points right because the reference group becomes
-    more underrepresented as the focal-group proportion increases.
-    """
-    annotation_text = {
-        "Gender": {
-            "focal": (
-                "Female more favored when more underrepresented"
-            ),
-            "reference": (
-                "Male less favored when more underrepresented"
-            ),
-        },
-        "Race": {
-            "focal": (
-                "Black more favored when more underrepresented"
-            ),
-            "reference": (
-                "White less favored when more underrepresented"
-            ),
-        },
-    }
-
     try:
-        text_for_attribute = annotation_text[attribute_type]
+        favored_role = APPLICATION_FAVORED_ROLE[application]
     except KeyError as exc:
         raise ValueError(
-            "Underrepresentation annotations are defined only for "
-            f"Gender and Race, not {attribute_type!r}."
+            f"No favored-group role is configured for {application!r}."
         ) from exc
+
+    if favored_role == "focal":
+        focal_interpretation = "More favored when more underrepresented"
+        reference_interpretation = "Less favored when more underrepresented"
+    elif favored_role == "reference":
+        focal_interpretation = "Less favored when more underrepresented"
+        reference_interpretation = "More favored when more underrepresented"
+    else:
+        raise ValueError(
+            "APPLICATION_FAVORED_ROLE values must be 'focal' or 'reference'."
+        )
+
+    if application == "edu":
+        # Scholarship allocation follows the same broad preference pattern as
+        # hiring, so keep these panel annotations compact and show only each
+        # group's BH-adjusted trend direction and significance.
+        text_for_attribute = {
+            "focal": f"{focal_group} {focal_trend_label}",
+            "reference": f"{reference_group} {reference_trend_label}",
+        }
+    else:
+        text_for_attribute = {
+            "focal": (
+                f"{focal_group} {focal_trend_label}\n"
+                f"{focal_interpretation}"
+            ),
+            "reference": (
+                f"{reference_group} {reference_trend_label}\n"
+                f"{reference_interpretation}"
+            ),
+        }
 
     ymin, ymax = ax.get_ylim()
     y_span = max(ymax - ymin, 1e-12)
@@ -1138,55 +1132,47 @@ def _add_underrepresentation_arrows(
     focal_arrow_y = ymax - 0.17 * y_span
     reference_arrow_y = ymin + 0.17 * y_span
 
-    arrow_properties = {
-        "arrowstyle": "-|>",
-        "linewidth": UNDERREPRESENTATION_ARROW_LINEWIDTH,
-        "mutation_scale": UNDERREPRESENTATION_ARROW_MUTATION_SCALE,
-        "shrinkA": 0,
-        "shrinkB": 0,
-    }
+    # By default, place the focal-group annotation in the upper band and
+    # the reference-group annotation in the lower band. In the Gender × Loan
+    # panel, reverse this order so Male appears above Female, as Male is the
+    # favored group in loan approval.
+    reverse_vertical_order = (
+        application == "loan"
+        and attribute_type == "Gender"
+    )
 
-    # Focal-group underrepresentation increases toward the left.
-    # ax.annotate(
-    #     "",
-    #     xy=(19.0, focal_arrow_y),
-    #     xytext=(59.0, focal_arrow_y),
-    #     arrowprops={**arrow_properties, "color": FOCAL_COLOR},
-    #     annotation_clip=False,
-    #     zorder=8,
-    # )
+    if reverse_vertical_order:
+        upper_text = text_for_attribute["reference"]
+        upper_color = REFERENCE_COLOR
+        lower_text = text_for_attribute["focal"]
+        lower_color = FOCAL_COLOR
+    else:
+        upper_text = text_for_attribute["focal"]
+        upper_color = FOCAL_COLOR
+        lower_text = text_for_attribute["reference"]
+        lower_color = REFERENCE_COLOR
+
     ax.text(
         52.0,
         focal_arrow_y + 0.025 * y_span,
-        text_for_attribute["focal"],
+        upper_text,
         ha="center",
         va="bottom",
         fontsize=UNDERREPRESENTATION_FONT_SIZE,
-        # fontweight="semibold",
-        color=FOCAL_COLOR,
+        color=upper_color,
         linespacing=1.05,
         clip_on=False,
         zorder=8,
     )
 
-    # Reference-group underrepresentation increases toward the right.
-    # ax.annotate(
-    #     "",
-    #     xy=(81.0, reference_arrow_y),
-    #     xytext=(41.0, reference_arrow_y),
-    #     arrowprops={**arrow_properties, "color": REFERENCE_COLOR},
-    #     annotation_clip=False,
-    #     zorder=8,
-    # )
     ax.text(
         48.0,
         reference_arrow_y - 0.025 * y_span,
-        text_for_attribute["reference"],
+        lower_text,
         ha="center",
         va="top",
         fontsize=UNDERREPRESENTATION_FONT_SIZE,
-        # fontweight="semibold",
-        color=REFERENCE_COLOR,
+        color=lower_color,
         linespacing=1.05,
         clip_on=False,
         zorder=8,
@@ -1317,12 +1303,12 @@ def plot_summary_panel(
     # Preserve the manually selected base ranges for the two race panels.
     # For the hiring panel, the annotation margins are added *after* this
     # base range is set, so the arrows receive their own empty bands.
-    if attribute_type == "Race" and application == "hiring":
-        panel_ymin, panel_ymax = 10.0, 28.0
-    elif attribute_type == "Race" and application == "edu":
-        panel_ymin, panel_ymax = 13.0, 23.0
+    # if attribute_type == "Race" and application == "hiring":
+    #     panel_ymin, panel_ymax = 10.0, 28.0
+    # elif attribute_type == "Race" and application == "edu":
+    #     panel_ymin, panel_ymax = 13.0, 23.0
 
-    # The first panel of each row contains two explanatory arrows. Expand
+    # Every panel contains two explanatory annotations. Expand
     # both ends of its y-axis so the data occupy the middle of the panel and
     # the upper/lower annotations never sit on top of model traces.
     if add_explanatory_arrows:
@@ -1368,21 +1354,17 @@ def plot_summary_panel(
     )
 
 
-    # BH-adjusted one-sided trend tests for the two mean curves.
-    _add_cross_model_trend_labels(
-        ax=ax,
-        focal_group=focal_group,
-        reference_group=reference_group,
-        significance=cross_model_significance,
-    )
-
-    # Add the explanatory arrows only to the first panel of each row.
+    # Add the explanatory annotations to this panel.
     if add_explanatory_arrows:
         _add_underrepresentation_arrows(
             ax=ax,
+            application=application,
             attribute_type=attribute_type,
+            focal_group=focal_group,
+            reference_group=reference_group,
             focal_mean=focal_mean,
             reference_mean=reference_mean,
+            significance=cross_model_significance,
         )
 
     ax.tick_params(
@@ -1512,8 +1494,8 @@ def draw_figure(
         figsize=FIGURE_SIZE,
         squeeze=False,
         gridspec_kw={
-            # The first row is slightly taller because its panels also carry
-            # the column titles/subtitles and the gender annotations.
+            # The first row is slightly taller because it also carries the
+            # column titles and subtitles.
             "height_ratios": [1.12, 1.0],
         },
     )
@@ -1544,7 +1526,7 @@ def draw_figure(
                 pool_size=pool_size,
                 show_column_header=(row_index == 0),
                 show_x_tick_labels=True,
-                add_explanatory_arrows=(column_index == 0),
+                add_explanatory_arrows=True,
             )
 
     # ------------------------------------------------------------
