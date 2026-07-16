@@ -108,22 +108,19 @@ APPLICATION_TEXT = {
     "hiring": {
         "title": "Hiring",
         "subtitle": (
-            "Female/Black favored, especially\n"
-            "when contextually underrepresented"
+            "Female/Black favored"
         ),
     },
     "loan": {
         "title": "Loan approval",
         "subtitle": (
-            "Male/White favored, especially\n"
-            "when contextually underrepresented"
+            "Male/White favored"
         ),
     },
     "edu": {
         "title": "Scholarship allocation",
         "subtitle": (
-            "Female/Black favored, especially\n"
-            "when contextually underrepresented"
+            "Female/Black favored"
         ),
     },
 }
@@ -156,9 +153,11 @@ Y_AXIS_MIN_PADDING = 0.50
 Y_AXIS_MIN_DATA_SPAN = 4.00
 Y_AXIS_TARGET_TICKS = 5
 
-# Extra empty space beneath the curves in the first panel of each row so
-# that the lower explanatory arrow does not overlap the plotted lines.
-FIRST_COLUMN_PANEL_LOWER_MARGIN_FRACTION = 0.28
+# Dedicated empty bands above and below the curves in the first panel of
+# each row. The explanatory arrows are drawn in these bands rather than on
+# top of the model traces.
+EXPLANATORY_ARROW_LOWER_MARGIN_FRACTION = 0.38
+EXPLANATORY_ARROW_UPPER_MARGIN_FRACTION = 0.38
 
 FOCAL_COLOR = "#ff2d86"
 REFERENCE_COLOR = "#7550ff"
@@ -166,8 +165,8 @@ INDIVIDUAL_ALPHA = 0.27
 MINORITY_SHADE_COLOR = "0.93"
 BASELINE_COLOR = "0.05"
 
-FIGURE_SIZE = (16.5, 10.5)
-OUTPUT_BASENAME = "Figure4_contextual_bias_reviewer_style_summary_context_legends"
+FIGURE_SIZE = (16.5, 12.0)
+OUTPUT_BASENAME = "Figure4_contextual_bias_reviewer_style_summary_spaced"
 
 # ============================================================
 # Font sizes
@@ -1092,22 +1091,18 @@ def _add_underrepresentation_arrows(
     annotation_text = {
         "Gender": {
             "focal": (
-                "Females more favored when\n"
-                "more underrepresented"
+                "Female more favored when more underrepresented"
             ),
             "reference": (
-                "Males less favored when\n"
-                "more underrepresented"
+                "Male less favored when more underrepresented"
             ),
         },
         "Race": {
             "focal": (
-                "Black candidates more favored when\n"
-                "more underrepresented"
+                "Black more favored when more underrepresented"
             ),
             "reference": (
-                "White candidates less favored when\n"
-                "more underrepresented"
+                "White less favored when more underrepresented"
             ),
         },
     }
@@ -1137,20 +1132,11 @@ def _add_underrepresentation_arrows(
     if not focal_values or not reference_values:
         return
 
-    # Place the upper annotation just above the focal mean curve, while
-    # keeping enough room for its two-line label and the significance marks.
-    focal_arrow_y = max(focal_values) + 0.055 * y_span
-    focal_arrow_y = min(
-        max(focal_arrow_y, ymin + 0.61 * y_span),
-        ymax - 0.14 * y_span,
-    )
-
-    # Place the lower annotation just below the reference mean curve.
-    reference_arrow_y = min(reference_values) - 0.055 * y_span
-    reference_arrow_y = max(
-        min(reference_arrow_y, ymin + 0.43 * y_span),
-        ymin + 0.29 * y_span,
-    )
+    # The axis limits reserve dedicated annotation bands above and below
+    # every plotted trace. Keep the arrows at fixed positions within those
+    # bands so their text cannot collide with the individual-model lines.
+    focal_arrow_y = ymax - 0.17 * y_span
+    reference_arrow_y = ymin + 0.17 * y_span
 
     arrow_properties = {
         "arrowstyle": "-|>",
@@ -1161,14 +1147,14 @@ def _add_underrepresentation_arrows(
     }
 
     # Focal-group underrepresentation increases toward the left.
-    ax.annotate(
-        "",
-        xy=(19.0, focal_arrow_y),
-        xytext=(59.0, focal_arrow_y),
-        arrowprops={**arrow_properties, "color": FOCAL_COLOR},
-        annotation_clip=False,
-        zorder=8,
-    )
+    # ax.annotate(
+    #     "",
+    #     xy=(19.0, focal_arrow_y),
+    #     xytext=(59.0, focal_arrow_y),
+    #     arrowprops={**arrow_properties, "color": FOCAL_COLOR},
+    #     annotation_clip=False,
+    #     zorder=8,
+    # )
     ax.text(
         52.0,
         focal_arrow_y + 0.025 * y_span,
@@ -1176,7 +1162,7 @@ def _add_underrepresentation_arrows(
         ha="center",
         va="bottom",
         fontsize=UNDERREPRESENTATION_FONT_SIZE,
-        fontweight="semibold",
+        # fontweight="semibold",
         color=FOCAL_COLOR,
         linespacing=1.05,
         clip_on=False,
@@ -1184,14 +1170,14 @@ def _add_underrepresentation_arrows(
     )
 
     # Reference-group underrepresentation increases toward the right.
-    ax.annotate(
-        "",
-        xy=(81.0, reference_arrow_y),
-        xytext=(41.0, reference_arrow_y),
-        arrowprops={**arrow_properties, "color": REFERENCE_COLOR},
-        annotation_clip=False,
-        zorder=8,
-    )
+    # ax.annotate(
+    #     "",
+    #     xy=(81.0, reference_arrow_y),
+    #     xytext=(41.0, reference_arrow_y),
+    #     arrowprops={**arrow_properties, "color": REFERENCE_COLOR},
+    #     annotation_clip=False,
+    #     zorder=8,
+    # )
     ax.text(
         48.0,
         reference_arrow_y - 0.025 * y_span,
@@ -1199,7 +1185,7 @@ def _add_underrepresentation_arrows(
         ha="center",
         va="top",
         fontsize=UNDERREPRESENTATION_FONT_SIZE,
-        fontweight="semibold",
+        # fontweight="semibold",
         color=REFERENCE_COLOR,
         linespacing=1.05,
         clip_on=False,
@@ -1294,7 +1280,7 @@ def plot_summary_panel(
         focal_xs,
         focal_ys,
         color=FOCAL_COLOR,
-        marker="^",
+        marker="X",
         markersize=8,
         markerfacecolor=FOCAL_COLOR,
         markeredgecolor=FOCAL_COLOR,
@@ -1328,58 +1314,43 @@ def plot_summary_panel(
         random_rate_percent=random_rate_percent,
     )
 
-    # The first panel of each row contains two explanatory arrows.
-    # Expand only those lower limits to reserve clean annotation space.
+    # Preserve the manually selected base ranges for the two race panels.
+    # For the hiring panel, the annotation margins are added *after* this
+    # base range is set, so the arrows receive their own empty bands.
+    if attribute_type == "Race" and application == "hiring":
+        panel_ymin, panel_ymax = 10.0, 28.0
+    elif attribute_type == "Race" and application == "edu":
+        panel_ymin, panel_ymax = 13.0, 23.0
+
+    # The first panel of each row contains two explanatory arrows. Expand
+    # both ends of its y-axis so the data occupy the middle of the panel and
+    # the upper/lower annotations never sit on top of model traces.
     if add_explanatory_arrows:
         panel_span = max(panel_ymax - panel_ymin, 1e-12)
         panel_ymin = max(
             0.0,
             panel_ymin
-            - FIRST_COLUMN_PANEL_LOWER_MARGIN_FRACTION * panel_span,
+            - EXPLANATORY_ARROW_LOWER_MARGIN_FRACTION * panel_span,
+        )
+        panel_ymax = min(
+            100.0,
+            panel_ymax
+            + EXPLANATORY_ARROW_UPPER_MARGIN_FRACTION * panel_span,
         )
 
-    # Force integer y-axis limits and tick intervals for the lower-left
-    # (Race × Hiring) and lower-right (Race × Scholarship allocation)
-    # panels. The other four panels retain their existing automatic locator.
-    use_integer_y_ticks = (
-        attribute_type == "Race"
-        and application in {"hiring", "edu"}
-    )
+    ax.set_ylim(panel_ymin, panel_ymax)
 
-    if use_integer_y_ticks:
-        integer_ymin = math.floor(panel_ymin)
-        integer_ymax = math.ceil(panel_ymax)
-
-        # Choose an integer interval that gives approximately the requested
-        # number of major ticks, then align both limits to that interval.
-        integer_tick_step = max(
-            1,
-            math.ceil(
-                (integer_ymax - integer_ymin)
-                / max(Y_AXIS_TARGET_TICKS - 1, 1)
-            ),
-        )
-
-        panel_ymin = (
-            math.floor(integer_ymin / integer_tick_step)
-            * integer_tick_step
-        )
-        panel_ymax = (
-            math.ceil(integer_ymax / integer_tick_step)
-            * integer_tick_step
-        )
-
-        ax.set_ylim(panel_ymin, panel_ymax)
-
-        if attribute_type == "Race" and application == "hiring":
-            ax.set_ylim(10, 28)
-        if attribute_type == "Race" and application == "edu":
-            ax.set_ylim(13, 23)
+    # Keep integer-valued ticks for the race panels while allowing their
+    # limits to expand when explanatory arrows are present.
+    if attribute_type == "Race":
         ax.yaxis.set_major_locator(
-            MultipleLocator(integer_tick_step)
+            MaxNLocator(
+                nbins=Y_AXIS_TARGET_TICKS,
+                integer=True,
+                min_n_ticks=4,
+            )
         )
     else:
-        ax.set_ylim(panel_ymin, panel_ymax)
         ax.yaxis.set_major_locator(
             MaxNLocator(
                 nbins=Y_AXIS_TARGET_TICKS,
@@ -1540,15 +1511,25 @@ def draw_figure(
         ncols=3,
         figsize=FIGURE_SIZE,
         squeeze=False,
+        gridspec_kw={
+            # The first row is slightly taller because its panels also carry
+            # the column titles/subtitles and the gender annotations.
+            "height_ratios": [1.12, 1.0],
+        },
     )
 
+    # Reserve a dedicated footer below the plots for, in order:
+    #   (1) the second-row shared x label;
+    #   (2) the contextual-region legend;
+    #   (3) the line/marker legend.
+    # The larger inter-row gap similarly isolates the first-row shared x label.
     fig.subplots_adjust(
         left=0.135,
         right=0.988,
-        bottom=0.175,
+        bottom=0.305,
         top=0.835,
         wspace=0.13,
-        hspace=0.41,
+        hspace=0.58,
     )
 
     for row_index, attribute_type in enumerate(ATTRIBUTE_TYPES):
@@ -1607,8 +1588,18 @@ def draw_figure(
     # First-row shared xlabel: place it in the gap between the two rows.
     first_row_xlabel_y = second_row_top + 0.5 * (first_row_bottom - second_row_top)
 
-    # Second-row shared xlabel: place it below the second row and above the legend.
-    second_row_xlabel_y = second_row_bottom - 0.058
+    # Stack the second-row shared x label and the two legends in three
+    # separate footer bands. Their positions are derived from the actual
+    # bottom edge of the plots, so changing subplot spacing remains safe.
+    second_row_xlabel_y = second_row_bottom - 0.043
+    context_legend_top_y = second_row_xlabel_y - 0.032
+    series_legend_top_y = context_legend_top_y - 0.092
+
+    if series_legend_top_y <= 0.02:
+        raise RuntimeError(
+            "The figure footer is too small for the x label and two legends. "
+            "Increase the bottom margin in fig.subplots_adjust()."
+        )
 
     fig.text(
         plots_center_x,
@@ -1662,11 +1653,11 @@ def draw_figure(
             [0],
             [0],
             color=FOCAL_COLOR,
-            marker="^",
+            marker="X",
             markerfacecolor=FOCAL_COLOR,
             markeredgecolor=FOCAL_COLOR,
-            linewidth=3.5,
-            markersize=8.5,
+            linewidth=3.25,
+            markersize=8,
             label="Female / Black (mean across models)",
         ),
         Line2D(
@@ -1676,8 +1667,8 @@ def draw_figure(
             marker="o",
             markerfacecolor=REFERENCE_COLOR,
             markeredgecolor=REFERENCE_COLOR,
-            linewidth=3.5,
-            markersize=8.5,
+            linewidth=3.25,
+            markersize=8,
             label="Male / White (mean across models)",
         ),
         Line2D(
@@ -1702,14 +1693,15 @@ def draw_figure(
 
     fig.legend(
         handles=series_legend_handles,
-        loc="lower center",
-        bbox_to_anchor=(plots_center_x, 0.005),
+        loc="upper center",
+        bbox_to_anchor=(plots_center_x, series_legend_top_y),
         ncol=2,
         frameon=False,
         fontsize=LEGEND_FONT_SIZE,
         handlelength=2.2,
         handletextpad=0.7,
         columnspacing=1.55,
+        labelspacing=0.65,
         borderaxespad=0.0,
         title="Line",
         title_fontsize=LEGEND_FONT_SIZE,
@@ -1734,15 +1726,16 @@ def draw_figure(
 
     fig.legend(
         handles=context_legend_handles,
-        loc="lower center",
-        bbox_to_anchor=(plots_center_x, 0.084),
+        loc="upper center",
+        bbox_to_anchor=(plots_center_x, context_legend_top_y),
         ncol=2,
         frameon=False,
-        fontsize=CONTEXT_LEGEND_FONT_SIZE,
+        fontsize=LEGEND_FONT_SIZE,
         handlelength=1.25,
         handleheight=0.9,
         handletextpad=0.55,
         columnspacing=1.45,
+        labelspacing=0.55,
         borderaxespad=0.0,
         title="Region",
         title_fontsize=LEGEND_FONT_SIZE,
