@@ -110,13 +110,13 @@ APPLICATION_TEXT = {
     "hiring": {
         "title": "Hiring",
         "subtitle": (
-            "Female/Black favored over male/White"
+            "Female (resp. Black) favored over male (resp. White)"
         ),
     },
     "loan": {
         "title": "Loan approval",
         "subtitle": (
-            "Male/White favored over female/Black"
+            "Male (resp. White) favored over female (resp. Black)"
         ),
     },
     "edu": {
@@ -175,7 +175,7 @@ INDIVIDUAL_ALPHA = 0.27
 MINORITY_SHADE_COLOR = "0.93"
 BASELINE_COLOR = "0.05"
 
-FIGURE_SIZE = (16.5, 13.5)
+FIGURE_SIZE = (17.5, 13.5)
 OUTPUT_BASENAME = "Figure4_contextual_bias_scholarship_trend_only"
 
 # ============================================================
@@ -1226,7 +1226,7 @@ def plot_summary_panel(
                 ys,
                 color=FOCAL_COLOR,
                 alpha=INDIVIDUAL_ALPHA,
-                linewidth=2,
+                linewidth=1.5,
                 solid_capstyle="round",
                 zorder=2,
             )
@@ -1238,7 +1238,7 @@ def plot_summary_panel(
                 ys,
                 color=REFERENCE_COLOR,
                 alpha=INDIVIDUAL_ALPHA,
-                linewidth=2,
+                linewidth=1.5,
                 solid_capstyle="round",
                 zorder=2,
             )
@@ -1391,7 +1391,7 @@ def plot_summary_panel(
     if show_column_header:
         ax.text(
             0.5,
-            1.34,
+            1.2,
             APPLICATION_TEXT[application]["title"],
             transform=ax.transAxes,
             ha="center",
@@ -1402,7 +1402,7 @@ def plot_summary_panel(
         )
         ax.text(
             0.5,
-            1.15,
+            1.08,
             APPLICATION_TEXT[application]["subtitle"],
             transform=ax.transAxes,
             ha="center",
@@ -1511,7 +1511,7 @@ def draw_figure(
         bottom=0.305,
         top=0.835,
         wspace=0.13,
-        hspace=0.58,
+        hspace=0.35,
     )
 
     for row_index, attribute_type in enumerate(ATTRIBUTE_TYPES):
@@ -1575,7 +1575,7 @@ def draw_figure(
     # bottom edge of the plots, so changing subplot spacing remains safe.
     second_row_xlabel_y = second_row_bottom - 0.043
     context_legend_top_y = second_row_xlabel_y - 0.032
-    series_legend_top_y = context_legend_top_y - 0.092
+    series_legend_top_y = context_legend_top_y - 0.065
 
     if series_legend_top_y <= 0.02:
         raise RuntimeError(
@@ -1640,7 +1640,7 @@ def draw_figure(
             markeredgecolor=FOCAL_COLOR,
             linewidth=3.25,
             markersize=8,
-            label="Female / Black (mean across models)",
+            label="Female/Black (mean across models)",
         ),
         Line2D(
             [0],
@@ -1651,7 +1651,7 @@ def draw_figure(
             markeredgecolor=REFERENCE_COLOR,
             linewidth=3.25,
             markersize=8,
-            label="Male / White (mean across models)",
+            label="Male/White (mean across models)",
         ),
         Line2D(
             [0],
