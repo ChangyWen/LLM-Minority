@@ -1093,8 +1093,8 @@ def _add_underrepresentation_arrows(
         # hiring, so keep these panel annotations compact and show only each
         # group's BH-adjusted trend direction and significance.
         text_for_attribute = {
-            "focal": f"{focal_group} {focal_trend_label}",
-            "reference": f"{reference_group} {reference_trend_label}",
+            "focal": f"{focal_group} {focal_trend_label}\n",
+            "reference": f"\n{reference_group} {reference_trend_label}",
         }
     else:
         text_for_attribute = {
