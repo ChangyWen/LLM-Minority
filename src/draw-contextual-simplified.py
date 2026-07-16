@@ -110,13 +110,13 @@ APPLICATION_TEXT = {
     "hiring": {
         "title": "Hiring",
         "subtitle": (
-            "Female/Black favored"
+            "Female/Black favored over male/White"
         ),
     },
     "loan": {
         "title": "Loan approval",
         "subtitle": (
-            "Male/White favored"
+            "Male/White favored over female/Black"
         ),
     },
     "edu": {
@@ -166,8 +166,8 @@ Y_AXIS_TARGET_TICKS = 5
 # Dedicated empty bands above and below the curves in every panel. The
 # explanatory annotations are drawn in these bands rather than on top of
 # the model traces.
-EXPLANATORY_ARROW_LOWER_MARGIN_FRACTION = 0.38
-EXPLANATORY_ARROW_UPPER_MARGIN_FRACTION = 0.38
+EXPLANATORY_ARROW_LOWER_MARGIN_FRACTION = 0.05
+EXPLANATORY_ARROW_UPPER_MARGIN_FRACTION = 0.05
 
 FOCAL_COLOR = "#ff2d86"
 REFERENCE_COLOR = "#7550ff"
@@ -175,7 +175,7 @@ INDIVIDUAL_ALPHA = 0.27
 MINORITY_SHADE_COLOR = "0.93"
 BASELINE_COLOR = "0.05"
 
-FIGURE_SIZE = (16.5, 12.0)
+FIGURE_SIZE = (16.5, 13.5)
 OUTPUT_BASENAME = "Figure4_contextual_bias_scholarship_trend_only"
 
 # ============================================================
@@ -188,7 +188,7 @@ BASE_FONT_SIZE = 10.5
 AXIS_FONT_SIZE = 16
 TICK_FONT_SIZE = 13.5
 TITLE_FONT_SIZE = 16
-SUBTITLE_FONT_SIZE = 16
+SUBTITLE_FONT_SIZE = 13.5
 ROW_LABEL_FONT_SIZE = 16
 LEGEND_FONT_SIZE = 16
 CONTEXT_LEGEND_FONT_SIZE = 13.5
@@ -1137,7 +1137,6 @@ def _add_underrepresentation_arrows(
     # favored group in loan approval.
     reverse_vertical_order = (
         application == "loan"
-        and attribute_type == "Gender"
     )
 
     if reverse_vertical_order:
@@ -1157,7 +1156,8 @@ def _add_underrepresentation_arrows(
         upper_text,
         ha="center",
         va="bottom",
-        fontsize=UNDERREPRESENTATION_FONT_SIZE,
+        fontsize=SUBTITLE_FONT_SIZE,
+        fontstyle="italic",
         color=upper_color,
         linespacing=1.05,
         clip_on=False,
@@ -1170,7 +1170,8 @@ def _add_underrepresentation_arrows(
         lower_text,
         ha="center",
         va="top",
-        fontsize=UNDERREPRESENTATION_FONT_SIZE,
+        fontsize=SUBTITLE_FONT_SIZE,
+        fontstyle="italic",
         color=lower_color,
         linespacing=1.05,
         clip_on=False,
