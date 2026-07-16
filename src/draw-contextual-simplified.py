@@ -14,8 +14,9 @@ Each panel contains:
     - cross-model difference-test annotations at 20%, 40%, 60%, and 80%;
     - a dashed uniform-random candidate-level selection-rate baseline;
     - a shaded region indicating that the focal group is the contextual minority;
-    - symmetric contextual-minority/contextual-majority annotations in the
-      first panel of each row.
+    - legends below the plots identifying the contextual-minority regions;
+    - directional arrows in the first panel of each row explaining how
+      preference changes as each group becomes more underrepresented.
 
 The inferential unit for the added tests is the model, which matches the
 unweighted cross-model mean shown by the thick curves:
@@ -61,6 +62,7 @@ from typing import Dict, Iterable, Mapping, MutableMapping, Sequence
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
 from matplotlib.ticker import MaxNLocator, MultipleLocator
 from scipy.stats import t as student_t
 
@@ -155,9 +157,8 @@ Y_AXIS_MIN_DATA_SPAN = 4.00
 Y_AXIS_TARGET_TICKS = 5
 
 # Extra empty space beneath the curves in the first panel of each row so
-# that the contextual-minority/contextual-majority annotations do not overlap
-# the plotted lines.
-FIRST_COLUMN_PANEL_LOWER_MARGIN_FRACTION = 0.22
+# that the lower explanatory arrow does not overlap the plotted lines.
+FIRST_COLUMN_PANEL_LOWER_MARGIN_FRACTION = 0.28
 
 FOCAL_COLOR = "#ff2d86"
 REFERENCE_COLOR = "#7550ff"
@@ -166,7 +167,7 @@ MINORITY_SHADE_COLOR = "0.93"
 BASELINE_COLOR = "0.05"
 
 FIGURE_SIZE = (16.5, 10.5)
-OUTPUT_BASENAME = "Figure4_contextual_bias_reviewer_style_summary"
+OUTPUT_BASENAME = "Figure4_contextual_bias_reviewer_style_summary_context_legends"
 
 # ============================================================
 # Font sizes
@@ -180,11 +181,13 @@ TICK_FONT_SIZE = 13.5
 TITLE_FONT_SIZE = 16
 SUBTITLE_FONT_SIZE = 16
 ROW_LABEL_FONT_SIZE = 16
-INLINE_LABEL_FONT_SIZE = 13.5
-ANNOTATION_FONT_SIZE = 13.5
 LEGEND_FONT_SIZE = 16
+CONTEXT_LEGEND_FONT_SIZE = 13.5
 SIGNIFICANCE_FONT_SIZE = 14.5
 TREND_TEST_FONT_SIZE = 13.5
+UNDERREPRESENTATION_FONT_SIZE = 11.5
+UNDERREPRESENTATION_ARROW_LINEWIDTH = 1.6
+UNDERREPRESENTATION_ARROW_MUTATION_SCALE = 14
 
 
 # ============================================================
@@ -953,77 +956,6 @@ def _panel_y_limits(
     return nice_min, nice_max
 
 
-def _add_inline_group_label(
-    ax: plt.Axes,
-    application: str,
-    group_role: str,
-    label: str,
-    curve: Mapping[float, float],
-    color: str,
-) -> None:
-    """
-    Place an inline group label near the corresponding mean curve.
-
-    Vertical offsets are proportional to the panel's own y-range, so labels
-    remain well positioned when every panel uses different y-axis limits.
-    """
-    xs, ys = _curve_xy(curve)
-    if not xs:
-        return
-
-    ymin, ymax = ax.get_ylim()
-    y_span = max(ymax - ymin, 1e-12)
-
-    if group_role == "focal":
-        index = 0
-        if label == "Female":
-            x_offset = -18
-        else:
-            x_offset = -16
-        y_offset_fraction = {
-            "hiring": 0.03,
-            "loan": -0.085,
-            "edu": 0.075,
-        }[application]
-        horizontal_alignment = "left"
-    elif group_role == "reference":
-        index = -1
-        if label == "Male":
-            x_offset = 14
-        else:
-            x_offset = 16
-        y_offset_fraction = {
-            "hiring": -0.03,
-            "loan": 0.075,
-            "edu": -0.085,
-        }[application]
-        horizontal_alignment = "right"
-    else:
-        raise ValueError(f"Unknown group role: {group_role!r}")
-
-    label_y = ys[index] + y_offset_fraction * y_span
-
-    # Keep the annotation inside its own panel.
-    inner_margin = 0.045 * y_span
-    label_y = min(
-        max(label_y, ymin + inner_margin),
-        ymax - inner_margin,
-    )
-
-    ax.text(
-        xs[index] + x_offset,
-        label_y,
-        label,
-        color=color,
-        fontsize=INLINE_LABEL_FONT_SIZE,
-        fontweight="bold",
-        ha=horizontal_alignment,
-        va="center",
-        clip_on=False,
-        zorder=6,
-    )
-
-
 def _add_cross_model_difference_labels(
     ax: plt.Axes,
     focal_mean: Mapping[float, float],
@@ -1143,6 +1075,138 @@ def _add_cross_model_trend_labels(
     )
 
 
+def _add_underrepresentation_arrows(
+    ax: plt.Axes,
+    attribute_type: str,
+    focal_mean: Mapping[float, float],
+    reference_mean: Mapping[float, float],
+) -> None:
+    """
+    Add two directional annotations to the first panel of each row.
+
+    The focal-group arrow points left because the focal group becomes more
+    underrepresented as its proportion on the x-axis decreases. The
+    reference-group arrow points right because the reference group becomes
+    more underrepresented as the focal-group proportion increases.
+    """
+    annotation_text = {
+        "Gender": {
+            "focal": (
+                "Females more favored when\n"
+                "more underrepresented"
+            ),
+            "reference": (
+                "Males less favored when\n"
+                "more underrepresented"
+            ),
+        },
+        "Race": {
+            "focal": (
+                "Black candidates more favored when\n"
+                "more underrepresented"
+            ),
+            "reference": (
+                "White candidates less favored when\n"
+                "more underrepresented"
+            ),
+        },
+    }
+
+    try:
+        text_for_attribute = annotation_text[attribute_type]
+    except KeyError as exc:
+        raise ValueError(
+            "Underrepresentation annotations are defined only for "
+            f"Gender and Race, not {attribute_type!r}."
+        ) from exc
+
+    ymin, ymax = ax.get_ylim()
+    y_span = max(ymax - ymin, 1e-12)
+
+    focal_values = [
+        float(value)
+        for value in focal_mean.values()
+        if math.isfinite(value)
+    ]
+    reference_values = [
+        float(value)
+        for value in reference_mean.values()
+        if math.isfinite(value)
+    ]
+
+    if not focal_values or not reference_values:
+        return
+
+    # Place the upper annotation just above the focal mean curve, while
+    # keeping enough room for its two-line label and the significance marks.
+    focal_arrow_y = max(focal_values) + 0.055 * y_span
+    focal_arrow_y = min(
+        max(focal_arrow_y, ymin + 0.61 * y_span),
+        ymax - 0.14 * y_span,
+    )
+
+    # Place the lower annotation just below the reference mean curve.
+    reference_arrow_y = min(reference_values) - 0.055 * y_span
+    reference_arrow_y = max(
+        min(reference_arrow_y, ymin + 0.43 * y_span),
+        ymin + 0.29 * y_span,
+    )
+
+    arrow_properties = {
+        "arrowstyle": "-|>",
+        "linewidth": UNDERREPRESENTATION_ARROW_LINEWIDTH,
+        "mutation_scale": UNDERREPRESENTATION_ARROW_MUTATION_SCALE,
+        "shrinkA": 0,
+        "shrinkB": 0,
+    }
+
+    # Focal-group underrepresentation increases toward the left.
+    ax.annotate(
+        "",
+        xy=(19.0, focal_arrow_y),
+        xytext=(59.0, focal_arrow_y),
+        arrowprops={**arrow_properties, "color": FOCAL_COLOR},
+        annotation_clip=False,
+        zorder=8,
+    )
+    ax.text(
+        52.0,
+        focal_arrow_y + 0.025 * y_span,
+        text_for_attribute["focal"],
+        ha="center",
+        va="bottom",
+        fontsize=UNDERREPRESENTATION_FONT_SIZE,
+        fontweight="semibold",
+        color=FOCAL_COLOR,
+        linespacing=1.05,
+        clip_on=False,
+        zorder=8,
+    )
+
+    # Reference-group underrepresentation increases toward the right.
+    ax.annotate(
+        "",
+        xy=(81.0, reference_arrow_y),
+        xytext=(41.0, reference_arrow_y),
+        arrowprops={**arrow_properties, "color": REFERENCE_COLOR},
+        annotation_clip=False,
+        zorder=8,
+    )
+    ax.text(
+        48.0,
+        reference_arrow_y - 0.025 * y_span,
+        text_for_attribute["reference"],
+        ha="center",
+        va="top",
+        fontsize=UNDERREPRESENTATION_FONT_SIZE,
+        fontweight="semibold",
+        color=REFERENCE_COLOR,
+        linespacing=1.05,
+        clip_on=False,
+        zorder=8,
+    )
+
+
 def plot_summary_panel(
     ax: plt.Axes,
     model_to_curves: Mapping[
@@ -1154,7 +1218,7 @@ def plot_summary_panel(
     pool_size: int,
     show_column_header: bool,
     show_x_tick_labels: bool,
-    add_context_note: bool,
+    add_explanatory_arrows: bool,
 ) -> None:
     style = get_attribute_style(attribute_type)
     focal_group = str(style["focal"])
@@ -1264,10 +1328,9 @@ def plot_summary_panel(
         random_rate_percent=random_rate_percent,
     )
 
-    # The first panel of each row contains two explanatory annotations
-    # beneath the curves. Expand only those lower limits to reserve clean
-    # text space.
-    if add_context_note:
+    # The first panel of each row contains two explanatory arrows.
+    # Expand only those lower limits to reserve clean annotation space.
+    if add_explanatory_arrows:
         panel_span = max(panel_ymax - panel_ymin, 1e-12)
         panel_ymin = max(
             0.0,
@@ -1326,8 +1389,6 @@ def plot_summary_panel(
         )
 
     # BH-adjusted two-sided tests of the cross-model mean difference.
-    # These labels are added before the inline group labels so any necessary
-    # upper-axis expansion is reflected in the latter's placement.
     _add_cross_model_difference_labels(
         ax=ax,
         focal_mean=focal_mean,
@@ -1335,24 +1396,6 @@ def plot_summary_panel(
         significance=cross_model_significance,
     )
 
-    # Add labels only after the panel-specific y-range is known.
-    if application == "hiring":
-        _add_inline_group_label(
-            ax=ax,
-            application=application,
-            group_role="focal",
-            label=focal_group,
-            curve=focal_mean,
-            color=FOCAL_COLOR,
-        )
-        _add_inline_group_label(
-            ax=ax,
-            application=application,
-            group_role="reference",
-            label=reference_group,
-            curve=reference_mean,
-            color=REFERENCE_COLOR,
-        )
 
     # BH-adjusted one-sided trend tests for the two mean curves.
     _add_cross_model_trend_labels(
@@ -1361,6 +1404,15 @@ def plot_summary_panel(
         reference_group=reference_group,
         significance=cross_model_significance,
     )
+
+    # Add the explanatory arrows only to the first panel of each row.
+    if add_explanatory_arrows:
+        _add_underrepresentation_arrows(
+            ax=ax,
+            attribute_type=attribute_type,
+            focal_mean=focal_mean,
+            reference_mean=reference_mean,
+        )
 
     ax.tick_params(
         axis="both",
@@ -1409,47 +1461,6 @@ def plot_summary_panel(
             clip_on=False,
         )
 
-    if add_context_note:
-        ymin, ymax = ax.get_ylim()
-        note_y = ymin + 0.045 * (ymax - ymin)
-
-        if attribute_type == "Gender":
-            minority_text = "Female is\ncontextual minority"
-            majority_text = "Male is\ncontextual minority"
-        elif attribute_type == "Race":
-            minority_text = "Black is\ncontextual minority"
-            majority_text = "White is\ncontextual minority"
-        else:
-            raise ValueError(
-                f"Unexpected attribute_type for contextual annotation: "
-                f"{attribute_type!r}"
-            )
-
-        ax.text(
-            25.0,
-            note_y,
-            minority_text,
-            ha="center",
-            va="bottom",
-            fontsize=ANNOTATION_FONT_SIZE,
-            fontstyle="italic",
-            color="0.38",
-            linespacing=1.05,
-            zorder=5,
-        )
-
-        ax.text(
-            75.0,
-            note_y,
-            majority_text,
-            ha="center",
-            va="bottom",
-            fontsize=ANNOTATION_FONT_SIZE,
-            fontstyle="italic",
-            color="0.38",
-            linespacing=1.05,
-            zorder=5,
-        )
 
 
 def _format_model_count(panel_counts: Iterable[int]) -> str:
@@ -1552,7 +1563,7 @@ def draw_figure(
                 pool_size=pool_size,
                 show_column_header=(row_index == 0),
                 show_x_tick_labels=True,
-                add_context_note=(column_index == 0),
+                add_explanatory_arrows=(column_index == 0),
             )
 
     # ------------------------------------------------------------
@@ -1646,7 +1657,7 @@ def draw_figure(
             rotation=90,
         )
 
-    legend_handles = [
+    series_legend_handles = [
         Line2D(
             [0],
             [0],
@@ -1690,7 +1701,7 @@ def draw_figure(
     ]
 
     fig.legend(
-        handles=legend_handles,
+        handles=series_legend_handles,
         loc="lower center",
         bbox_to_anchor=(plots_center_x, 0.005),
         ncol=2,
@@ -1700,6 +1711,41 @@ def draw_figure(
         handletextpad=0.7,
         columnspacing=1.55,
         borderaxespad=0.0,
+        title="Line",
+        title_fontsize=LEGEND_FONT_SIZE,
+    )
+
+    # Explain the shaded and unshaded x-axis regions outside the panels.
+    # The same encoding is used for the gender and race rows.
+    context_legend_handles = [
+        Patch(
+            facecolor=MINORITY_SHADE_COLOR,
+            edgecolor="0.62",
+            linewidth=0.8,
+            label="Female/Black is contextual minority",
+        ),
+        Patch(
+            facecolor="white",
+            edgecolor="0.62",
+            linewidth=0.8,
+            label="Male/White is contextual minority",
+        ),
+    ]
+
+    fig.legend(
+        handles=context_legend_handles,
+        loc="lower center",
+        bbox_to_anchor=(plots_center_x, 0.084),
+        ncol=2,
+        frameon=False,
+        fontsize=CONTEXT_LEGEND_FONT_SIZE,
+        handlelength=1.25,
+        handleheight=0.9,
+        handletextpad=0.55,
+        columnspacing=1.45,
+        borderaxespad=0.0,
+        title="Region",
+        title_fontsize=LEGEND_FONT_SIZE,
     )
 
     pdf_path = output_dir / f"{OUTPUT_BASENAME}.pdf"
