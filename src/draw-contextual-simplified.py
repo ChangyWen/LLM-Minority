@@ -122,7 +122,6 @@ APPLICATION_TEXT = {
     "edu": {
         "title": "Scholarship allocation",
         "subtitle": (
-            "Female/Black favored\n"
             "Pattern resembles hiring"
         ),
     },
@@ -985,8 +984,8 @@ def _add_cross_model_difference_labels(
     y_span = max(ymax - ymin, 1e-12)
     # Keep the test labels clearly above the inline group names used near the
     # first and last mean-curve points.
-    label_offset = 0.065 * y_span
-    label_height = 0.045 * y_span
+    label_offset = 0.035 * y_span
+    label_height = 0.025 * y_span
 
     labels_to_draw: list[tuple[float, float, str]] = []
     required_ymax = ymax
