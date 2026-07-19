@@ -662,6 +662,10 @@ def draw_scale_block(
         row_x_center = (pos_row_left.x0 + pos_row_right.x1) / 2
         row_y = pos_row_left.y1 + row_title_offset
 
+        if attribute_type == "Gender Identity":
+            attribute_type = "Gender identity"
+        if attribute_type == "Sexual Orientation":
+            attribute_type = "Sexual orientation"
         fig.text(
             row_x_center,
             row_y,
