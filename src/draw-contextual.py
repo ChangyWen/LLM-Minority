@@ -1081,8 +1081,8 @@ def draw_attribute_big_figure(
     }
 
     attribute_panel_title_map = {
-        "Gender": ("a", "Evaluation results by gender"),
-        "Race": ("b", "Evaluation results by race"),
+        "Gender": ("A", "Evaluation results by gender"),
+        "Race": ("B", "Evaluation results by race"),
     }
 
     attr_style = get_attribute_style(attribute_type)

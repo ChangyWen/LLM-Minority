@@ -327,10 +327,10 @@ def compute_correlation_family(
 def save_correlation_statistics(correlation_results, output_path):
     """Save raw and BH-adjusted correlation statistics for reproducibility."""
     scale_measure_by_panel = {
-        "a": "Model parameters",
-        "b": "Training compute",
-        "c": "Model parameters",
-        "d": "Training compute",
+        "A": "Model parameters",
+        "B": "Training compute",
+        "C": "Model parameters",
+        "D": "Training compute",
     }
 
     application_labels = {
@@ -726,8 +726,8 @@ def draw_super_scale_figure(
             societal_attribute_type_to_application_to_model_to_delta
         ),
         panel_to_x_values={
-            "a": model_to_parameter_count,
-            "b": model_to_training_compute,
+            "A": model_to_parameter_count,
+            "B": model_to_training_compute,
         },
         attribute_types=societal_attribute_types,
         model_names=model_names,
@@ -739,8 +739,8 @@ def draw_super_scale_figure(
             contextual_attribute_type_to_application_to_model_to_delta
         ),
         panel_to_x_values={
-            "c": model_to_parameter_count,
-            "d": model_to_training_compute,
+            "C": model_to_parameter_count,
+            "D": model_to_training_compute,
         },
         attribute_types=contextual_attribute_types,
         model_names=model_names,
@@ -786,7 +786,7 @@ def draw_super_scale_figure(
         model_names=model_names,
         model_to_color=model_to_color,
         correlation_results=correlation_results,
-        panel_letter="a",
+        panel_letter="A",
         block_title="Societal minority bias vs. model parameters",
         xlabel=r"$\log_{10}$(Model parameters / $10^9$)",
         ylabel="Relative score difference (%)",
@@ -804,7 +804,7 @@ def draw_super_scale_figure(
         model_names=model_names,
         model_to_color=model_to_color,
         correlation_results=correlation_results,
-        panel_letter="b",
+        panel_letter="B",
         block_title="Societal minority bias vs. training compute",
         xlabel=r"$\log_{10}$(Training compute / $10^{23}$ FLOPs)",
         ylabel=None,
@@ -822,7 +822,7 @@ def draw_super_scale_figure(
         model_names=model_names,
         model_to_color=model_to_color,
         correlation_results=correlation_results,
-        panel_letter="c",
+        panel_letter="C",
         block_title="Contextual minority bias vs. model parameters",
         xlabel=r"$\log_{10}$(Model parameters / $10^9$)",
         ylabel="Mean absolute candidate-level selection-rate difference (pp)",
@@ -840,7 +840,7 @@ def draw_super_scale_figure(
         model_names=model_names,
         model_to_color=model_to_color,
         correlation_results=correlation_results,
-        panel_letter="d",
+        panel_letter="D",
         block_title="Contextual minority bias vs. training compute",
         xlabel=r"$\log_{10}$(Training compute / $10^{23}$ FLOPs)",
         ylabel=None,

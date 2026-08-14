@@ -1056,7 +1056,7 @@ def draw_combined_llama_figure(
     fig.text(
         soc_x0 - 0.030,
         soc_y1 + letter_y_offset,
-        "a",
+        "A",
         ha="left",
         va="bottom",
         fontsize=FIG_FONT_SIZE,
@@ -1076,7 +1076,7 @@ def draw_combined_llama_figure(
     fig.text(
         ctx_x0 - 0.030,
         ctx_y1 + letter_y_offset,
-        "b",
+        "B",
         ha="left",
         va="bottom",
         fontsize=FIG_FONT_SIZE,
