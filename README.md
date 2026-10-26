@@ -657,3 +657,9 @@ After preparing new data:
 6. Run the plotting script and inspect its printed sample counts and warnings before interpreting the figure.
 
 For a new application with a different profile schema, copy the closest application directory and modify its profile loader and prompt builder while preserving the output fields described above. This lets the aggregate statistical code be reused with minimal changes.
+
+## License
+
+The source code in this repository is licensed under the [Apache License 2.0](LICENSE).
+
+Third-party datasets included in `dataset/` are excluded from this license and remain subject to their original terms. See [Data Availability](#data-availability) for sources.
