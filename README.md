@@ -1,6 +1,6 @@
-# Understanding LLMs' bias toward societal and contextual minorities
+# Minority bias in large language models depends on decision context
 
-Code, processed data, model outputs, and plotting scripts for the paper **"Understanding LLMs' bias toward societal and contextual minorities"**.
+Code, processed data, model outputs, and plotting scripts for the paper **"Minority bias in large language models depends on decision context"**.
 
 This repository evaluates how large language models (LLMs) treat two distinct forms of minority status in high-stakes decision-making:
 
